@@ -35,8 +35,3 @@ export const tierMeta: Record<number, { color: string; muted: string; label: str
   2: { color: C.tier2, muted: C.tier2Muted, label: 'Tier 2', sub: '2004-2011' },
   3: { color: C.tier3, muted: C.tier3Muted, label: 'Tier 3', sub: 'Post-2011' },
 }
-
-export function fmt(n: number | undefined | null): string {
-  if (n == null) return '—'
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}

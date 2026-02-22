@@ -1,4 +1,10 @@
-/** Member dashboard — retirement readiness, application status, quick actions */
+/**
+ * Member dashboard — retirement readiness card, application status, quick links.
+ * Shows hero benefit amount from rules engine, application progress if one exists,
+ * and "Start Application" button if no application is in progress.
+ * Consumed by: router.tsx (index route under /portal)
+ * Depends on: useTheme, usePortalAuth, useMember hooks, useApplication, constants (fmt, dates)
+ */
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
@@ -6,23 +12,15 @@ import { useMember, useServiceCredit } from '@/hooks/useMember'
 import { useEligibility, useBenefitCalculation } from '@/hooks/useCalculations'
 import { useApplication } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
+import { DEFAULT_RETIREMENT_DATES, fmt } from '@/lib/constants'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
-const DEFAULT_DATES: Record<string, string> = {
-  '10001': '2026-04-01', '10002': '2026-05-01',
-  '10003': '2026-04-01', '10004': '2026-04-01',
-}
-
-const fmt = (n: number | undefined | null): string => {
-  if (n == null) return '--'
-  return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-}
 
 export function MemberDashboard() {
   const T = useTheme()
   const navigate = useNavigate()
   const { memberId } = usePortalAuth()
-  const retDate = DEFAULT_DATES[memberId] || '2026-04-01'
+  const retDate = DEFAULT_RETIREMENT_DATES[memberId] || '2026-04-01'
 
   const member = useMember(memberId)
   const service = useServiceCredit(memberId)

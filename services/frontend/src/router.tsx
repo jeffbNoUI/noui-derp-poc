@@ -1,3 +1,9 @@
+/**
+ * Central route definitions — maps URLs to layouts and page components.
+ * Routes: / (portal switcher), /staff/* (staff workspace), /portal/* (member portal).
+ * Consumed by: main.tsx (via RouterProvider)
+ * Depends on: all layout and page components, react-router-dom
+ */
 import { createBrowserRouter } from 'react-router-dom'
 import { StaffLayout } from '@/layouts/StaffLayout'
 import { MemberLayout } from '@/layouts/MemberLayout'

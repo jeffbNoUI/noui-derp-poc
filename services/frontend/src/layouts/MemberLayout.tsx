@@ -1,6 +1,9 @@
 /**
- * Member portal layout — MyDERP branding, top navigation, light theme.
- * From noui-multi-portal.jsx prototype (PORTALS.member).
+ * Member portal layout — MyDERP branding header, nav tabs, member selector dropdown.
+ * Light theme (teal accent, white surfaces) from noui-multi-portal.jsx prototype.
+ * Wraps children in ThemeProvider (memberTheme) and PortalAuthProvider.
+ * Consumed by: router.tsx (wraps /portal/* routes)
+ * Depends on: ThemeProvider, memberTheme, PortalAuthProvider, react-router-dom
  */
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { useTheme } from '@/theme'

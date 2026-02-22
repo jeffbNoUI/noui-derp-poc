@@ -1,4 +1,10 @@
-/** TanStack Query hooks for portal application data */
+/**
+ * TanStack Query hooks for portal application data.
+ * Provides useApplication, useApplicationDocuments, useApplicationMessages,
+ * useApplicationHistory (queries) and useSubmitApplication (mutation).
+ * Consumed by: MemberDashboard, ApplicationWizard, ApplicationStatus
+ * Depends on: portalDemoApi, TanStack Query
+ */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { portalDemoApi } from '@/api/portal-demo-data'
 

@@ -1,4 +1,10 @@
-/** Portal types for member self-service and application lifecycle */
+/**
+ * Portal types — application lifecycle state machine, status display metadata,
+ * progress stages, submission/document/message/transition interfaces, and
+ * ApplicationDraft form type for the 7-step wizard.
+ * Consumed by: portal pages, usePortal hooks, portal-demo-data
+ * Depends on: Nothing (pure type definitions)
+ */
 
 export type ApplicationStatus =
   | 'DRAFT'

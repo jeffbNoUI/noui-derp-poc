@@ -1,6 +1,8 @@
 /**
  * Landing page — choose between Staff Portal and Member Portal.
- * Matches the portal switcher concept from noui-multi-portal.jsx.
+ * Two cards with portal descriptions; clicking navigates to the selected portal.
+ * Consumed by: router.tsx (root "/" route)
+ * Depends on: react-router-dom (useNavigate)
  */
 import { useNavigate } from 'react-router-dom'
 

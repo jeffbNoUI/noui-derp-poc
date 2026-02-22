@@ -1,3 +1,8 @@
+/**
+ * Application entry point — mounts React root with router and TanStack Query.
+ * Consumed by: index.html (via Vite)
+ * Depends on: router, QueryClient, React 19
+ */
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'

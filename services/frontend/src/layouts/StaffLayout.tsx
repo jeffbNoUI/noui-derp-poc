@@ -1,10 +1,14 @@
 /**
- * Staff portal layout — extracted from App.tsx.
- * Dark theme, top bar with NoUI branding, bottom demo case bar.
+ * Staff portal layout — dark theme wrapper with NoUI branding top bar and
+ * bottom demo case bar. Renders <Outlet /> for nested staff routes.
+ * Consumed by: router.tsx (wraps /staff/* routes)
+ * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom
  */
 import { Component, type ReactNode } from 'react'
 import { Outlet, useNavigate, useParams } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
+import { Badge } from '@/components/shared/Badge'
+import { DEMO_CASES } from '@/lib/constants'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -20,22 +24,6 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   }
 }
 
-function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '9px', padding: '2px 6px',
-      borderRadius: '99px', background: bg, color, fontWeight: 600,
-      letterSpacing: '0.3px', textTransform: 'uppercase' as const, lineHeight: '14px', whiteSpace: 'nowrap' as const,
-    }}>{text}</span>
-  )
-}
-
-const DEMO_CASES = [
-  { id: '10001', name: 'Robert Martinez', tier: 1, label: 'Tier 1 | Rule of 75 | Leave Payout' },
-  { id: '10002', name: 'Jennifer Kim', tier: 2, label: 'Tier 2 | Purchased Svc | 30% Reduction' },
-  { id: '10003', name: 'David Washington', tier: 3, label: 'Tier 3 | 60-Mo AMS | 12% Reduction' },
-  { id: '10004', name: 'Robert Martinez', tier: 1, label: 'Tier 1 | Rule of 75 | DRO', suffix: ' +DRO' },
-] as const
 
 export function StaffLayout() {
   const navigate = useNavigate()

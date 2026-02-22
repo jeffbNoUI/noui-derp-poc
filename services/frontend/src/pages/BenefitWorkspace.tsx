@@ -1,14 +1,19 @@
+/**
+ * Staff benefit workspace — full retirement application processing view.
+ * Expandable panels for eligibility, salary/AMS, benefit calculation, payment
+ * options, DRO impact, and IPR. Live summary sidebar tracks confirmation progress.
+ * Consumed by: StaffCaseView (via /staff/case/:memberId route)
+ * Depends on: theme (C, tierMeta, fmt), Badge, DEFAULT_RETIREMENT_DATES,
+ *   useMember, useCalculations hooks, Member types
+ */
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useMember, useServiceCredit, useDROs } from '@/hooks/useMember'
 import { useEligibility, useBenefitCalculation, usePaymentOptions, useDROCalculation, useSaveElection } from '@/hooks/useCalculations'
 import type { BenefitResult, ServiceCreditSummary, DROResult, PaymentOptionsResult } from '@/types/Member'
 import { C, tierMeta, fmt } from '@/theme'
+import { Badge } from '@/components/shared/Badge'
+import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 
-// ─── Default retirement dates per demo case ─────────────────────
-const DEFAULT_DATES: Record<string, string> = {
-  '10001': '2026-04-01', '10002': '2026-05-01',
-  '10003': '2026-04-01', '10004': '2026-04-01',
-}
 
 // ─── Supplemental salary period data for demo display ───────────
 const SALARY_ROWS: Record<string, { period: string; months: number; monthly: number }[]> = {
@@ -50,16 +55,6 @@ const AMS_NO_LEAVE: Record<string, number> = {
 
 // ─── Micro Components ───────────────────────────────────────────
 
-function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
-  return (
-    <span style={{
-      display: 'inline-block', fontSize: '9px', padding: '2px 6px',
-      borderRadius: '99px', background: bg, color, fontWeight: 600,
-      letterSpacing: '0.3px', textTransform: 'uppercase' as const,
-      lineHeight: '14px', whiteSpace: 'nowrap' as const,
-    }}>{text}</span>
-  )
-}
 
 function Field({ label, value, highlight, badge, sub }: {
   label: string; value: string; highlight?: boolean
@@ -358,7 +353,7 @@ function LiveSummary({
 // ─── Main Workspace Component ───────────────────────────────────
 
 export function BenefitWorkspace({ memberId }: { memberId: string }) {
-  const [retirementDate, setRetirementDate] = useState(DEFAULT_DATES[memberId] || '')
+  const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
   const [confirmed, setConfirmed] = useState(new Set<string>())
   const [focused, setFocused] = useState('confirm')
   const [electedOption, setElectedOption] = useState('')
@@ -380,7 +375,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
 
   // Reset state when member changes
   useEffect(() => {
-    setRetirementDate(DEFAULT_DATES[memberId] || '')
+    setRetirementDate(DEFAULT_RETIREMENT_DATES[memberId] || '')
     setConfirmed(new Set())
     setFocused('confirm')
     setElectedOption('')

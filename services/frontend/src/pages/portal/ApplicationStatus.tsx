@@ -1,4 +1,9 @@
-/** Application status tracking page — progress bar, timeline, document checklist */
+/**
+ * Application status tracking page — 6-stage progress bar, status detail,
+ * notarization instructions (when SUBMITTED), timeline, document checklist, messages.
+ * Consumed by: router.tsx (route /portal/status/:appId)
+ * Depends on: useTheme, usePortalAuth, usePortal hooks, Portal types
+ */
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { usePortalAuth } from '@/portal/auth/AuthContext'

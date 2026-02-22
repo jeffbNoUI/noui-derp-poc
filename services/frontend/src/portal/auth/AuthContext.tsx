@@ -1,7 +1,8 @@
 /**
- * Simulated member authentication for POC.
- * Provides a dropdown to switch between demo members.
- * No real authentication — just sets the active member ID in React state.
+ * Simulated member authentication for POC — dropdown to switch between 4 demo members.
+ * No real authentication — just sets the active member ID in React context.
+ * Consumed by: MemberLayout (provides context), all portal pages (consume via usePortalAuth)
+ * Depends on: React context, DEMO_MEMBERS constant
  */
 import { createContext, useContext, useState, type ReactNode } from 'react'
 

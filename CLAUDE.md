@@ -209,6 +209,81 @@ Every service exposes GET /healthz returning 200 with:
 - Verify incorrect components do NOT appear
 - Test all four demo cases produce the expected workspace layout
 
+## Code Quality Standards
+
+These standards apply to ALL code written in this project. They are enforced through code review and regression testing.
+
+### Comments and Documentation
+
+Every file must have a **file-level doc comment** (first line) that explains:
+1. What this file does (one sentence)
+2. What depends on it (downstream consumers)
+3. What it depends on (upstream data sources)
+
+Example:
+```typescript
+/**
+ * Portal demo data fixtures — application states, documents, messages, status history.
+ * Consumed by: usePortal.ts hooks, MemberDashboard, ApplicationStatus, ApplicationWizard
+ * Depends on: Portal.ts types, demo-data.ts member/benefit fixtures (shared member IDs)
+ */
+```
+
+**Inline comments** are required when:
+- A design decision isn't obvious from the code ("// Wizard reads from same demo fixtures as staff workspace — governing principle: portal never calculates")
+- A value is derived from a business rule ("// 3% per year for Tiers 1/2, 6% for Tier 3 — RMC §18-409(b)")
+- A workaround or non-obvious pattern is used ("// Guard against optional death_benefit — undefined for deferred retirement members")
+- Code connects to another system boundary ("// Matches CASE_HIST.APP_ID column added in 002_portal_schema.sql")
+
+Do NOT add noise comments that restate what the code already says.
+
+### File Size and Organization
+
+- **Max ~200 lines per component file.** If a component exceeds this, split it into sub-components in a co-located directory.
+- **One concern per file.** A file should do one thing. Wizard steps are separate files. Layout and content are separate files.
+- **Shared utilities belong in shared locations.** If a helper function (fmt, Badge, DEFAULT_DATES) is used by 2+ files, extract it to a shared utility file. Never duplicate.
+
+### DRY (Don't Repeat Yourself)
+
+- **Constants**: Define once in a canonical location, import everywhere. Demo case IDs, retirement dates, formatting functions — one source of truth.
+- **Components**: If a UI pattern (Badge, Callout, Field) appears in 2+ places, extract to `src/components/shared/`.
+- **Types**: All shared types in `src/types/`. Never define inline types that match an existing interface.
+
+### Touchpoint Analysis and Regression Testing
+
+Before submitting any feature, identify its **touchpoints** — the files and data contracts it depends on (upstream) and the files that depend on it (downstream). This analysis drives what must be tested.
+
+**Required test coverage for every new feature:**
+
+| Test Type | What It Covers | When Required |
+|---|---|---|
+| **Data contract tests** | Fixtures conform to TypeScript types; shared IDs are consistent across modules | Any change to types, demo data, or API contracts |
+| **Route smoke tests** | Every route renders without errors for each demo member | Any change to routing, layouts, or page components |
+| **State machine tests** | Pure logic functions (reducers, validators, canContinue) produce correct results | Any change to wizard flow, form state, or business logic |
+| **Export/import tests** | Barrel files export everything consumers expect | Any change to module structure or re-exports |
+| **Calculation accuracy tests** | Benefit amounts match hand-calculated demo case fixtures TO THE PENNY | Any change to calculation code, AMS, multipliers, or reduction factors |
+
+**Touchpoint documentation format** (added as a comment block in test files):
+```typescript
+/**
+ * TOUCHPOINTS for MemberDashboard:
+ *   Upstream: demo-data.ts (member, eligibility, benefit), portal-demo-data.ts (application state)
+ *   Downstream: None (leaf component)
+ *   Shared: useTheme(), usePortalAuth(), fmt()
+ */
+```
+
+### Pre-Commit Checklist
+
+Before every commit, verify:
+1. `npx tsc -b --noEmit` — zero TypeScript errors
+2. `npx vitest run` — all tests pass
+3. `npx vite build` — production build succeeds
+4. No duplicated utilities or constants
+5. All new files have file-level doc comments
+6. Touchpoint analysis completed for new features
+7. Regression tests added for identified touchpoints
+
 ## File Naming Conventions
 
 ### Go Files
