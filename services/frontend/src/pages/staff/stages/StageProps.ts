@@ -7,6 +7,7 @@ import type {
   Member, ServiceCreditSummary, EligibilityResult, BenefitResult,
   PaymentOptionsResult, DRORecord, DROResult, ApplicationIntake,
 } from '@/types/Member'
+import type { AnalystInputs } from '../guided-types'
 
 export interface StageProps {
   memberId: string
@@ -23,4 +24,8 @@ export interface StageProps {
   electedOption: string
   onElectOption: (option: string) => void
   leavePayout: number
+  /** Analyst-entered fields from the application (F-4) */
+  analystInputs?: AnalystInputs
+  /** Callback to update analyst input fields */
+  onUpdateAnalystInput?: (field: keyof AnalystInputs, value: string | number | boolean) => void
 }
