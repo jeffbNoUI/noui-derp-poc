@@ -12,7 +12,10 @@ import type { LayerState } from './guided-types'
 export interface LearningModuleProps {
   stage: StageHelp
   confirmed: Set<string>
+  /** Merged set: auto-checked + manually-checked items */
   checkedItems: Set<number>
+  /** Items verified automatically by the system (subset of checkedItems) */
+  autoCheckedItems: Set<number>
   layers: LayerState
   canConfirm: boolean
   isLastStage: boolean
@@ -27,13 +30,14 @@ export interface LearningModuleProps {
 }
 
 export function LearningModule({
-  stage, confirmed, checkedItems, layers, canConfirm,
+  stage, confirmed, checkedItems, autoCheckedItems, layers, canConfirm,
   isLastStage, allConfirmed, saveStatus,
   onToggleCheck, onToggleLayer, onConfirm, onNext, onUnconfirm, onSave,
 }: LearningModuleProps) {
   const isConfirmed = confirmed.has(stage.id)
   const checkCount = checkedItems.size
   const checkTotal = stage.checklist.length
+  const allAutoChecked = autoCheckedItems.size >= checkTotal
 
   return (
     <div style={{
@@ -112,26 +116,37 @@ export function LearningModule({
               color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Verify</div>
-            {stage.checklist.map((item, i) => (
-              <div key={i}
-                onClick={() => !isConfirmed && onToggleCheck(i)}
-                style={{
-                  display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '4px 0',
-                  cursor: isConfirmed ? 'default' : 'pointer',
-                  borderRadius: '3px',
-                }}>
-                <span style={{
-                  color: checkedItems.has(i) ? C.success : C.textDim,
-                  fontSize: '12px', flexShrink: 0, lineHeight: '1.3',
-                }}>
-                  {checkedItems.has(i) ? '\u2611' : '\u2610'}
-                </span>
-                <span style={{
-                  color: checkedItems.has(i) ? C.text : C.textSecondary,
-                  fontSize: '10.5px', lineHeight: '1.4',
-                }}>{item}</span>
-              </div>
-            ))}
+            {stage.checklist.map((item, i) => {
+              const isAuto = autoCheckedItems.has(i)
+              const isChecked = checkedItems.has(i)
+              // Auto-checked items are not manually toggleable
+              const canToggle = !isConfirmed && !isAuto
+              return (
+                <div key={i}
+                  onClick={() => canToggle && onToggleCheck(i)}
+                  style={{
+                    display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '4px 0',
+                    cursor: canToggle ? 'pointer' : 'default',
+                    borderRadius: '3px',
+                  }}>
+                  <span style={{
+                    color: isChecked ? C.success : C.textDim,
+                    fontSize: '12px', flexShrink: 0, lineHeight: '1.3',
+                  }}>
+                    {isChecked ? '\u2611' : '\u2610'}
+                  </span>
+                  <span style={{
+                    color: isChecked ? C.text : C.textSecondary,
+                    fontSize: '10.5px', lineHeight: '1.4',
+                  }}>
+                    {item}
+                    {isAuto && (
+                      <span style={{ color: C.textDim, fontSize: '9px', marginLeft: '4px' }}>(auto)</span>
+                    )}
+                  </span>
+                </div>
+              )
+            })}
 
             {/* Checklist completion counter */}
             <div style={{
@@ -181,7 +196,7 @@ export function LearningModule({
             }}
           >
             {canConfirm
-              ? `${stage.confirmLabel} \u2192`
+              ? (allAutoChecked ? `All Verified \u2014 Skip \u2192` : `${stage.confirmLabel} \u2192`)
               : `Complete checklist to continue (${checkCount}/${checkTotal})`}
           </button>
         )}

@@ -20,6 +20,7 @@ import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 import { composeStages } from './guided-composition'
 import { computeAllSignals } from './guided-signals'
 import { computeStageDepth } from './guided-depth'
+import { computeAllAutoChecks, mergeChecks } from './guided-autochecks'
 import { reducer, initialState } from './guided-types'
 import type { StageProps } from './stages/StageProps'
 import { LearningModule } from './LearningModule'
@@ -121,11 +122,25 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   )
   const currentDepth = currentStage ? depths[currentStage.id] : 'full'
 
+  // Compute auto-checks — items the system can verify from loaded data
+  const autoCheckCtx = {
+    member: m, intake: intake.data, serviceCredit: sc,
+    eligibility: elig, benefit: ben, paymentOptions: opts,
+    droCalc: dro, leavePayout, electedOption: state.electedOption,
+    retirementDate,
+  }
+  const autoChecks = computeAllAutoChecks(stages.map(s => s.id), autoCheckCtx)
+
+  // Merge auto-checked and manually-checked items for gating and display
+  const mergedChecks: Record<string, Set<number>> = Object.fromEntries(
+    stages.map(s => [s.id, mergeChecks(autoChecks[s.id] ?? new Set(), state.checkedItems[s.id] ?? new Set())])
+  )
+
   // Checklist gating: all items must be checked before confirm (when checklist layer is on)
   // Summary-depth stages bypass checklist gating — green signal means pre-verified
-  const currentChecked = currentStage ? (state.checkedItems[currentStage.id] ?? new Set<number>()) : new Set<number>()
+  const currentMerged = currentStage ? mergedChecks[currentStage.id] : new Set<number>()
   const checklistComplete = currentStage
-    ? currentChecked.size >= currentStage.checklist.length
+    ? currentMerged.size >= currentStage.checklist.length
     : false
   const isSummaryStage = currentDepth === 'summary'
   const canConfirm = currentStage
@@ -351,7 +366,8 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
             depths={depths}
             confirmed={state.confirmed}
             expandedStages={state.expandedStages}
-            checkedItems={state.checkedItems}
+            checkedItems={mergedChecks}
+            autoCheckedItems={autoChecks}
             layers={state.layers}
             onToggleExpand={(id) => dispatch({ type: 'TOGGLE_EXPAND', stageId: id })}
             onExpandStage={(id) => dispatch({ type: 'EXPAND_STAGE', stageId: id })}
@@ -366,14 +382,15 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
           <LearningModule
             stage={focusedStage}
             confirmed={state.confirmed}
-            checkedItems={state.checkedItems[focusedStage.id] ?? new Set<number>()}
+            checkedItems={mergedChecks[focusedStage.id] ?? new Set<number>()}
+            autoCheckedItems={autoChecks[focusedStage.id] ?? new Set<number>()}
             layers={state.layers}
             canConfirm={
               state.viewMode === 'guided'
                 ? canConfirm
                 : (depths[focusedStage.id] === 'summary'
                     || (state.layers.checklist
-                      ? (state.checkedItems[focusedStage.id]?.size ?? 0) >= focusedStage.checklist.length
+                      ? (mergedChecks[focusedStage.id]?.size ?? 0) >= focusedStage.checklist.length
                       : true)) && !state.confirmed.has(focusedStage.id)
             }
             isLastStage={state.viewMode === 'guided' ? isLastStage : focusedStage.id === stages[stages.length - 1]?.id}

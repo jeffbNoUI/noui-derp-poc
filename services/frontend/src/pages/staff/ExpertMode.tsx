@@ -28,7 +28,10 @@ export interface ExpertModeProps {
   depths: Record<string, StageDepth>
   confirmed: Set<string>
   expandedStages: Set<string>
+  /** Merged checked items (auto + manual) per stage */
   checkedItems: Record<string, Set<number>>
+  /** Items auto-verified by the system per stage */
+  autoCheckedItems: Record<string, Set<number>>
   layers: { checklist: boolean }
   onToggleExpand: (stageId: string) => void
   onExpandStage: (stageId: string) => void
@@ -39,7 +42,7 @@ export interface ExpertModeProps {
 
 export function ExpertMode({
   stages, stageComponents, stageProps, signals, depths, confirmed, expandedStages,
-  checkedItems, layers, onToggleExpand, onExpandStage,
+  checkedItems, autoCheckedItems, layers, onToggleExpand, onExpandStage,
   onConfirm, onUnconfirm, onToggleCheck,
 }: ExpertModeProps) {
   return (
@@ -52,8 +55,10 @@ export function ExpertMode({
         const depth = depths[stage.id] ?? 'full'
         const isSummary = depth === 'summary'
         const checked = checkedItems[stage.id] ?? new Set<number>()
+        const autoChecked = autoCheckedItems[stage.id] ?? new Set<number>()
         const checkTotal = stage.checklist.length
         const checklistComplete = checked.size >= checkTotal
+        const allAutoChecked = autoChecked.size >= checkTotal
         // Summary stages bypass checklist gating — green signal = pre-verified
         const canConfirm = (isSummary || (layers.checklist ? checklistComplete : true)) && !isConfirmed
 
@@ -141,25 +146,33 @@ export function ExpertMode({
                         color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
                         letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
                       }}>Verify</div>
-                      {stage.checklist.map((item, i) => (
-                        <div key={i}
-                          onClick={() => !isConfirmed && onToggleCheck(stage.id, i)}
-                          style={{
-                            display: 'flex', alignItems: 'flex-start', gap: '4px', padding: '2px 0',
-                            cursor: isConfirmed ? 'default' : 'pointer',
-                          }}>
-                          <span style={{
-                            color: checked.has(i) ? C.success : C.textDim,
-                            fontSize: '11px', flexShrink: 0, lineHeight: '1.3',
-                          }}>
-                            {checked.has(i) ? '\u2611' : '\u2610'}
-                          </span>
-                          <span style={{
-                            color: checked.has(i) ? C.text : C.textSecondary,
-                            fontSize: '9.5px', lineHeight: '1.4',
-                          }}>{item}</span>
-                        </div>
-                      ))}
+                      {stage.checklist.map((item, i) => {
+                        const isAuto = autoChecked.has(i)
+                        const isItemChecked = checked.has(i)
+                        const canToggle = !isConfirmed && !isAuto
+                        return (
+                          <div key={i}
+                            onClick={() => canToggle && onToggleCheck(stage.id, i)}
+                            style={{
+                              display: 'flex', alignItems: 'flex-start', gap: '4px', padding: '2px 0',
+                              cursor: canToggle ? 'pointer' : 'default',
+                            }}>
+                            <span style={{
+                              color: isItemChecked ? C.success : C.textDim,
+                              fontSize: '11px', flexShrink: 0, lineHeight: '1.3',
+                            }}>
+                              {isItemChecked ? '\u2611' : '\u2610'}
+                            </span>
+                            <span style={{
+                              color: isItemChecked ? C.text : C.textSecondary,
+                              fontSize: '9.5px', lineHeight: '1.4',
+                            }}>
+                              {item}
+                              {isAuto && <span style={{ color: C.textDim, fontSize: '8px', marginLeft: '3px' }}>(auto)</span>}
+                            </span>
+                          </div>
+                        )
+                      })}
                       <div style={{
                         marginTop: '4px', fontSize: '9px', fontWeight: 600, textAlign: 'center' as const,
                         color: checklistComplete ? C.success : C.textMuted,
@@ -186,7 +199,7 @@ export function ExpertMode({
                           transition: 'all 0.2s',
                         }}
                       >
-                        {canConfirm ? stage.confirmLabel : `${checked.size}/${checkTotal}`}
+                        {canConfirm ? (allAutoChecked ? 'All Verified \u2014 Skip' : stage.confirmLabel) : `${checked.size}/${checkTotal}`}
                       </button>
                     ) : (
                       <button
