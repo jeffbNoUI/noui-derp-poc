@@ -913,3 +913,42 @@ All 8 calculation/analysis components from BUILD_PLAN Day 7:
 
 ### Backtrack Points:
 - **BT-013:** Day 8 complete. Workspace composition engine with 5 passing tests. All demo cases verified for correct component presence/absence. Return here to restart from Day 9 (Data Quality Engine).
+
+---
+
+## Build Days 9-10 — February 22, 2026
+
+### Session 15: Data Quality Engine + Operational Analysis
+
+**Day 9 — Data Quality Engine:**
+- Created `dataquality/checker.go` with 4 check functions + RunAllChecks aggregator
+- Structural checks: contradictory status (STATUS_CD='A' with TERM_DATE), beneficiary allocation ≠ 100%
+- Balance checks: contribution balance mismatches with tiered severity ($0.50/$50 thresholds)
+- Calculation checks: benefit amount verification with tiered severity ($1/$25 thresholds)
+- All findings include ProposedResolution using controlled terminology ("awaiting review")
+- 18 data quality tests, all passing
+- Frontend: DataQualityDashboard with severity filtering, category breakdown, finding cards
+
+**Day 10 — Operational Analysis:**
+- Frontend: OperationalDashboard component with processing time table, exception frequency bars, workflow patterns
+- TypeScript types for operational analysis data (ProcessingTimeAnalysis, ExceptionFrequency, WorkflowPattern)
+- These will be populated from historical CASE_HIST analysis when database is available
+
+**Verification:**
+- Go: 43 intelligence tests pass (25 existing + 18 new data quality)
+- Frontend: TypeScript builds clean
+- Vitest: 5 composition tests pass
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/intelligence/internal/dataquality/checker.go | Data quality check engine (4 checks + aggregator) | Active |
+| services/intelligence/internal/dataquality/checker_test.go | Data quality tests (18) | Active |
+| services/frontend/src/types/DataQuality.ts | TypeScript types for DQ findings | Active |
+| services/frontend/src/components/DataQualityDashboard.tsx | DQ dashboard with filtering | Active |
+| services/frontend/src/types/OperationalAnalysis.ts | TypeScript types for ops analysis | Active |
+| services/frontend/src/components/OperationalDashboard.tsx | Operational analysis dashboard | Active |
+
+### Backtrack Points:
+- **BT-014:** Days 9-10 complete. Data quality engine with 18 tests + both dashboard components. Return here to restart from Day 11 (Comprehensive Test Suite).
