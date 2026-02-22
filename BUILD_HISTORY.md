@@ -1111,3 +1111,79 @@ Created the AI-accelerated change management demonstration package, showing how 
 
 ### Backtrack Points:
 - **BT-017:** Day 14 complete. Demo environment operational with cached fixtures. 18 verification tests confirm all cases match hand calculations. Return here to restart from Day 15 (Rehearsal).
+
+---
+
+## Build Day 15 — February 22, 2026
+
+### Session 19: Rehearsal + Supporting Materials
+
+**Deliverables:**
+
+1. **Demo Script** (demo-script.md)
+   - Complete 25-30 minute walkthrough with speaker notes
+   - Pre-demo checklist
+   - Detailed flow for all 4 cases with exact talking points
+   - AI-accelerated change management segment
+   - Data quality segment
+   - 7 anticipated questions with prepared answers
+   - Fallback plan
+
+2. **One-Pager** (noui-derp-one-pager.md)
+   - Problem statement, NoUI approach, AI role definition
+   - POC scope with 4 demo case summary table
+   - Governing principles
+   - Next steps
+
+3. **Architecture Overview** (architecture-overview.md)
+   - System architecture diagram (ASCII)
+   - Layer responsibilities table
+   - Calculation flow, rule governance flow
+   - Service credit separation diagram
+   - DRO sequence diagram
+   - Complete file structure
+   - Testing strategy with counts by category
+
+**Final Verification:**
+- ✅ Connector: 17/17 tests pass
+- ✅ Intelligence: 54/54 tests pass
+- ✅ Frontend: 23/23 tests pass
+- ✅ **Total: 94 tests, all passing**
+- ✅ TypeScript: clean compilation
+- ✅ Vite build: production build success
+- ✅ Controlled terminology: zero violations
+- ✅ Demo mode: all 4 cases serve correct data
+- ✅ Demo verification: 18 tests confirm fixture accuracy
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| demo-script.md | Complete demo walkthrough with speaker notes and FAQ | Active |
+| noui-derp-one-pager.md | Executive summary for stakeholders | Active |
+| architecture-overview.md | Technical architecture with diagrams | Active |
+
+### Backtrack Points:
+- **BT-018:** Day 15 complete. Full POC build finished. 94 tests passing. Demo script, one-pager, and architecture overview ready. Demo mode operational.
+
+---
+
+## Build Complete
+
+**Summary:**
+- 15-day build plan executed across 19 sessions
+- 52 business rules defined in YAML with RMC citations
+- 4 demo cases verified against hand calculations
+- 94 automated tests across 3 services
+- Deterministic rules engine — AI does not execute business rules
+- Phase 1 Transparent — every calculation shows its work
+- Demo mode: standalone, no backend required, all data verified
+
+**Test Count by Service:**
+
+| Service | Tests | Categories |
+|---------|-------|-----------|
+| Connector | 17 | AMS calculation (8), API handlers (9) |
+| Intelligence | 54 | Eligibility (15), Benefit (13), DRO (4), Rules (8), Data Quality (18), Change Mgmt (1) |
+| Frontend | 23 | Composition (5), Demo Verification (18) |
+| **Total** | **94** | |
