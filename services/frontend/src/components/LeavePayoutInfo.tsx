@@ -43,7 +43,7 @@ export function LeavePayoutInfo({ member, leavePayoutAmount }: LeavePayoutInfoPr
             <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
             <span className="text-amber-800">
               This amount is added to the final month's pensionable pay. The AMS calculation
-              automatically includes this when computing the highest consecutive salary window.
+              includes this when computing the highest consecutive salary window.
             </span>
           </div>
         </div>

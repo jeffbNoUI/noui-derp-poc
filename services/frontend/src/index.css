@@ -12,6 +12,18 @@
   --color-surface: #f9fafb;
   --color-surface-dark: #f3f4f6;
   --color-border: #e5e7eb;
+  --animate-fade-in: fade-in 0.3s ease-out;
+  --animate-slide-up: slide-up 0.3s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 body {
@@ -19,4 +31,70 @@ body {
   font-family: Inter, system-ui, -apple-system, sans-serif;
   background-color: var(--color-surface);
   color: #111827;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Print styles for calculation worksheets */
+@media print {
+  body {
+    background: white;
+    color: black;
+    font-size: 11pt;
+  }
+
+  /* Hide navigation, search, and interactive elements */
+  header, footer,
+  input[type="date"], input[type="text"],
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  /* Reset card styles for print */
+  .bg-white {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure all text is black for printing */
+  * {
+    color: black !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Keep color for info/warning backgrounds */
+  .bg-blue-50, .bg-amber-50, .bg-green-50, .bg-red-50 {
+    background-color: #f8f8f8 !important;
+  }
+
+  /* Page settings */
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  /* Add print header */
+  .print-header {
+    display: block !important;
+    text-align: center;
+    font-size: 14pt;
+    font-weight: bold;
+    margin-bottom: 12pt;
+    border-bottom: 2pt solid black;
+    padding-bottom: 6pt;
+  }
+
+  /* Audit trail should stay compact */
+  .text-xs {
+    font-size: 8pt !important;
+  }
+
+  /* Scenario modeler table prints well */
+  table {
+    font-size: 9pt;
+  }
 }

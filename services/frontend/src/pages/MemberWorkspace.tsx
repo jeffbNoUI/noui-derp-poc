@@ -17,6 +17,7 @@ import { EarlyRetirementReduction } from '@/components/EarlyRetirementReduction'
 import { IPRPanel } from '@/components/IPRPanel'
 import { LoadingSpinner } from '@/components/LoadingSpinner'
 import { ErrorDisplay } from '@/components/ErrorDisplay'
+import { Eye } from 'lucide-react'
 
 interface MemberWorkspaceProps {
   memberId: string
@@ -62,7 +63,12 @@ export function MemberWorkspace({ memberId }: MemberWorkspaceProps) {
   const alerts = buildAlerts(m, serviceCredit.data, hasDRO)
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
+      {/* Print header — only visible when printing */}
+      <div className="print-header hidden">
+        DERP Retirement Application Worksheet — {m.first_name} {m.last_name} ({m.member_id})
+      </div>
+
       <MemberBanner member={m} serviceCredit={serviceCredit.data} />
 
       {alerts.length > 0 && <AlertBar alerts={alerts} />}
@@ -116,10 +122,16 @@ export function MemberWorkspace({ memberId }: MemberWorkspaceProps) {
 
       {/* Calculation panels — only shown when retirement date selected */}
       {retirementDate && (
-        <div className="space-y-6">
-          <h2 className="text-xl font-bold text-gray-900 border-b border-border pb-2">
-            Benefit Analysis
-          </h2>
+        <div className="space-y-6 animate-slide-up">
+          <div className="flex items-center justify-between border-b border-border pb-2">
+            <h2 className="text-xl font-bold text-gray-900">
+              Benefit Analysis
+            </h2>
+            <div className="flex items-center gap-1.5 text-xs text-primary no-print">
+              <Eye className="w-3.5 h-3.5" />
+              <span className="font-medium">All calculations transparent and verifiable</span>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-6">

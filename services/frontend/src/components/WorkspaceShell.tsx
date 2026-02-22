@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Shield } from 'lucide-react'
+import { Shield, Eye } from 'lucide-react'
 
 interface WorkspaceShellProps {
   children: ReactNode
@@ -13,7 +13,9 @@ export function WorkspaceShell({ children, memberId, onMemberSearch }: Workspace
       <header className="bg-white border-b border-border shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Shield className="w-8 h-8 text-primary" />
+            <div className="flex items-center justify-center w-10 h-10 bg-primary/10 rounded-lg">
+              <Shield className="w-6 h-6 text-primary" />
+            </div>
             <div>
               <h1 className="text-lg font-bold text-gray-900">DERP Retirement Workspace</h1>
               <p className="text-xs text-muted">
@@ -21,7 +23,13 @@ export function WorkspaceShell({ children, memberId, onMemberSearch }: Workspace
               </p>
             </div>
           </div>
-          <MemberSearch currentId={memberId ?? ''} onSearch={onMemberSearch} />
+          <div className="flex items-center gap-4">
+            <div className="hidden md:flex items-center gap-1.5 text-xs text-primary/70 no-print">
+              <Eye className="w-3.5 h-3.5" />
+              <span>Phase 1: Transparent</span>
+            </div>
+            <MemberSearch currentId={memberId ?? ''} onSearch={onMemberSearch} />
+          </div>
         </div>
       </header>
 
@@ -31,8 +39,8 @@ export function WorkspaceShell({ children, memberId, onMemberSearch }: Workspace
 
       <footer className="bg-white border-t border-border py-3 text-center text-xs text-muted">
         <p>
-          The rules engine is configured with certified plan provisions.
-          Every calculation is transparent and verifiable.
+          Deterministic rules engine executing certified plan provisions.
+          Every calculation is transparent and verifiable. The system shows its work.
         </p>
       </footer>
     </div>
