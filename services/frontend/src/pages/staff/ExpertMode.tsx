@@ -178,9 +178,9 @@ export function ExpertMode({
                         style={{
                           width: '100%', padding: '6px 0', borderRadius: '5px', border: 'none',
                           background: canConfirm
-                            ? `linear-gradient(135deg,${C.accent},#06B6D4)`
+                            ? `linear-gradient(135deg,${C.accent},#00695c)`
                             : C.border,
-                          color: canConfirm ? C.bg : C.textDim,
+                          color: canConfirm ? '#ffffff' : C.textDim,
                           fontWeight: 700, fontSize: '10px',
                           cursor: canConfirm ? 'pointer' : 'default',
                           transition: 'all 0.2s',

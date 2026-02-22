@@ -16,12 +16,15 @@ const ALWAYS_FULL_STAGES = new Set(['dro', 'review-certify'])
 
 /**
  * Compute whether a stage should render as full or summary.
- * Full when: signal is amber/red, stage is DRO or review-certify, or manually expanded.
+ * Full when: guided mode (always), signal is amber/red, stage is DRO or review-certify,
+ * or manually expanded. Summary depth only applies in expert mode.
  */
 export function computeStageDepth(
   stageId: string,
   signal: StageSignal | undefined,
+  viewMode?: 'guided' | 'expert',
 ): StageDepth {
+  if (viewMode === 'guided') return 'full'
   if (ALWAYS_FULL_STAGES.has(stageId)) return 'full'
   if (!signal || signal.level === 'amber' || signal.level === 'red') return 'full'
   return 'summary'

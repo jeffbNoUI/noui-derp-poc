@@ -140,8 +140,8 @@ function Panel({ id, title, icon, isConfirmed, isFocused, alert, onFocus, onConf
             <div style={{ marginTop: '10px', display: 'flex', justifyContent: 'flex-end' }}>
               <button onClick={e => { e.stopPropagation(); onConfirm(id) }} style={{
                 padding: '6px 18px', borderRadius: '6px', border: 'none',
-                background: `linear-gradient(135deg,${C.accent},#06B6D4)`,
-                color: C.bg, fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
+                background: `linear-gradient(135deg,${C.accent},#00695c)`,
+                color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
                 boxShadow: `0 2px 8px ${C.accentGlow}`,
               }}>Confirm ✓</button>
             </div>
@@ -331,14 +331,14 @@ function LiveSummary({
           <div style={{
             width: `${(confirmed.size / panelCount) * 100}%`,
             height: '100%', borderRadius: '2px',
-            background: allDone ? C.success : `linear-gradient(90deg,${C.accent},#06B6D4)`,
+            background: allDone ? C.success : `linear-gradient(90deg,${C.accent},#00695c)`,
             transition: 'width 0.4s ease',
           }} />
         </div>
         {allDone && (
           <button onClick={onSave} style={{
             width: '100%', marginTop: '8px', padding: '8px', borderRadius: '6px', border: 'none',
-            background: `linear-gradient(135deg,${C.success},#059669)`,
+            background: `linear-gradient(135deg,${C.success},#1b5e20)`,
             color: 'white', fontWeight: 700, fontSize: '12px', cursor: 'pointer',
             boxShadow: '0 2px 10px rgba(16,185,129,0.3)',
           }}>

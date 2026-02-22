@@ -15,7 +15,7 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
   static getDerivedStateFromError(error: Error) { return { error } }
   render() {
     if (this.state.error) return (
-      <div style={{ padding: '20px', color: '#EF4444', background: '#0B1017', fontFamily: 'monospace', fontSize: '13px' }}>
+      <div style={{ padding: '20px', color: '#EF4444', background: '#f6f9f9', fontFamily: 'monospace', fontSize: '13px' }}>
         <div style={{ fontWeight: 700, marginBottom: '8px' }}>Component Error:</div>
         <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error.message}{'\n'}{this.state.error.stack}</pre>
       </div>
@@ -45,9 +45,9 @@ export function StaffLayout() {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <div style={{
             width: '22px', height: '22px', borderRadius: '5px',
-            background: `linear-gradient(135deg,${C.accent},#06B6D4)`,
+            background: `linear-gradient(135deg,${C.accent},#00695c)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, fontSize: '10px', color: C.bg,
+            fontWeight: 800, fontSize: '10px', color: '#ffffff',
           }}>N</div>
           <span style={{ color: C.text, fontWeight: 700, fontSize: '13px' }}>NoUI</span>
           <span style={{ color: C.textMuted, fontSize: '11px' }}>Staff Workspace</span>
@@ -91,7 +91,7 @@ export function StaffLayout() {
       </div>
 
       {/* Main content */}
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' as const }}>
         <ErrorBoundary>
           <Outlet />
         </ErrorBoundary>

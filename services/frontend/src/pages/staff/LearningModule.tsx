@@ -171,9 +171,9 @@ export function LearningModule({
             style={{
               width: '100%', padding: '8px 0', borderRadius: '6px', border: 'none',
               background: canConfirm
-                ? `linear-gradient(135deg,${C.accent},#06B6D4)`
+                ? `linear-gradient(135deg,${C.accent},#00695c)`
                 : C.border,
-              color: canConfirm ? C.bg : C.textDim,
+              color: canConfirm ? '#ffffff' : C.textDim,
               fontWeight: 700, fontSize: '11.5px',
               cursor: canConfirm ? 'pointer' : 'default',
               boxShadow: canConfirm ? `0 2px 8px ${C.accentGlow}` : 'none',
@@ -193,8 +193,8 @@ export function LearningModule({
               onClick={onNext}
               style={{
                 flex: 1, padding: '8px 0', borderRadius: '6px', border: 'none',
-                background: `linear-gradient(135deg,${C.accent},#06B6D4)`,
-                color: C.bg, fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
+                background: `linear-gradient(135deg,${C.accent},#00695c)`,
+                color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
                 boxShadow: `0 2px 8px ${C.accentGlow}`,
               }}
             >
@@ -234,7 +234,7 @@ export function LearningModule({
               onClick={onSave}
               style={{
                 flex: 1, padding: '8px 0', borderRadius: '6px', border: 'none',
-                background: `linear-gradient(135deg,${C.success},#059669)`,
+                background: `linear-gradient(135deg,${C.success},#1b5e20)`,
                 color: 'white', fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
                 boxShadow: '0 2px 10px rgba(16,185,129,0.3)',
               }}

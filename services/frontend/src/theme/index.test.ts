@@ -10,9 +10,9 @@ describe('Theme Barrel Exports', () => {
   describe('Legacy theme', () => {
     it('exports C color object with expected keys', () => {
       expect(C).toBeDefined()
-      expect(C.bg).toBe('#0B1017')
-      expect(C.accent).toBe('#22D3EE')
-      expect(C.text).toBe('#E2E8F0')
+      expect(C.bg).toBe('#f6f9f9')
+      expect(C.accent).toBe('#00796b')
+      expect(C.text).toBe('#1a2e2e')
     })
 
     it('exports tierMeta with 3 tiers', () => {
@@ -38,7 +38,7 @@ describe('Theme Barrel Exports', () => {
       expect(memberTheme.density).toBe('comfortable')
     })
 
-    it('exports staffTheme with dark surface', () => {
+    it('exports staffTheme with light surface', () => {
       expect(staffTheme).toBeDefined()
       expect(staffTheme.id).toBe('staff')
       expect(staffTheme.layout).toBe('sidebar')

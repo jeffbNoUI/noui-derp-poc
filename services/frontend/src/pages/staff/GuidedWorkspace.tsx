@@ -116,7 +116,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
     stages.map(s => {
       // Manually expanded stages always show full
       if (state.manuallyExpanded.has(s.id)) return [s.id, 'full' as const]
-      return [s.id, computeStageDepth(s.id, signals[s.id])]
+      return [s.id, computeStageDepth(s.id, signals[s.id], state.viewMode)]
     })
   )
   const currentDepth = currentStage ? depths[currentStage.id] : 'full'
