@@ -6,6 +6,7 @@
  */
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
+import { formatDate } from '@/lib/utils'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
 import { useApplication, useApplicationDocuments, useApplicationMessages, useApplicationHistory } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
@@ -59,7 +60,7 @@ export function ApplicationStatus() {
           fontFamily: "'Plus Jakarta Sans', sans-serif",
         }}>Application Status</div>
         <div style={{ fontSize: 13, color: T.text.secondary, marginTop: 4 }}>
-          Application #{app.app_id} · Submitted {app.submitted_at ? new Date(app.submitted_at).toLocaleDateString() : ''}
+          Application #{app.app_id} · Submitted {app.submitted_at ? formatDate(app.submitted_at) : ''}
         </div>
       </div>
 
@@ -151,7 +152,7 @@ export function ApplicationStatus() {
                     {STATUS_DISPLAY[h.to_status]?.label || h.to_status}
                   </div>
                   <div style={{ fontSize: 10, color: T.text.muted }}>
-                    {new Date(h.changed_at).toLocaleDateString()} · {h.changed_by}
+                    {formatDate(h.changed_at)} · {h.changed_by}
                   </div>
                   {h.reason && <div style={{ fontSize: 11, color: T.text.secondary, marginTop: 2 }}>{h.reason}</div>}
                 </div>
@@ -183,7 +184,7 @@ export function ApplicationStatus() {
               }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 500, color: T.text.primary }}>{d.doc_name}</div>
-                  {d.received_date && <div style={{ fontSize: 10, color: T.text.muted }}>Received {d.received_date}</div>}
+                  {d.received_date && <div style={{ fontSize: 10, color: T.text.muted }}>Received {formatDate(d.received_date)}</div>}
                 </div>
                 <span style={{
                   fontSize: 9, padding: '2px 6px', borderRadius: 99, fontWeight: 700,
@@ -218,7 +219,7 @@ export function ApplicationStatus() {
                     fontSize: 11, fontWeight: 600,
                     color: msg.sender_type === 'STAFF' ? T.accent.primary : T.text.primary,
                   }}>{msg.sender_name}</span>
-                  <span style={{ fontSize: 10, color: T.text.muted }}>{new Date(msg.created_at).toLocaleDateString()}</span>
+                  <span style={{ fontSize: 10, color: T.text.muted }}>{formatDate(msg.created_at)}</span>
                 </div>
                 <div style={{ fontSize: 12, color: T.text.secondary, lineHeight: 1.5 }}>{msg.msg_text}</div>
               </div>

@@ -13,6 +13,7 @@ import { useEligibility, useBenefitCalculation } from '@/hooks/useCalculations'
 import { useApplication } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
 import { DEFAULT_RETIREMENT_DATES, fmt } from '@/lib/constants'
+import { formatDate } from '@/lib/utils'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
 
@@ -102,7 +103,7 @@ export function MemberDashboard() {
             {[
               ['Years of Service', svc ? `${svc.total_service_years} years` : '--'],
               ['Retirement Type', elig?.retirement_type?.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || '--'],
-              ['Target Date', retDate ? new Date(retDate + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : '--'],
+              ['Target Date', retDate ? formatDate(retDate) : '--'],
               ['Reduction', elig ? (elig.reduction_factor < 1 ? `${((1 - elig.reduction_factor) * 100).toFixed(0)}%` : 'None') : '--'],
             ].map(([label, value]) => (
               <div key={label}>

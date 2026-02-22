@@ -1,6 +1,5 @@
 import type { SalaryRecord, AMSResult } from '@/types/Member'
-import { formatCurrency } from '@/lib/utils'
-import { cn } from '@/lib/utils'
+import { formatCurrency, formatDate, cn } from '@/lib/utils'
 import { TrendingUp } from 'lucide-react'
 
 interface SalaryTableProps {
@@ -47,7 +46,7 @@ export function SalaryTable({ records, ams, tier }: SalaryTableProps) {
         </p>
         <p className="text-blue-700 mt-1">
           Highest {windowMonths} consecutive months of pensionable compensation.
-          Window: {ams.window_start} to {ams.window_end}
+          Window: {formatDate(ams.window_start)} to {formatDate(ams.window_end)}
         </p>
         <p className="text-blue-800 font-semibold mt-1">
           AMS = {formatCurrency(ams.ams_amount)}/month

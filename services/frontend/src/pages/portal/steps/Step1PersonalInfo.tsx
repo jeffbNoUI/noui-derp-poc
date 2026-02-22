@@ -5,6 +5,7 @@
  * Depends on: StepProps (member, service data)
  */
 import type { StepProps } from './StepProps'
+import { formatDate } from '@/lib/utils'
 
 export function Step1PersonalInfo({ T, draft, onUpdate, member: m, service: svc }: StepProps) {
   if (!m) return null
@@ -14,10 +15,10 @@ export function Step1PersonalInfo({ T, draft, onUpdate, member: m, service: svc 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px 32px' }}>
         {[
           ['Name', `${m.first_name} ${m.last_name}`],
-          ['Date of Birth', new Date(m.date_of_birth + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })],
+          ['Date of Birth', formatDate(m.date_of_birth)],
           ['Member ID', m.member_id],
           ['Department', m.department],
-          ['Hire Date', new Date(m.hire_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })],
+          ['Hire Date', formatDate(m.hire_date)],
           ['Benefit Tier', `Tier ${m.tier}`],
           ['Years of Service', svc ? `${svc.total_service_years} years` : '--'],
           ['Position', m.position],

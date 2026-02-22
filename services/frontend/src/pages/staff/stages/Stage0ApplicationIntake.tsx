@@ -8,6 +8,7 @@
 import type { StageProps } from './StageProps'
 import { C } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { formatDate } from '@/lib/utils'
 
 function TimelineRow({ label, value, detail, ok }: {
   label: string; value: string; detail?: string; ok?: boolean
@@ -61,28 +62,28 @@ export function Stage0ApplicationIntake({ applicationIntake: intake }: StageProp
 
         <TimelineRow
           label="Application Received"
-          value={intake.application_received_date}
+          value={formatDate(intake.application_received_date)}
           detail={`${intake.days_before_last_day} days before last day`}
           ok={intake.deadline_met}
         />
         <TimelineRow
           label="Last Day Worked"
-          value={intake.last_day_worked}
+          value={formatDate(intake.last_day_worked)}
         />
         <TimelineRow
           label="Retirement Effective"
-          value={intake.retirement_effective_date}
+          value={formatDate(intake.retirement_effective_date)}
         />
         <TimelineRow
           label="Notarization"
-          value={intake.notarization_date ?? 'Pending'}
+          value={intake.notarization_date ? formatDate(intake.notarization_date) : 'Pending'}
           detail={intake.notarization_confirmed ? 'Confirmed' : 'Not confirmed'}
           ok={intake.notarization_confirmed}
         />
         <TimelineRow
           label="Payment Cutoff"
-          value={intake.cutoff_date}
-          detail={`First payment ${intake.first_payment_date}`}
+          value={formatDate(intake.cutoff_date)}
+          detail={`First payment ${formatDate(intake.first_payment_date)}`}
           ok={intake.payment_cutoff_met}
         />
       </div>
@@ -125,7 +126,7 @@ export function Stage0ApplicationIntake({ applicationIntake: intake }: StageProp
                 {doc.received_date && (
                   <span style={{
                     color: C.textMuted, fontFamily: "'SF Mono',monospace", fontSize: '10px',
-                  }}>{doc.received_date}</span>
+                  }}>{formatDate(doc.received_date)}</span>
                 )}
               </div>
             </div>
@@ -147,7 +148,7 @@ export function Stage0ApplicationIntake({ applicationIntake: intake }: StageProp
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           {intake.package_complete
-            ? `All ${receivedDocs.length} required documents received${intake.complete_package_date ? ` as of ${intake.complete_package_date}` : ''}.`
+            ? `All ${receivedDocs.length} required documents received${intake.complete_package_date ? ` as of ${formatDate(intake.complete_package_date)}` : ''}.`
             : `${receivedDocs.length} of ${requiredDocs.length} required documents received. Outstanding items must be collected before proceeding.`}
         </div>
       </div>

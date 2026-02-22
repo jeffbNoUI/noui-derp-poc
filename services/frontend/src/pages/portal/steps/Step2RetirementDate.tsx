@@ -5,6 +5,7 @@
  * Depends on: StepProps (draft.retirement_date, eligibility data)
  */
 import type { StepProps } from './StepProps'
+import { formatDate } from '@/lib/utils'
 
 export function Step2RetirementDate({ T, draft, elig }: StepProps) {
   if (!elig) return null
@@ -15,7 +16,7 @@ export function Step2RetirementDate({ T, draft, elig }: StepProps) {
         <div>
           <div style={{ fontSize: 11, color: T.text.muted, marginBottom: 2, textTransform: 'uppercase' as const, letterSpacing: 0.5, fontWeight: 600 }}>Effective Retirement Date</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: T.text.primary }}>
-            {new Date(draft.retirement_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+            {formatDate(draft.retirement_date)}
           </div>
         </div>
         <div>

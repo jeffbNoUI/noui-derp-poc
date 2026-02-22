@@ -164,16 +164,18 @@ export function LearningModule({
           </div>
         )}
 
-        {/* Next action */}
-        <div style={{ marginBottom: '12px' }}>
-          <div style={{
-            color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
-            letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
-          }}>Next</div>
-          <div style={{ color: C.accent, fontSize: '10.5px', fontStyle: 'italic' }}>
-            {stage.nextAction}
+        {/* Next action — only show when stage is confirmed */}
+        {isConfirmed && (
+          <div style={{ marginBottom: '12px' }}>
+            <div style={{
+              color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+              letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
+            }}>Up Next</div>
+            <div style={{ color: C.accent, fontSize: '10.5px' }}>
+              {stage.nextAction}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Action footer — confirm, next, edit, submit */}
@@ -184,11 +186,12 @@ export function LearningModule({
             onClick={onConfirm}
             disabled={!canConfirm}
             style={{
-              width: '100%', padding: '8px 0', borderRadius: '6px', border: 'none',
+              width: '100%', padding: '8px 0', borderRadius: '6px',
+              border: canConfirm ? 'none' : `1px solid ${C.accentSolid}`,
               background: canConfirm
                 ? `linear-gradient(135deg,${C.accent},#00695c)`
-                : C.border,
-              color: canConfirm ? '#ffffff' : C.textDim,
+                : C.accentMuted,
+              color: canConfirm ? '#ffffff' : C.accent,
               fontWeight: 700, fontSize: '11.5px',
               cursor: canConfirm ? 'pointer' : 'default',
               boxShadow: canConfirm ? `0 2px 8px ${C.accentGlow}` : 'none',
@@ -197,7 +200,7 @@ export function LearningModule({
           >
             {canConfirm
               ? (allAutoChecked ? `All Verified \u2014 Skip \u2192` : `${stage.confirmLabel} \u2192`)
-              : `Complete checklist to continue (${checkCount}/${checkTotal})`}
+              : `${checkCount} of ${checkTotal} verified`}
           </button>
         )}
 

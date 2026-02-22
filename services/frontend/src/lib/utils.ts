@@ -14,12 +14,14 @@ export function formatCurrency(amount: number): string {
   }).format(amount)
 }
 
+/** Format a date string (YYYY-MM-DD or ISO timestamp) as MM-DD-YYYY */
 export function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
+  // Append noon for YYYY-MM-DD strings to avoid timezone date-shift
+  const d = new Date(dateStr.length === 10 ? dateStr + 'T12:00:00' : dateStr)
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const yyyy = d.getFullYear()
+  return `${mm}-${dd}-${yyyy}`
 }
 
 export function formatPercent(value: number): string {

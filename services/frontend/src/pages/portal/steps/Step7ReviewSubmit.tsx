@@ -7,13 +7,14 @@
  */
 import type { StepProps } from './StepProps'
 import { fmt } from '@/lib/constants'
+import { formatDate } from '@/lib/utils'
 
 export function Step7ReviewSubmit({ T, draft, onUpdate, member: m, ben, opts }: StepProps) {
   if (!ben) return null
 
   /** Summary rows: [label, value] pairs covering all elections */
   const rows: [string, string][] = [
-    ['Retirement Date', new Date(draft.retirement_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })],
+    ['Retirement Date', formatDate(draft.retirement_date)],
     ['Benefit Tier', m ? `Tier ${m.tier}` : '--'],
     ['Monthly Benefit', fmt(ben.net_monthly_benefit)],
     ['Payment Option', opts?.options.find(o => o.option_type === draft.payment_option)?.option_name || '--'],

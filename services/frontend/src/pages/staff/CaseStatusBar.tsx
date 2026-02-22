@@ -5,6 +5,7 @@
  * Depends on: Member types (ApplicationIntake), theme (C)
  */
 import { C } from '@/theme'
+import { formatDate } from '@/lib/utils'
 import type { ApplicationIntake } from '@/types/Member'
 
 export interface CaseStatusBarProps {
@@ -18,12 +19,6 @@ function daysBetween(from: string, to: string): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-/** Format YYYY-MM-DD as a short date */
-function shortDate(d: string): string {
-  const [y, m, day] = d.split('-')
-  return `${m}/${day}/${y}`
-}
-
 export function CaseStatusBar({ intake }: CaseStatusBarProps) {
   if (!intake) return null
 
@@ -32,9 +27,9 @@ export function CaseStatusBar({ intake }: CaseStatusBarProps) {
   const caseAge = daysBetween(intake.application_received_date, today)
 
   const items = [
-    { label: 'Received', value: shortDate(intake.application_received_date) },
+    { label: 'Received', value: formatDate(intake.application_received_date) },
     { label: 'Case Age', value: `${caseAge} days` },
-    { label: 'Deadline', value: shortDate(intake.cutoff_date) },
+    { label: 'Deadline', value: formatDate(intake.cutoff_date) },
     { label: 'Analyst', value: 'Current User' },
   ]
 

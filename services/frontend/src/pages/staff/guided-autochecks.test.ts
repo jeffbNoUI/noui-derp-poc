@@ -149,8 +149,9 @@ describe('computeAutoChecks', () => {
         ...baseCtx,
         retirementDate: '2026-04-01',
         eligibility: {
+          member_id: '10001', tier: 1,
           eligible: true, retirement_type: 'rule_of_75',
-          conditions_met: ['Vested'], conditions_not_met: [],
+          conditions_met: ['Vested'], conditions_unmet: [],
           retirement_date: '2026-04-01', age_at_retirement: 63,
           rule_of_n_value: 91.8, rule_of_n_threshold: 75,
           reduction_factor: 1.0, audit_trail: [],
@@ -171,10 +172,12 @@ describe('computeAutoChecks', () => {
           status: 'Active', department: 'PW', position: 'Eng',
         },
         benefit: {
-          ams: 10639.45, ams_window_months: 36, ams_window_start: '2023-04-01',
+          member_id: '10001', retirement_date: '2026-04-01', tier: 1,
+          ams: 10639.45, ams_window_months: 36,
           multiplier: 0.02, service_years_for_benefit: 28.75,
-          gross_monthly_benefit: 6117.68, net_monthly_benefit: 6117.68,
-          reduction_factor: 1.0, formula: '', audit_trail: [],
+          gross_annual_benefit: 73412.16, gross_monthly_benefit: 6117.68,
+          net_monthly_benefit: 6117.68, retirement_type: 'rule_of_75',
+          reduction_factor: 1.0, formula_display: '', audit_trail: [],
         },
       }
       const auto = computeAutoChecks('benefit-calc', ctx)
