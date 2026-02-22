@@ -18,6 +18,8 @@ export interface StageHelp {
   rules: { citation: string; desc: string }[]
   /** Checklist layer — interactive verification items */
   checklist: string[]
+  /** Stage-specific confirm button label — describes the decision, not just "confirm" */
+  confirmLabel: string
   /** What comes next */
   nextAction: string
   /** If present, stage is only shown when this returns true */
@@ -45,6 +47,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Employment history is complete',
       'No data quality flags outstanding',
     ],
+    confirmLabel: 'Verify Identity',
     nextAction: 'Review service credit breakdown',
   },
   {
@@ -68,6 +71,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Vesting requirement met (5+ years)',
       'Purchased service excluded from eligibility totals',
     ],
+    confirmLabel: 'Approve Service Credit',
     nextAction: 'Set retirement date and check eligibility',
   },
   {
@@ -92,6 +96,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Rule of N evaluation uses earned service only',
       'Reduction factor matches tier and age',
     ],
+    confirmLabel: 'Confirm Eligibility',
     nextAction: 'Review salary history and benefit calculation',
   },
   {
@@ -117,6 +122,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Multiplier matches tier',
       'Final monthly benefit amount is accurate',
     ],
+    confirmLabel: 'Approve Benefit Amount',
     nextAction: 'Select payment option',
   },
   {
@@ -139,6 +145,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Spousal consent requirement noted',
       'Irrevocability warning displayed',
     ],
+    confirmLabel: 'Record Election',
     nextAction: 'Review additional benefits (IPR and death benefit)',
   },
   {
@@ -161,6 +168,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Death benefit amount correct for retirement type',
       'Early retirement death benefit reduction applied if applicable',
     ],
+    confirmLabel: 'Confirm Supplementals',
     nextAction: 'Review DRO impact (if applicable) or proceed to final review',
   },
   {
@@ -183,6 +191,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Member net benefit after DRO correct',
       'DRO applied before payment option election',
     ],
+    confirmLabel: 'Approve DRO Split',
     nextAction: 'Proceed to final review and certification',
     conditional: (_sc, dros) => !!dros && dros.length > 0,
   },
@@ -205,6 +214,7 @@ export const STAGE_HELP: StageHelp[] = [
       'Member and analyst signatures obtained',
       'Application ready for submission',
     ],
+    confirmLabel: 'Certify Application',
     nextAction: 'Submit retirement application for processing',
   },
 ]

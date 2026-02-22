@@ -126,6 +126,7 @@ describe('guided-composition', () => {
         expect(stage.title).toBeTruthy()
         expect(stage.icon).toBeTruthy()
         expect(stage.onboarding).toBeTruthy()
+        expect(stage.confirmLabel).toBeTruthy()
         expect(stage.rules.length).toBeGreaterThan(0)
         expect(stage.checklist.length).toBeGreaterThan(0)
       }

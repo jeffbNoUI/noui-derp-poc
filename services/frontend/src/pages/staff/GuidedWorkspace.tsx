@@ -601,7 +601,7 @@ function LearningModule({ stage, confirmed, checkedItems, layers, canConfirm,
             }}
           >
             {canConfirm
-              ? `Confirm & Continue \u2192`
+              ? `${stage.confirmLabel} \u2192`
               : `Complete checklist to continue (${checkCount}/${checkTotal})`}
           </button>
         )}
