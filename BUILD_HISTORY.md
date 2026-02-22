@@ -1168,6 +1168,65 @@ Created the AI-accelerated change management demonstration package, showing how 
 
 ---
 
+## Post-Build: Repository Governance — February 22, 2026
+
+### Session 20: Cross-Environment File Ownership Agreement
+
+**Decision Log:**
+
+67. **DECISION: Cross-Environment File Ownership Agreement**
+    Analysis (Claude.ai) and Build (Claude Code) now have clear file ownership to prevent overwrites.
+    Analysis owns `docs/` and `demo-cases/`. Build owns root `CLAUDE.md`, `CLAUDE_CODE_PROTOCOL.md`,
+    `BUILD_HISTORY.md`, `BUILD_PLAN.md`, and all code. Sync flows through `SESSION_BRIEF.md` (analysis → build)
+    and `BUILD_HISTORY.md` (build → analysis). See `docs/SYNC_DIRECTIVE.md` for the formal agreement
+    and `docs/SESSION_BRIEF.md` §File Ownership Agreement for details.
+
+68. **DECISION: SYNC_LOG.md Retired**
+    `SYNC_LOG.md` was retired per the file ownership agreement. Its function is replaced by the
+    Sync Checkpoint section in `docs/SESSION_BRIEF.md`. Git history provides the audit trail.
+    Separate tracking documents add maintenance burden without proportional value.
+
+69. **DECISION: Analysis-Owned File Versions Discarded**
+    Analysis uploaded `docs/CLAUDE.md` and `docs/CLAUDE_CODE_PROTOCOL.md` which diverged from the
+    build-owned root versions (missing Code Quality Standards, Autonomous Operation sections).
+    Per the ownership agreement, these were deleted — the root versions are authoritative.
+
+70. **DECISION: Zone.Identifier Pattern Added to .gitignore**
+    Windows NTFS alternate data stream artifacts (`*:Zone.Identifier`) added to `.gitignore`
+    to prevent future accidental commits of download metadata files.
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| docs/SYNC_DIRECTIVE.md | Cross-environment file ownership agreement — formal record | Active |
+| docs/SESSION_BRIEF.md | Updated analysis→build channel with ownership model and sync checkpoint | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| docs/noui-knowledge-governance-framework.docx | Updated to v1.1 — added cross-environment sync protocol | Active |
+| .gitignore | Added Zone.Identifier pattern | Active |
+| BUILD_HISTORY.md | Added Session 20 — file ownership agreement | Active |
+
+### Files Deleted:
+
+| File | Reason | Status |
+|------|--------|--------|
+| docs/CLAUDE.md | Analysis version — root CLAUDE.md is authoritative (build-owned) | Deleted |
+| docs/CLAUDE_CODE_PROTOCOL.md | Analysis version — root CLAUDE_CODE_PROTOCOL.md is authoritative (build-owned) | Deleted |
+| docs/SYNC_LOG.md | Retired — function replaced by SESSION_BRIEF.md Sync Checkpoint | Deleted |
+| docs/benefit-estimator-1.jsx | Old prototype file — superseded by implemented frontend | Deleted |
+| docs/benefit-estimator-2.jsx | Old prototype file — superseded by implemented frontend | Deleted |
+| docs/benefit-estimator-3.jsx | Old prototype file — superseded by implemented frontend | Deleted |
+| docs/noui-ux-prototype.jsx | Old prototype file — superseded by implemented frontend | Deleted |
+
+### Backtrack Points:
+- **BT-019:** File ownership agreement applied. Repository clean. All analysis artifacts in `docs/`, all build artifacts at root and `services/`. Return here as clean governance baseline.
+
+---
+
 ## Build Complete
 
 **Summary:**

@@ -227,7 +227,7 @@ When ending a Claude Code session, the repository must be in this state:
 |------|----------|
 | What to build next | `BUILD_PLAN.md` |
 | Current state and decisions | `BUILD_HISTORY.md` |
-| Corrections and Day 1-2 specifics | `SESSION_BRIEF.md` |
+| Business context and corrections from analysis | `docs/SESSION_BRIEF.md` |
 | All 52 business rules with sources | `derp-business-rules-inventory.docx` |
 | Governing principles | `CLAUDE.md` → `noui-architecture-decisions.docx` |
 | Demo case expected values | `demo-cases/case*-test-fixture.json` |

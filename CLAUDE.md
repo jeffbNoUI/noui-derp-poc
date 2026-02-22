@@ -8,7 +8,7 @@ This is the NoUI proof of concept targeting the Denver Employees Retirement Plan
 
 Read BUILD_PLAN.md for the step-by-step execution plan.
 Read BUILD_HISTORY.md before making changes — it tracks every decision and serves as the backtrack reference.
-Read SESSION_BRIEF.md for current build context, corrections to apply, and Day 1-2 specifics.
+Read docs/SESSION_BRIEF.md for business context, corrections, and guidance from analysis (check Sync Checkpoint section for latest updates).
 Read CLAUDE_CODE_PROTOCOL.md for session discipline — commit conventions, test-first enforcement, red-flag patterns.
 Read derp-business-rules-inventory.docx as the authoritative source for all 52 business rules with RMC citations.
 Read rules/definitions/ for the DERP plan provisions that the rules engine must implement.
