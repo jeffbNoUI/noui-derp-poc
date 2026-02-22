@@ -270,11 +270,58 @@ Full verification history and recalculation in CRITICAL-001-resolution.md.
 
 ---
 
-## Ready for Day 1 Build Tasks
+## Day 1 Build — February 21, 2026
 
-All prerequisite documentation is complete, verified, and consistent. Corrections applied per CRITICAL-001. Scope decisions finalized. Proceed to BUILD_PLAN.md Day 1:
-- Step 1.1: Legacy Database Schema
-- Step 1.2: Data Generation Script (note: update EMPLOYER_CONTRIB_RATE)
-- Step 1.3: Four Demo Case Members
-- Step 1.4: Deliberate Data Quality Issues
-- Step 1.5: Verification
+### Session 6: Legacy Database Schema (Step 1.1)
+
+**Decision Log:**
+
+28. **DECISION: Schema Designed to Match Seed Generator**
+    Created database/schema/001_legacy_schema.sql with all 12 tables. Every column was verified against the seed data generator (database/seed/generate_derp_data.py) to ensure INSERT compatibility. No mismatches found.
+
+29. **DECISION: Legacy Messiness Implemented as Designed**
+    Schema deliberately includes:
+    - Inconsistent naming (abbreviated vs. full column names, _CD vs _FLG vs _TYPE)
+    - Redundant data (ANNUAL_SALARY on MEMBER_MASTER duplicates SALARY_HIST; PENS_SALARY on CONTRIBUTION_HIST duplicates SALARY_HIST.PENS_PAY; MONTHS_CREDIT derivable from YEARS_CREDIT)
+    - Nullable fields that shouldn't be (DOB, FIRST_NM, BASE_PAY, YEARS_CREDIT)
+    - Overloaded status codes (MEMBER_MASTER.STATUS_CD: A/R/T/D/X/S; DRO_MASTER uses VARCHAR while others use CHAR)
+    - Missing foreign keys (no FKs from EMPLOYMENT_HIST, SALARY_HIST, BENEFICIARY, DRO_MASTER to MEMBER_MASTER)
+    - Era-dependent formats (TRANSACTION_LOG has three column usage patterns for pre-2015, 2015-2017, 2018+)
+    - SSN not unique (realistic for legacy data with migration errors)
+    - No CHECK constraints on TIER_CD or STATUS_CD values
+
+30. **DECISION: Service Credit Table Uses Inclusion Flags**
+    SVC_CREDIT.INCL_BENEFIT, INCL_ELIG, INCL_IPR flags are the mechanism for separating purchased service from earned service in different contexts. This supports the CRITICAL rule: purchased service counts for benefit calculation but NOT for Rule of 75/85 or IPR.
+
+31. **DECISION: Leave Payout as Separate Column**
+    SALARY_HIST.LV_PAYOUT_AMT is stored separately from BASE_PAY, not merged. The rules engine must add it conditionally based on hire date. This supports the CRITICAL leave payout rule.
+
+32. **DECISION: BUILD_PLAN.md Corrections Applied**
+    Per SESSION_BRIEF.md:
+    - Line 48: Employer contribution rate corrected from 11% to 17.95%
+    - Line 95: Employer contribution rate corrected from 11% to 17.95% with RMC citation
+    - Line 117: Early retirement reduction corrected from flat 6% to tier-specific (3% T1/T2, 6% T3)
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| database/schema/001_legacy_schema.sql | Legacy database schema — 12 tables with deliberate legacy messiness | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| BUILD_PLAN.md | Corrected employer contribution rate (11% → 17.95%) in two locations; corrected early retirement reduction to tier-specific rates | Active |
+| BUILD_HISTORY.md | Added Session 6 — Day 1 Step 1.1 | Active |
+
+### Issues Encountered:
+
+(none)
+
+### Backtrack Points:
+- **BT-001:** Project initialization. Clean slate.
+- **BT-002:** Architecture principles established.
+- **BT-003:** Superseded by BT-004.
+- **BT-004:** All corrections applied. Verified documentation foundation.
+- **BT-005:** Legacy schema created. BUILD_PLAN corrections applied. Return here to restart from Step 1.2 (seed data generation) with schema in place.

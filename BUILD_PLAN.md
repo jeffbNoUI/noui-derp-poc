@@ -45,7 +45,7 @@ Create database/seed/generate_derp_data.py that generates:
 - Complete salary histories (biweekly pay periods from hire to present/termination)
 - Salary growth: 2-4% annual with occasional promotion bumps of 8-15%
 - Starting salaries: $35,000-$75,000 based on position and era
-- Contribution records at 8.45% employee, 11% employer
+- Contribution records at 8.45% employee, 17.95% employer (current; ~11% pre-2012)
 - Employment histories with transfers, promotions, some gaps
 - Beneficiary designations (at least one per member, some with history)
 - ~200 members with purchased service credit (1-5 years)
@@ -92,7 +92,7 @@ Create rules/definitions/membership.yaml:
 - Tier determination by hire date (3 rules)
 - Automatic enrollment on first day of eligible employment
 - Employee contribution rate: 8.45%
-- Employer contribution rate: 11%
+- Employer contribution rate: 17.95% (per RMC §18-407(e)(1) and DERP Handbook Jan 2024)
 - Pretax treatment
 
 ### Step 2.3: Vesting and Eligibility Rules
@@ -114,7 +114,7 @@ Create rules/definitions/benefit-calculation.yaml:
 - AMS calculation: highest N consecutive months of pensionable compensation
 - Leave payout inclusion: for members hired before Jan 1, 2010, add payout to final month salary
 - Furlough day impact and purchase
-- Early retirement reduction: 6% per year under age 65
+- Early retirement reduction: Tiers 1 & 2: 3% per year under age 65; Tier 3: 6% per year under age 65
 - Rule of 75/85 exemption from reduction
 - Benefit maximum (if any — verify from source docs)
 
