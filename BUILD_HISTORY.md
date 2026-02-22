@@ -872,3 +872,44 @@ All 8 calculation/analysis components from BUILD_PLAN Day 7:
 
 ### Backtrack Points:
 - **BT-012:** Day 7 complete. All 9 calculation/analysis components created and integrated into workspace. Build clean. Return here to restart from Day 8 (Workspace Composition + Integration).
+
+---
+
+## Build Day 8 — February 22, 2026
+
+### Session 14: Workspace Composition + Integration
+
+**Composition Engine:**
+- Created `composition/rules.ts` — deterministic workspace composition engine
+- Tier 1 (deterministic): Always-present components (banner, alerts, timeline, salary, service credit)
+- Tier 2 (rule-based): Conditional components based on member attributes
+  - Leave payout: only for Tier 1/2 hired before 2010
+  - DRO impact: only when active DRO exists
+  - Early retirement reduction: only when reduction factor < 1.0
+- Tier 3 (AI): Not implemented in POC — noted as future capability
+
+**Composition Tests (5 tests, all passing):**
+1. Case 1: Tier 1, Rule of 75 — leave payout shown, no DRO, no reduction
+2. Case 2: Tier 2, early retirement — reduction shown, leave payout shown (hired 2005 < 2010), no DRO
+3. Case 3: Tier 3 — no leave payout (Tier 3 not eligible), no DRO
+4. Case 4: Tier 1 with DRO — DRO panel shown, leave payout shown
+5. No retirement date — calculation panels hidden
+
+**Decision Log:**
+- **Q-COMP-01:** Jennifer Kim (Case 2) IS eligible for leave payout — hired 2005-06-01 which is before 2010 cutoff. Initial test incorrectly expected absence. Fixed test to match rule definition.
+
+**Verification:**
+- Vitest: 5/5 composition tests pass
+- TypeScript: clean build
+- Vite: production build success
+- Go backend: all 42 tests pass
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/frontend/src/composition/rules.ts | Workspace composition engine | Active |
+| services/frontend/src/composition/rules.test.ts | Composition tests (5) — all 4 demo cases + no-date scenario | Active |
+
+### Backtrack Points:
+- **BT-013:** Day 8 complete. Workspace composition engine with 5 passing tests. All demo cases verified for correct component presence/absence. Return here to restart from Day 9 (Data Quality Engine).
