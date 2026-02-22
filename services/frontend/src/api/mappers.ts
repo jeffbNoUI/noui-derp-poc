@@ -13,6 +13,14 @@ import type {
   ApplicationIntake, Beneficiary,
 } from '@/types/Member'
 
+// ─── ID Mapping ──────────────────────────────────────────────────────────────
+
+/** Convert backend member ID (M-100001) to frontend short ID (100001). Pass through if no prefix. */
+export function fromBackendId(id: string): string {
+  if (id.startsWith('M-')) return id.slice(2).replace(/^0+/, '') || '0'
+  return id
+}
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 /** Format a Go time.Time (RFC 3339) or date string to YYYY-MM-DD. Returns '' if null/undefined. */
@@ -34,7 +42,7 @@ function toOptDateStr(v: string | null | undefined): string | undefined {
 /** Go connector.models.Member → TS Member. Renames status_code→status, formats dates. */
 export function mapMember(raw: Record<string, unknown>): Member {
   return {
-    member_id: String(raw.member_id ?? ''),
+    member_id: fromBackendId(String(raw.member_id ?? '')),
     first_name: String(raw.first_name ?? ''),
     last_name: String(raw.last_name ?? ''),
     date_of_birth: toDateStr(raw.date_of_birth as string),
@@ -167,7 +175,7 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
   const ruleOfNThreshold = ruleApplicable ? Number(ruleApplicable) : undefined
 
   return {
-    member_id: String(raw.member_id ?? ''),
+    member_id: fromBackendId(String(raw.member_id ?? '')),
     retirement_date: retirementDate,
     tier: Number(raw.tier ?? 0),
     age_at_retirement: Number(raw.age_at_retirement ?? 0),
@@ -261,7 +269,7 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
   }
 
   return {
-    member_id: String(raw.member_id ?? ''),
+    member_id: fromBackendId(String(raw.member_id ?? '')),
     retirement_date: String(raw.retirement_date ?? ''),
     tier: Number(raw.tier ?? 0),
     ams: amsValue,

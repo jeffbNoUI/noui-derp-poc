@@ -14,6 +14,12 @@ import {
 const CONNECTOR_BASE = '/api/v1'
 const INTELLIGENCE_BASE = '/api/v1'
 
+/** Convert frontend short ID (10001) to backend format (M-100001). Pass through if already prefixed. */
+export function toBackendId(id: string): string {
+  if (/^\d+$/.test(id)) return `M-${id.padStart(6, '0')}`
+  return id
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function fetchRaw(url: string, options?: RequestInit): Promise<any> {
   const res = await fetch(url, {
@@ -40,43 +46,43 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
 const liveApi = {
   getApplicationIntake: async (id: string) => {
     // No Go endpoint for intake — build synthetic from member data
-    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}`)
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${toBackendId(id)}`)
     const member = mapMember(raw)
     return buildSyntheticIntake(member)
   },
 
   getMember: async (id: string) => {
-    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}`)
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${toBackendId(id)}`)
     return mapMember(raw)
   },
 
   getEmployment: (id: string) =>
-    fetchJSON<import('@/types/Member').EmploymentEvent[]>(`${CONNECTOR_BASE}/members/${id}/employment`),
+    fetchJSON<import('@/types/Member').EmploymentEvent[]>(`${CONNECTOR_BASE}/members/${toBackendId(id)}/employment`),
 
   getSalary: (id: string) =>
     fetchJSON<{ records: import('@/types/Member').SalaryRecord[]; ams: import('@/types/Member').AMSResult }>(
-      `${CONNECTOR_BASE}/members/${id}/salary`
+      `${CONNECTOR_BASE}/members/${toBackendId(id)}/salary`
     ),
 
   getServiceCredit: async (id: string) => {
-    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/service-credit`)
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${toBackendId(id)}/service-credit`)
     return mapServiceCredit(raw)
   },
 
   getBeneficiaries: async (id: string) => {
-    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/beneficiaries`)
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${toBackendId(id)}/beneficiaries`)
     return mapBeneficiaries(raw)
   },
 
   getDROs: async (id: string) => {
-    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/dro`)
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${toBackendId(id)}/dro`)
     return mapDRORecords(raw)
   },
 
   evaluateEligibility: async (memberId: string, retirementDate: string) => {
     const raw = await fetchRaw(`${INTELLIGENCE_BASE}/eligibility/evaluate`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
+      body: JSON.stringify({ member_id: toBackendId(memberId), retirement_date: retirementDate }),
     })
     return mapEligibility(raw, retirementDate)
   },
@@ -84,7 +90,7 @@ const liveApi = {
   calculateBenefit: async (memberId: string, retirementDate: string) => {
     const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
+      body: JSON.stringify({ member_id: toBackendId(memberId), retirement_date: retirementDate }),
     })
     return mapBenefit(raw)
   },
@@ -92,7 +98,7 @@ const liveApi = {
   calculatePaymentOptions: async (memberId: string, retirementDate: string) => {
     const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/options`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
+      body: JSON.stringify({ member_id: toBackendId(memberId), retirement_date: retirementDate }),
     })
     return mapPaymentOptions(raw)
   },
@@ -100,7 +106,7 @@ const liveApi = {
   calculateScenarios: async (memberId: string, retirementDates: string[]) => {
     const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/scenario`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, retirement_dates: retirementDates }),
+      body: JSON.stringify({ member_id: toBackendId(memberId), retirement_dates: retirementDates }),
     })
     return mapScenarios(raw)
   },
@@ -108,7 +114,7 @@ const liveApi = {
   calculateDRO: async (memberId: string, retirementDate?: string) => {
     const raw = await fetchRaw(`${INTELLIGENCE_BASE}/dro/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate ?? '' }),
+      body: JSON.stringify({ member_id: toBackendId(memberId), retirement_date: retirementDate ?? '' }),
     })
     return mapDROResult(raw)
   },
@@ -119,9 +125,9 @@ const liveApi = {
     dro_deduction?: number; ipr_amount?: number; death_benefit_amount?: number
   }) =>
     fetchJSON<import('@/types/Member').RetirementElectionResult>(
-      `${CONNECTOR_BASE}/members/${election.member_id}/retirement-election`, {
+      `${CONNECTOR_BASE}/members/${toBackendId(election.member_id)}/retirement-election`, {
         method: 'POST',
-        body: JSON.stringify(election),
+        body: JSON.stringify({ ...election, member_id: toBackendId(election.member_id) }),
       }
     ),
 }

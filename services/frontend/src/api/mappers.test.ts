@@ -12,8 +12,33 @@ import { describe, it, expect } from 'vitest'
 import {
   mapMember, mapBeneficiaries, mapServiceCredit, mapDRORecords,
   mapEligibility, mapBenefit, mapPaymentOptions, mapScenarios,
-  mapDROResult, buildSyntheticIntake,
+  mapDROResult, buildSyntheticIntake, fromBackendId,
 } from './mappers'
+import { toBackendId } from './client'
+
+describe('toBackendId', () => {
+  it('prepends M- and zero-pads numeric IDs', () => {
+    expect(toBackendId('10001')).toBe('M-010001')
+    expect(toBackendId('100001')).toBe('M-100001')
+    expect(toBackendId('1')).toBe('M-000001')
+  })
+
+  it('passes through already-prefixed IDs', () => {
+    expect(toBackendId('M-100001')).toBe('M-100001')
+  })
+})
+
+describe('fromBackendId', () => {
+  it('strips M- prefix and leading zeros', () => {
+    expect(fromBackendId('M-100001')).toBe('100001')
+    expect(fromBackendId('M-010001')).toBe('10001')
+    expect(fromBackendId('M-000001')).toBe('1')
+  })
+
+  it('passes through unprefixed IDs', () => {
+    expect(fromBackendId('10001')).toBe('10001')
+  })
+})
 
 describe('mapMember', () => {
   it('renames status_code to status and formats dates', () => {
@@ -42,6 +67,11 @@ describe('mapMember', () => {
   it('handles already-formatted date strings', () => {
     const m = mapMember({ member_id: '1', date_of_birth: '1970-01-01', hire_date: '2000-06-01', status_code: 'A' })
     expect(m.date_of_birth).toBe('1970-01-01')
+  })
+
+  it('strips M- prefix from backend member_id', () => {
+    const m = mapMember({ member_id: 'M-010001', first_name: 'Test', status_code: 'A' })
+    expect(m.member_id).toBe('10001')
   })
 })
 
