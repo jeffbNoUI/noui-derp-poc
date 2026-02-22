@@ -1022,3 +1022,92 @@ Created the AI-accelerated change management demonstration package, showing how 
 
 ### Backtrack Points:
 - **BT-015:** Days 11-12 complete. 54 total tests passing. Boundary tests cover critical thresholds. Change management demo ready. Return here to restart from Day 13 (Visual Polish).
+
+---
+
+## Build Day 13 — February 22, 2026
+
+### Session 17: Visual Polish
+
+**Changes:**
+- Print media styles for calculation worksheet output (letter size, hides interactive elements, preserves color accents)
+- CSS animations: fade-in and slide-up for workspace transitions
+- Phase 1 Transparent badge in header and benefit analysis section
+- Clickable demo case cards on welcome screen (previously static)
+- Fixed Case 3 demo card name: Marcus Thompson → David Washington
+- Controlled terminology review: removed "automatically" from LeavePayoutInfo
+- Footer updated to use governed terminology: "Deterministic rules engine executing certified plan provisions"
+
+**Verification:**
+- TypeScript: clean
+- Vite build: success (308 kB JS + 24 kB CSS)
+- Vitest: 5/5 composition tests pass
+- Go: all 54 intelligence + 17 connector tests pass
+- Controlled terminology grep: zero violations
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| services/frontend/src/index.css | Print styles, animations (fade-in, slide-up), font smoothing | Active |
+| services/frontend/src/App.tsx | Clickable demo cards, Case 3 name fix, Phase 1 badge, tier badges | Active |
+| services/frontend/src/pages/MemberWorkspace.tsx | Print header, transparency badge, slide-up animation | Active |
+| services/frontend/src/components/WorkspaceShell.tsx | Polished header with icon container, Phase 1 badge, governed footer text | Active |
+| services/frontend/src/components/LeavePayoutInfo.tsx | Removed "automatically" per controlled terminology | Active |
+
+### Backtrack Points:
+- **BT-016:** Day 13 complete. Visual polish applied. Return here to restart from Day 14 (Demo Environment).
+
+---
+
+## Build Day 14 — February 22, 2026
+
+### Session 18: Demo Environment
+
+**Decision Log:**
+
+64. **DECISION: Demo Mode via Cached Fixtures**
+    Since Docker/Kubernetes is not available in this WSL2 environment (Decision 37), the demo environment uses cached fixture data served directly by the frontend. Demo mode is activated by adding `?demo` to the URL or setting `VITE_DEMO_MODE=true`. This allows the demo to run completely standalone without backend services.
+
+65. **DECISION: Demo Data Verified Against Test Fixtures**
+    Created 18 verification tests that validate all cached demo data matches the hand-calculated test fixtures. Every benefit amount, reduction factor, eligibility determination, and DRO calculation is verified to the penny.
+
+66. **DECISION: Demo Mode Indicator**
+    When running in demo mode, a yellow banner appears below the header: "Demo Mode — Using cached fixture data. Values verified against hand calculations." This is hidden in print output.
+
+**Demo Mode Features:**
+- Activated by `?demo` URL parameter or `VITE_DEMO_MODE=true`
+- Serves all 4 demo cases with pre-verified fixture data
+- Simulates 200ms network delay for realistic feel
+- Member IDs 10001-10004 map to Cases 1-4
+- All calculation values match hand calculations TO THE PENNY
+- Demo mode banner visible in app, hidden in print
+
+**Controlled Terminology Review:**
+- Scanned all frontend source files for prohibited terms
+- Zero violations found: no "self-healing", "auto-resolved", "AI calculated", or "automatically" (for rules/calcs)
+- All user-facing text uses governed vocabulary
+
+**Verification:**
+- TypeScript: clean
+- Vite build: success (324 kB JS + 24 kB CSS)
+- Vitest: 23/23 tests pass (5 composition + 18 demo verification)
+- Go: all 54 intelligence + 17 connector tests pass
+- Demo data: all 4 cases verified against test fixtures
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/frontend/src/api/demo-data.ts | Cached demo fixtures for all 4 cases + demo API | Active |
+| services/frontend/src/api/demo-verify.test.ts | 18 verification tests — demo data vs test fixtures | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| services/frontend/src/api/client.ts | Routes to demo API when demo mode active | Active |
+| services/frontend/src/components/WorkspaceShell.tsx | Demo mode banner | Active |
+
+### Backtrack Points:
+- **BT-017:** Day 14 complete. Demo environment operational with cached fixtures. 18 verification tests confirm all cases match hand calculations. Return here to restart from Day 15 (Rehearsal).

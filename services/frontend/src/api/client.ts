@@ -1,4 +1,5 @@
 import type { APIResponse, APIError } from '@/types/Member'
+import { isDemoMode, demoApi } from './demo-data'
 
 const CONNECTOR_BASE = '/api/v1'
 const INTELLIGENCE_BASE = '/api/v1'
@@ -20,8 +21,8 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
   return body.data
 }
 
-// Connector endpoints (member data)
-export const api = {
+// Live API — calls backend services
+const liveApi = {
   getMember: (id: string) =>
     fetchJSON<import('@/types/Member').Member>(`${CONNECTOR_BASE}/members/${id}`),
 
@@ -42,7 +43,6 @@ export const api = {
   getDROs: (id: string) =>
     fetchJSON<import('@/types/Member').DRORecord[]>(`${CONNECTOR_BASE}/members/${id}/dro`),
 
-  // Intelligence endpoints (calculations)
   evaluateEligibility: (memberId: string, retirementDate: string) =>
     fetchJSON<import('@/types/Member').EligibilityResult>(`${INTELLIGENCE_BASE}/eligibility/evaluate`, {
       method: 'POST',
@@ -73,3 +73,7 @@ export const api = {
       body: JSON.stringify({ member_id: memberId }),
     }),
 }
+
+// Export the appropriate API based on demo mode.
+// Demo mode is activated by ?demo query parameter or VITE_DEMO_MODE=true env var.
+export const api = isDemoMode() ? demoApi : liveApi

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { Shield, Eye } from 'lucide-react'
+import { isDemoMode } from '@/api/demo-data'
 
 interface WorkspaceShellProps {
   children: ReactNode
@@ -32,6 +33,12 @@ export function WorkspaceShell({ children, memberId, onMemberSearch }: Workspace
           </div>
         </div>
       </header>
+
+      {isDemoMode() && (
+        <div className="bg-amber-50 border-b border-amber-200 text-center py-1 text-xs text-amber-700 font-medium no-print">
+          Demo Mode — Using cached fixture data. Values verified against hand calculations.
+        </div>
+      )}
 
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-6">
         {children}
