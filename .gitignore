@@ -30,3 +30,6 @@ database/seed/output/
 
 # Build artifacts
 *.log
+
+# Sync drop zone (raw uploads from Claude project — processed files live in docs/)
+docs/sync/
