@@ -456,8 +456,11 @@ function delay<T>(data: T, ms = 200): Promise<T> {
 }
 
 export function isDemoMode(): boolean {
-  return import.meta.env.VITE_DEMO_MODE === 'true' ||
-    typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('demo')
+  // Demo mode is the default for the POC — opt OUT with ?live query param
+  if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('live')) {
+    return false
+  }
+  return true
 }
 
 export const demoApi = {

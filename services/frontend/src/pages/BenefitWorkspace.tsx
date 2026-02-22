@@ -396,6 +396,14 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
     }
   }, [paymentOptions.data, electedOption, hasDRO])
 
+  // Shorthand
+  const m = member.data
+  const sc = serviceCredit.data
+  const elig = eligibility.data
+  const ben = benefit.data
+  const opts = paymentOptions.data
+  const dro = hasDRO ? droCalc.data : undefined
+
   const handleConfirm = useCallback((id: string, toggle?: boolean) => {
     setConfirmed(prev => {
       const next = new Set(prev)
@@ -409,7 +417,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
     if (!ben || !elig) return
     setSaveStatus('saving')
     setSaveError('')
-    const elOpt = paymentOptions.data?.options.find(o => o.option_type === (electedOption || (hasDRO ? 'j&s_75' : 'maximum')))
+    const elOpt = opts?.options.find(o => o.option_type === (electedOption || (hasDRO ? 'j&s_75' : 'maximum')))
     saveElection.mutate({
       member_id: memberId,
       retirement_date: retirementDate,
@@ -417,7 +425,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
       monthly_benefit: elOpt?.monthly_amount ?? ben.net_monthly_benefit,
       gross_benefit: ben.gross_monthly_benefit,
       reduction_factor: elig.reduction_factor,
-      dro_deduction: droCalc.data?.alternate_payee_amount,
+      dro_deduction: dro?.alternate_payee_amount,
       ipr_amount: ben.ipr?.monthly_amount,
       death_benefit_amount: ben.death_benefit?.amount,
     }, {
@@ -430,15 +438,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
         setSaveError(err instanceof Error ? err.message : 'Failed to save')
       },
     })
-  }, [memberId, retirementDate, ben, elig, electedOption, hasDRO, paymentOptions.data, droCalc.data, saveElection])
-
-  // Shorthand
-  const m = member.data
-  const sc = serviceCredit.data
-  const elig = eligibility.data
-  const ben = benefit.data
-  const opts = paymentOptions.data
-  const dro = hasDRO ? droCalc.data : undefined
+  }, [memberId, retirementDate, ben, elig, electedOption, hasDRO, opts, dro, saveElection])
 
   if (!m) {
     return (

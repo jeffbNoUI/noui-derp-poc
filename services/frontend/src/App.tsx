@@ -1,6 +1,20 @@
-import { useState } from 'react'
+import { useState, Component, type ReactNode } from 'react'
 import { BenefitWorkspace } from '@/pages/BenefitWorkspace'
 import { C, tierMeta } from '@/theme'
+
+class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
+  state = { error: null as Error | null }
+  static getDerivedStateFromError(error: Error) { return { error } }
+  render() {
+    if (this.state.error) return (
+      <div style={{ padding: '20px', color: '#EF4444', background: '#0B1017', fontFamily: 'monospace', fontSize: '13px' }}>
+        <div style={{ fontWeight: 700, marginBottom: '8px' }}>Component Error:</div>
+        <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error.message}{'\n'}{this.state.error.stack}</pre>
+      </div>
+    )
+    return this.props.children
+  }
+}
 
 function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
   return (
@@ -51,7 +65,7 @@ function App() {
 
       {/* Main content */}
       {memberId ? (
-        <BenefitWorkspace memberId={memberId} />
+        <ErrorBoundary><BenefitWorkspace memberId={memberId} /></ErrorBoundary>
       ) : (
         <WelcomeScreen onSelect={setMemberId} />
       )}
