@@ -952,3 +952,73 @@ All 8 calculation/analysis components from BUILD_PLAN Day 7:
 
 ### Backtrack Points:
 - **BT-014:** Days 9-10 complete. Data quality engine with 18 tests + both dashboard components. Return here to restart from Day 11 (Comprehensive Test Suite).
+
+---
+
+## Build Days 11-12 — February 22, 2026
+
+### Session 16: Comprehensive Testing + Edge Cases + Change Management Demo
+
+**Day 11 — Boundary Tests:**
+
+Created boundary tests for eligibility and benefit calculation engines, covering exact threshold values and off-by-one conditions.
+
+**Eligibility Boundary Tests (8 new tests):**
+1. Rule of 75 exact (age 55 + 20 earned = 75) → qualifies, factor 1.0
+2. Rule of 75 just below (age 55 + 19.99 = 74.99) → early retirement, NOT rule of 75
+3. Rule of 85 exact (Tier 3, age 60 + 25 = 85) → qualifies, factor 1.0
+4. Normal retirement at exactly age 65 → normal type, factor 1.0
+5. Not vested at 4.99 years → not_eligible
+6. Vested at exactly 5.00 years → vested, eligible at age 65
+7. Purchased service excluded from Rule of 75 (18 earned + 3 purchased, age 57: 57+18=75) → qualifies using earned only
+8. Tier determination at Sept 1, 2004 boundary → Tier 2
+
+**Benefit Boundary Tests (7 new tests):**
+1. Zero service years → $0 benefit
+2. Max reduction Tier 1 age 55 (0.70 factor): $5,000 × 0.02 × 20 = $2,000 unreduced, $1,400 reduced
+3. Max reduction Tier 3 age 60 (0.70 factor): $5,000 × 0.015 × 15 = $1,125 unreduced, $787.50 reduced
+4. Tier 1 vs Tier 2 same inputs: T1 (2.0%) > T2 (1.5%)
+5. Payment options: all survivor options strictly less than maximum
+6. IPR uses earned service only (25 total, 20 earned → IPR based on 20)
+7. Death benefit: $5,000 for normal retirement across all 3 tiers
+
+**Day 12 — Change Management Demo:**
+
+Created the AI-accelerated change management demonstration package, showing how AI assists with rule changes per Governing Principle 3.
+
+**Demo Scenario:** Employee contribution rate change from 8.45% to 9.00%
+- 3 affected rules identified (CONTRIB-001, CONTRIB-002, CONTRIB-003)
+- 6 regression test results generated (biweekly calc, annual calc, rate boundary old/new, existing benefits unchanged, AMS unaffected)
+- Impact assessment: 5,000 affected members, low complexity
+- Status: "review" — not yet certified (demonstrating human-in-the-loop)
+- All source references cite RMC §18-407(e)
+
+**Decision Log:**
+
+62. **DECISION: Boundary Tests Use Direct Struct Construction**
+    Tests create CalculationInput structs directly instead of going through API handlers. This tests the calculation logic in isolation without HTTP overhead. Integration tests (Day 14) will exercise the full API chain.
+
+63. **DECISION: Change Management Demo is Static**
+    The change management demo returns a pre-built ChangePackage — it's a prepared demonstration, not a live AI interaction. This is clearly documented in the package comment and aligns with the POC's "show, don't build" approach for AI-accelerated features.
+
+**Verification:**
+- ✅ `go test ./...` — All 54 tests pass across all packages:
+  - benefit: 13 tests (6 existing + 7 new boundary)
+  - changemanagement: 1 test (new)
+  - dataquality: 18 tests (existing)
+  - dro: 4 tests (existing)
+  - eligibility: 15 tests (7 existing + 8 new boundary)
+  - rules: 8 tests (existing)
+- ✅ No regressions in any existing tests
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/intelligence/internal/eligibility/boundary_test.go | Eligibility boundary tests (8) — thresholds, vesting, purchased service | Active |
+| services/intelligence/internal/benefit/boundary_test.go | Benefit boundary tests (7) — zero service, max reduction, tier comparison | Active |
+| services/intelligence/internal/changemanagement/demo.go | Change management types + demo scenario generator | Active |
+| services/intelligence/internal/changemanagement/demo_test.go | Change management demo verification test | Active |
+
+### Backtrack Points:
+- **BT-015:** Days 11-12 complete. 54 total tests passing. Boundary tests cover critical thresholds. Change management demo ready. Return here to restart from Day 13 (Visual Polish).
