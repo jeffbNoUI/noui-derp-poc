@@ -1,0 +1,232 @@
+# ============================================================================
+# DERP Rule Definition Schema
+# ============================================================================
+# Every rule definition in this directory must conform to this structure.
+# This schema is the contract between rule authors and the rules engine.
+#
+# Governing Document: derp-business-rules-inventory.docx
+# Architecture: noui-architecture-decisions.docx (ADR-001, ADR-002)
+# ============================================================================
+
+rule_definition_schema:
+  # --- Identity ---
+  rule_id:
+    type: string
+    required: true
+    description: >
+      Unique identifier matching the business rules inventory.
+      Format: RULE-CATEGORY-NAME (e.g., RULE-TIER-1, RULE-AMS-CALC)
+
+  rule_name:
+    type: string
+    required: true
+    description: Human-readable name for display and logging
+
+  category:
+    type: string
+    required: true
+    enum:
+      - membership
+      - service_credit
+      - eligibility
+      - benefit_calculation
+      - payment_options
+      - dro
+      - supplemental
+      - process
+    description: Rule category matching file organization
+
+  description:
+    type: string
+    required: true
+    description: >
+      Precise rule statement from the business rules inventory.
+      Must match the inventory's "Rule Statement" field exactly.
+
+  # --- Applicability ---
+  tier_applicability:
+    type: array
+    items:
+      type: integer
+      enum: [1, 2, 3]
+    required: true
+    description: >
+      Which tiers this rule applies to. Use [1, 2, 3] for all tiers.
+      Tier determination rules apply to their own tier only.
+
+  # --- Logic ---
+  conditions:
+    type: array
+    required: false
+    description: >
+      Structured conditions evaluated in order. For determination
+      and eligibility rules.
+    items:
+      field:
+        type: string
+        description: Data field to evaluate
+      operator:
+        type: string
+        enum: [eq, neq, gt, gte, lt, lte, in, between, not_in]
+        description: Comparison operator
+      value:
+        type: any
+        description: Comparison value (scalar, array for in/between)
+      join:
+        type: string
+        enum: [AND, OR]
+        description: Logical join with next condition
+
+  formula:
+    type: object
+    required: false
+    description: For calculation rules — the mathematical formula
+    properties:
+      expression:
+        type: string
+        description: >
+          Formula expression (e.g., "ams * multiplier * service_years").
+          Human-readable, not code.
+      variables:
+        type: array
+        items:
+          name:
+            type: string
+            description: Variable name used in expression
+          source:
+            type: string
+            description: Where this value comes from (API, rule, constant)
+          description:
+            type: string
+            description: What this variable represents
+
+  lookup_table:
+    type: object
+    required: false
+    description: >
+      For rules defined by statutory tables (early retirement reduction,
+      death benefit). Use tables, NOT formulas — the statute defines tables.
+      See CLAUDE_CODE_PROTOCOL.md for rationale.
+    properties:
+      description:
+        type: string
+      entries:
+        type: object
+        description: Map of integer key to value (e.g., age -> factor)
+
+  # --- Output ---
+  result:
+    type: object
+    required: true
+    properties:
+      type:
+        type: string
+        enum: [determination, calculation, validation, routing, informational]
+        description: What kind of result this rule produces
+      output:
+        type: string
+        description: What the rule returns (e.g., "tier_number", "monthly_benefit")
+
+  # --- Provenance ---
+  source_reference:
+    type: object
+    required: true
+    description: >
+      CRITICAL — every rule MUST have this. No rule without a source
+      reference passes governance review.
+    properties:
+      document:
+        type: string
+        enum: [RMC, DERP Handbook, Retirement Application, Operational Practice, Project Decision]
+        description: Governing document type
+      section:
+        type: string
+        description: Specific section (e.g., "§18-409(a)(1)")
+      verification:
+        type: string
+        enum: [CONFIRMED, ASSUMED, OPEN]
+        description: >
+          CONFIRMED: verified against RMC statutory text.
+          ASSUMED: reasonable assumption, not yet confirmed by DERP.
+          OPEN: requires DERP staff input.
+
+  effective_date:
+    type: date
+    required: true
+    description: When this rule version takes effect
+
+  end_date:
+    type: date
+    required: false
+    default: null
+    description: Null for current rules; set when superseded
+
+  # --- Testing ---
+  test_cases:
+    type: array
+    required: true
+    min_items: 4
+    description: >
+      Inline test expectations. Every rule must have at least:
+      1. Happy path — normal case that exercises the rule
+      2. Boundary — exact threshold value
+      3. Just below — one unit below threshold
+      4. Negative — case where rule should NOT fire
+    items:
+      description:
+        type: string
+        description: What this test case validates
+      inputs:
+        type: object
+        description: Input values for the test
+      expected:
+        type: object
+        description: Expected output values
+      demo_case_ref:
+        type: string
+        required: false
+        description: Reference to demo case (e.g., "case1-robert-martinez")
+
+  # --- Governance ---
+  governance:
+    type: object
+    required: true
+    properties:
+      version:
+        type: string
+        description: Semantic version of this rule definition
+      certified_by:
+        type: string
+        default: PENDING
+        description: >
+          Who certified this rule. PENDING until human certifies.
+          Per ADR-002: no rule reaches production without human approval.
+      certified_date:
+        type: date
+        default: null
+        description: Date of certification (null until certified)
+      inventory_ref:
+        type: string
+        description: >
+          Reference to business rules inventory entry.
+          Must match an entry in derp-business-rules-inventory.docx.
+
+  # --- Assumptions ---
+  assumptions:
+    type: array
+    required: false
+    description: >
+      Assumptions embedded in this rule, with risk ratings.
+      Maps to the Assumptions Register in the inventory.
+    items:
+      id:
+        type: string
+        description: Assumption ID (e.g., "Q-CALC-01")
+      description:
+        type: string
+      risk:
+        type: string
+        enum: [HIGH, MEDIUM, LOW]
+      resolution:
+        type: string
+        description: How to resolve (e.g., "Confirm with DERP staff")

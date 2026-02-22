@@ -1,0 +1,262 @@
+# ============================================================================
+# Category 2: Service Credit Calculation
+# ============================================================================
+# Service credit feeds both eligibility determination and benefit calculation,
+# but with different inclusion rules. The critical distinction between earned
+# and purchased service affects multiple downstream rules.
+#
+# Source: derp-business-rules-inventory.docx, Category 2
+# Rules: 3 (RULE-SVC-EARNED, RULE-SVC-PURCHASED, RULE-SVC-SEPARATION)
+# ============================================================================
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # RULE-SVC-EARNED: Earned Service Credit Calculation
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-SVC-EARNED
+    rule_name: Earned Service Credit Calculation
+    category: service_credit
+    description: >
+      Earned service credit accumulates from actual employment with covered
+      employers, calculated from hire date to termination/retirement date.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "months_of_service / 12"
+      variables:
+        - name: months_of_service
+          source: "Calculated from hire_date to retirement_date"
+          description: >
+            Complete months between hire date and retirement date.
+            ASSUMPTION [Q-CALC-02]: Using year-month method (months/12),
+            not exact-day method (days/365.25).
+        - name: hire_date
+          source: "MEMBER_MASTER.HIRE_DT"
+          description: Date of initial covered employment
+        - name: retirement_date
+          source: "Retirement application effective date"
+          description: First day of retirement
+
+    result:
+      type: calculation
+      output: earned_service_years
+
+    source_reference:
+      document: RMC
+      section: "§18-402 (definitions), §18-409(a)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — 28 years 9 months of earned service"
+        inputs: { hire_date: "1997-06-15", retirement_date: "2026-04-01" }
+        expected: { earned_service_years: 28.75, years: 28, months: 9 }
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — 18 years 2 months of earned service"
+        inputs: { hire_date: "2008-03-01", retirement_date: "2026-05-01" }
+        expected: { earned_service_years: 18.17, years: 18, months: 2 }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Washington — 13 years 7 months of earned service"
+        inputs: { hire_date: "2012-09-01", retirement_date: "2026-04-01" }
+        expected: { earned_service_years: 13.58, years: 13, months: 7 }
+        demo_case_ref: case3-david-washington
+      - description: "Boundary — exactly 5 years (minimum vesting)"
+        inputs: { hire_date: "2021-04-01", retirement_date: "2026-04-01" }
+        expected: { earned_service_years: 5.00, years: 5, months: 0 }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 2.1"
+
+    assumptions:
+      - id: Q-CALC-02
+        description: >
+          Service credit calculation method (year-month vs. exact day) is
+          NOT specified in the RMC. Demo cases use year-month (months/12).
+          If DERP uses exact days, Martinez would be 28.797 instead of 28.75.
+        risk: MEDIUM
+        resolution: "CRITICAL — Confirm with DERP staff"
+
+  # --------------------------------------------------------------------------
+  # RULE-SVC-PURCHASED: Purchased Service Credit
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-SVC-PURCHASED
+    rule_name: Purchased Service Credit
+    category: service_credit
+    description: >
+      Purchased service credit counts toward benefit CALCULATION only.
+      It is explicitly EXCLUDED from: vesting, Rule of 75/85 determination,
+      and IPR calculation.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: service_type
+        operator: eq
+        value: "PURCHASED"
+        description: "Applies to purchased service credit records only"
+
+    result:
+      type: determination
+      output: service_inclusion_flags
+      details:
+        included_in_benefit_calculation: true
+        included_in_vesting: false
+        included_in_rule_of_75_85: false
+        included_in_ipr: false
+
+    source_reference:
+      document: RMC
+      section: "§18-415(a)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Kim — purchased service included in benefit formula"
+        inputs:
+          earned_service: 18.17
+          purchased_service: 3.00
+          context: benefit_calculation
+        expected:
+          service_for_benefit: 21.17
+          service_for_rule_of_75: 18.17
+          service_for_ipr: 18.17
+        demo_case_ref: case2-jennifer-kim
+      - description: "Kim — purchased service excluded from Rule of 75"
+        inputs:
+          age: 55
+          earned_service: 18.17
+          purchased_service: 3.00
+          context: rule_of_75
+        expected:
+          sum: 73.17
+          qualifies: false
+          note: "If purchased counted: 55 + 21.17 = 76.17 would qualify"
+        demo_case_ref: case2-jennifer-kim
+      - description: "Boundary — member with only purchased service"
+        inputs:
+          earned_service: 4.00
+          purchased_service: 2.00
+          context: vesting
+        expected:
+          service_for_vesting: 4.00
+          vested: false
+          note: "Purchased excluded from vesting"
+      - description: "Negative — member with no purchased service"
+        inputs:
+          earned_service: 28.75
+          purchased_service: 0
+        expected:
+          service_for_benefit: 28.75
+          service_for_rule_of_75: 28.75
+          service_for_ipr: 28.75
+        demo_case_ref: case1-robert-martinez
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 2.2"
+
+  # --------------------------------------------------------------------------
+  # RULE-SVC-SEPARATION: Service Credit Type Separation
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-SVC-SEPARATION
+    rule_name: Service Credit Type Separation
+    category: service_credit
+    description: >
+      System must maintain separate tracking of earned, purchased, military,
+      and leave service credit types. Each type has different applicability
+      rules for downstream calculations.
+    tier_applicability: [1, 2, 3]
+
+    result:
+      type: validation
+      output: service_credit_by_type
+      details:
+        types:
+          - EARNED
+          - PURCHASED
+          - MILITARY
+          - LEAVE
+        inclusion_matrix:
+          benefit_calculation: [EARNED, PURCHASED, MILITARY, LEAVE]
+          vesting: [EARNED]
+          rule_of_75_85: [EARNED]
+          ipr: [EARNED]
+
+    source_reference:
+      document: RMC
+      section: "§18-415 (purchase provisions), §18-402 (definitions)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Kim — service credit correctly separated by type"
+        inputs:
+          member_id: "M-100002"
+          service_records:
+            - type: EARNED
+              years: 18.17
+              incl_benefit: true
+              incl_elig: true
+              incl_ipr: true
+            - type: PURCHASED
+              years: 3.00
+              incl_benefit: true
+              incl_elig: false
+              incl_ipr: false
+        expected:
+          total_for_benefit: 21.17
+          total_for_eligibility: 18.17
+          total_for_ipr: 18.17
+        demo_case_ref: case2-jennifer-kim
+      - description: "Martinez — all earned, no separation needed"
+        inputs:
+          member_id: "M-100001"
+          service_records:
+            - type: EARNED
+              years: 28.75
+              incl_benefit: true
+              incl_elig: true
+              incl_ipr: true
+        expected:
+          total_for_benefit: 28.75
+          total_for_eligibility: 28.75
+          total_for_ipr: 28.75
+        demo_case_ref: case1-robert-martinez
+      - description: "Member with multiple credit types"
+        inputs:
+          service_records:
+            - type: EARNED
+              years: 15.00
+            - type: PURCHASED
+              years: 2.00
+            - type: MILITARY
+              years: 4.00
+        expected:
+          total_for_benefit: 21.00
+          total_for_eligibility: 15.00
+          total_for_ipr: 15.00
+      - description: "Negative — no service records"
+        inputs:
+          service_records: []
+        expected:
+          total_for_benefit: 0
+          total_for_eligibility: 0
+          total_for_ipr: 0
+          error: "No service credit records found"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 2.3"

@@ -1,0 +1,423 @@
+# ============================================================================
+# Category 8: Process & Timing Rules
+# ============================================================================
+# Process rules govern application deadlines, payment processing, and the
+# irrevocability of elections. These rules enforce the administrative
+# framework within which benefit calculations operate.
+#
+# Source: derp-business-rules-inventory.docx, Category 8
+# Rules: 6
+# ============================================================================
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # RULE-APP-DEADLINE: Application Filing Deadline
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-APP-DEADLINE
+    rule_name: Application Filing Deadline
+    category: process
+    description: >
+      Retirement application must be received within 30 calendar days of
+      last day worked. Missing this deadline results in automatic deferred
+      member classification with no appeal or extension.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: days_from_last_day_to_application
+        operator: lte
+        value: 30
+        description: "30 calendar days (not business days). Application must be RECEIVED, not postmarked."
+
+    result:
+      type: validation
+      output: deadline_met
+      details:
+        consequence_if_missed: "Automatic deferred classification"
+        appeal: "None — no appeal or extension in statute"
+
+    source_reference:
+      document: RMC
+      section: "§18-402(10), §18-408"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — application 21 days before last day"
+        inputs:
+          last_day_worked: "2026-03-31"
+          application_received: "2026-03-10"
+        expected:
+          days_difference: 21
+          deadline_met: true
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — application 22 days before last day"
+        inputs:
+          last_day_worked: "2026-04-30"
+          application_received: "2026-04-08"
+        expected:
+          days_difference: 22
+          deadline_met: true
+        demo_case_ref: case2-jennifer-kim
+      - description: "Boundary — day 30 after last day = accepted"
+        inputs:
+          last_day_worked: "2026-03-31"
+          application_received: "2026-04-30"
+        expected:
+          days_after: 30
+          deadline_met: true
+      - description: "Just past — day 31 after last day = deferred"
+        inputs:
+          last_day_worked: "2026-03-31"
+          application_received: "2026-05-01"
+        expected:
+          days_after: 31
+          deadline_met: false
+          consequence: "automatic_deferred"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.1"
+
+    assumptions:
+      - id: APP-CALENDAR-DAYS
+        description: >
+          30 calendar days (not business days). Application must be RECEIVED,
+          not postmarked.
+        risk: MEDIUM
+        resolution: "Confirmed by RMC language"
+
+  # --------------------------------------------------------------------------
+  # RULE-NOTARIZATION: Application Notarization Requirement
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-NOTARIZATION
+    rule_name: Application Notarization Requirement
+    category: process
+    description: >
+      Retirement application must bear notarized signature before the
+      application can be processed.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: notarized
+        operator: eq
+        value: true
+
+    result:
+      type: validation
+      output: notarization_valid
+      details:
+        blocks_if_missing: "Stage 1 (Intake)"
+        note: "Application cannot progress past intake without notarization"
+
+    source_reference:
+      document: Retirement Application
+      section: "Application form, Spousal Consent form"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — application notarized"
+        inputs: { notarized: true }
+        expected: { valid: true, can_proceed: true }
+        demo_case_ref: case1-robert-martinez
+      - description: "Application without notarization — blocked"
+        inputs: { notarized: false }
+        expected: { valid: false, blocked_at: "stage_1_intake" }
+      - description: "All four demo cases pass notarization"
+        inputs: { cases: ["case1", "case2", "case3", "case4"], all_notarized: true }
+        expected: { all_pass: true }
+      - description: "Notarization added later — application can proceed"
+        inputs: { initially_notarized: false, notarized_later: true }
+        expected: { valid: true, note: "Notarization added after initial submission" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.2"
+
+  # --------------------------------------------------------------------------
+  # RULE-PAYMENT-CUTOFF: Payment Processing Cutoff
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-PAYMENT-CUTOFF
+    rule_name: Payment Processing Cutoff
+    category: process
+    description: >
+      Complete application package received by the 15th of the month prior
+      to retirement effective date results in first payment on time. Received
+      after 15th results in first payment delayed; combined first/second
+      payment in following month.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: complete_package_date
+        operator: lte
+        value: "15th of month prior to effective date"
+
+    result:
+      type: determination
+      output: payment_timing
+      details:
+        before_cutoff:
+          first_payment: "On effective date"
+          combined: false
+        after_cutoff:
+          first_payment: "Following month"
+          combined: true
+          note: "Combined first and second monthly payment"
+
+    source_reference:
+      document: Operational Practice
+      section: "Retirement Application instructions"
+      verification: ASSUMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — package March 10 < March 15 cutoff"
+        inputs:
+          complete_package: "2026-03-10"
+          cutoff_date: "2026-03-15"
+          effective_date: "2026-04-01"
+        expected:
+          before_cutoff: true
+          first_payment: "2026-04-01"
+          combined: false
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — package April 8 < April 15 cutoff"
+        inputs:
+          complete_package: "2026-04-08"
+          cutoff_date: "2026-04-15"
+          effective_date: "2026-05-01"
+        expected:
+          before_cutoff: true
+          first_payment: "2026-05-01"
+          combined: false
+        demo_case_ref: case2-jennifer-kim
+      - description: "Package after cutoff — payment delayed"
+        inputs:
+          complete_package: "2026-03-16"
+          cutoff_date: "2026-03-15"
+          effective_date: "2026-04-01"
+        expected:
+          before_cutoff: false
+          first_payment: "2026-05-01"
+          combined: true
+          note: "May payment includes April + May amounts"
+      - description: "Boundary — package on exactly the 15th"
+        inputs:
+          complete_package: "2026-03-15"
+          cutoff_date: "2026-03-15"
+        expected:
+          before_cutoff: true
+          first_payment: "2026-04-01"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.3"
+
+    assumptions:
+      - id: Q-PROCESS-01
+        description: >
+          The 15th-of-month cutoff is documented in DERP member materials
+          but is not in the RMC. It is an operational/administrative
+          deadline, not a statutory one.
+        risk: MEDIUM
+        resolution: "Confirm with DERP staff"
+
+  # --------------------------------------------------------------------------
+  # RULE-EFFECTIVE-DATE: Retirement Effective Date
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-EFFECTIVE-DATE
+    rule_name: Retirement Effective Date
+    category: process
+    description: >
+      Retirement is effective on the first day of a calendar month
+      following the last day of employment.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "first_of_month_after(last_day_worked)"
+      variables:
+        - name: last_day_worked
+          source: "Retirement application"
+          description: "Member's final day of employment"
+
+    result:
+      type: calculation
+      output: effective_date
+
+    source_reference:
+      document: RMC
+      section: "§18-408"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — last day March 31, effective April 1"
+        inputs: { last_day_worked: "2026-03-31" }
+        expected: { effective_date: "2026-04-01" }
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — last day April 30, effective May 1"
+        inputs: { last_day_worked: "2026-04-30" }
+        expected: { effective_date: "2026-05-01" }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Mid-month termination — still next first-of-month"
+        inputs: { last_day_worked: "2026-03-15" }
+        expected: { effective_date: "2026-04-01" }
+      - description: "First of month termination — effective next month"
+        inputs: { last_day_worked: "2026-03-01" }
+        expected: { effective_date: "2026-04-01" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.4"
+
+    assumptions:
+      - id: EFFECTIVE-DATE-RULE
+        description: >
+          If last day worked is March 31, effective date is April 1.
+          If last day worked is March 15, effective date is still April 1
+          (next first-of-month).
+        risk: LOW
+        resolution: "Confirmed by RMC §18-408"
+
+  # --------------------------------------------------------------------------
+  # RULE-IRREVOCABILITY: Election Irrevocability
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-IRREVOCABILITY
+    rule_name: Election Irrevocability
+    category: process
+    description: >
+      Payment option election, death benefit election, and spousal consent
+      waiver are all irrevocable once retirement payments begin. J&S
+      beneficiary cannot be changed after retirement.
+    tier_applicability: [1, 2, 3]
+
+    result:
+      type: validation
+      output: irrevocable_elections
+      details:
+        irrevocable_items:
+          - "Payment option (Maximum, 100% J&S, 75% J&S, 50% J&S)"
+          - "Death benefit election (50 or 100 installments, or do not draw)"
+          - "Spousal consent waiver"
+          - "J&S beneficiary designation"
+        effective_when: "Retirement payments begin (Stage 5)"
+        pre_stage_5: "Changes allowed before payment initiation"
+
+    source_reference:
+      document: RMC
+      section: "§18-410"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Pre-Stage 5 — election change allowed"
+        inputs: { stage: 3, change_request: "payment_option" }
+        expected: { change_allowed: true }
+      - description: "Post-Stage 5 — election change blocked"
+        inputs: { stage: 5, change_request: "payment_option" }
+        expected: { change_allowed: false, reason: "irrevocable" }
+      - description: "Death benefit election change after payment"
+        inputs: { stage: 5, change_request: "death_benefit_election" }
+        expected: { change_allowed: false, reason: "irrevocable" }
+      - description: "Negative — non-election change allowed post-Stage 5"
+        inputs: { stage: 5, change_request: "address_update" }
+        expected: { change_allowed: true, reason: "not_an_election" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.5"
+
+  # --------------------------------------------------------------------------
+  # RULE-COLA: Cost of Living Adjustment
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-COLA
+    rule_name: Cost of Living Adjustment
+    category: process
+    description: >
+      COLA is discretionary, approved by the DERP Board. No automatic
+      formula. Maximum 5% per year or CPI (whichever is less). First
+      eligible January 1 of the second calendar year after retirement.
+    tier_applicability: [1, 2, 3]
+
+    result:
+      type: informational
+      output: cola_eligibility
+      details:
+        discretionary: true
+        approval_authority: "DERP Board"
+        maximum: "5% per year or CPI, whichever is less"
+        first_eligible: "January 1 of second calendar year after retirement"
+        system_role: >
+          System tracks eligibility dates and applies board-approved amounts.
+          No calculation engine component needed for COLA determination.
+
+    source_reference:
+      document: RMC
+      section: "§18-414"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez retires April 2026 — first COLA eligible Jan 2028"
+        inputs: { retirement_date: "2026-04-01" }
+        expected:
+          first_eligible: "2028-01-01"
+          note: "Second calendar year: 2026 → 2027 (first) → 2028 (second)"
+      - description: "Member retires January 2026 — first COLA eligible Jan 2028"
+        inputs: { retirement_date: "2026-01-01" }
+        expected:
+          first_eligible: "2028-01-01"
+      - description: "Member retires December 2026 — first COLA eligible Jan 2028"
+        inputs: { retirement_date: "2026-12-01" }
+        expected:
+          first_eligible: "2028-01-01"
+          note: "Same calendar year retirement = same eligibility date"
+      - description: "COLA is board-discretionary — not system-calculated"
+        inputs: { cola_request: "calculate" }
+        expected:
+          calculated: false
+          note: "COLA determined by DERP Board, not rules engine"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.6"
+
+    assumptions:
+      - id: COLA-DISCRETIONARY
+        description: >
+          COLA is board-discretionary, not calculated by the system.
+          The system tracks eligibility dates and applies board-approved
+          amounts. No calculation engine component needed.
+        risk: LOW
+        resolution: "Confirmed by RMC §18-414"
+      - id: COLA-POC-SCOPE
+        description: >
+          For POC, COLA is acknowledged in rules but not exercised in
+          demo cases (all retire in 2026, first COLA eligibility 2028).
+        risk: LOW
+        resolution: "N/A — demo timeline"

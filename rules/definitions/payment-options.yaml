@@ -1,0 +1,514 @@
+# ============================================================================
+# Category 5: Payment Options & Spousal Consent
+# ============================================================================
+# Payment option selection determines the lifetime benefit structure.
+# J&S options reduce the member's benefit in exchange for survivor protection.
+# All elections are irrevocable.
+#
+# Source: derp-business-rules-inventory.docx, Category 5
+# Rules: 7
+# ============================================================================
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # RULE-PAY-MAXIMUM: Maximum Benefit (Single Life Annuity)
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-PAY-MAXIMUM
+    rule_name: Maximum Benefit (Single Life Annuity)
+    category: payment_options
+    description: >
+      The maximum benefit is the full calculated monthly amount with no
+      survivor protection. Payments continue for member's lifetime only;
+      all payments cease upon death.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "reduced_monthly_benefit"
+      variables:
+        - name: reduced_monthly_benefit
+          source: "RULE-REDUCTION-APPLY output (or unreduced if no reduction)"
+          description: "The benefit after any early retirement reduction"
+
+    result:
+      type: calculation
+      output: maximum_monthly_benefit
+      details:
+        survivor_benefit: 0
+        ceases_on: "member_death"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — maximum benefit equals unreduced"
+        inputs: { reduced_benefit: 6117.68 }
+        expected: { maximum: 6117.68, survivor: 0 }
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — maximum benefit equals reduced"
+        inputs: { reduced_benefit: 1633.07 }
+        expected: { maximum: 1633.07, survivor: 0 }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Washington — maximum benefit equals reduced"
+        inputs: { reduced_benefit: 1198.03 }
+        expected: { maximum: 1198.03, survivor: 0 }
+        demo_case_ref: case3-david-washington
+      - description: "Case 4 — maximum after DRO split"
+        inputs: { reduced_benefit: 4564.44 }
+        expected: { maximum: 4564.44, survivor: 0 }
+        demo_case_ref: case4-robert-dro
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.1"
+
+  # --------------------------------------------------------------------------
+  # RULE-JS-100: 100% Joint & Survivor Option
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-JS-100
+    rule_name: 100% Joint & Survivor Option
+    category: payment_options
+    description: >
+      Reduced benefit that, upon member's death, continues at 100% of the
+      member's reduced amount to the designated beneficiary for life.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "maximum_benefit * js_100_factor"
+      variables:
+        - name: maximum_benefit
+          source: "RULE-PAY-MAXIMUM output"
+          description: "The maximum single life benefit amount"
+        - name: js_100_factor
+          source: "Actuarial table (placeholder: 0.8850)"
+          description: >
+            ASSUMPTION [Q-CALC-04]: Placeholder factor. Actual factor depends
+            on member age, beneficiary age, and DERP actuarial tables.
+
+    result:
+      type: calculation
+      output: js_100_monthly_benefit
+      details:
+        survivor_benefit_percent: 100
+        survivor_receives: "Same amount as member was receiving"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — 100% J&S"
+        inputs: { maximum: 6117.68, factor: 0.8850 }
+        expected: { member_benefit: 5414.15, survivor_benefit: 5414.15 }
+        demo_case_ref: case1-robert-martinez
+      - description: "Case 4 — 100% J&S after DRO"
+        inputs: { maximum: 4564.44, factor: 0.8850 }
+        expected: { member_benefit: 4039.53, survivor_benefit: 4039.53 }
+        demo_case_ref: case4-robert-dro
+      - description: "Washington — 100% J&S on reduced benefit"
+        inputs: { maximum: 1198.03, factor: 0.8850 }
+        expected: { member_benefit: 1060.26, survivor_benefit: 1060.26 }
+        demo_case_ref: case3-david-washington
+      - description: "Negative — unmarried with estate beneficiary, J&S not applicable"
+        inputs: { maximum: 1633.07, beneficiary_type: "estate" }
+        expected: { applicable: false, reason: "no_natural_person_beneficiary" }
+        demo_case_ref: case2-jennifer-kim
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.2"
+
+    assumptions:
+      - id: Q-CALC-04
+        description: >
+          Actuarial factors for J&S options are NOT available. POC uses
+          placeholder factor 0.8850. Actual factors depend on member age,
+          beneficiary age, and DERP's actuarial tables.
+        risk: MEDIUM
+        resolution: "CRITICAL — Request actuarial tables from DERP"
+
+  # --------------------------------------------------------------------------
+  # RULE-JS-75: 75% Joint & Survivor Option
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-JS-75
+    rule_name: 75% Joint & Survivor Option
+    category: payment_options
+    description: >
+      Reduced benefit that, upon member's death, continues at 75% of the
+      member's reduced amount to the designated beneficiary for life.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "maximum_benefit * js_75_factor"
+      variables:
+        - name: maximum_benefit
+          source: "RULE-PAY-MAXIMUM output"
+          description: "The maximum single life benefit amount"
+        - name: js_75_factor
+          source: "Actuarial table (placeholder: 0.9150)"
+          description: "ASSUMPTION [Q-CALC-04]: Placeholder factor."
+
+    result:
+      type: calculation
+      output: js_75_monthly_benefit
+      details:
+        survivor_benefit_percent: 75
+        survivor_receives: "75% of member's reduced amount"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — elects 75% J&S with Elena"
+        inputs: { maximum: 6117.68, factor: 0.9150 }
+        expected:
+          member_benefit: 5597.68
+          survivor_benefit: 4198.26
+        demo_case_ref: case1-robert-martinez
+      - description: "Case 4 — 75% J&S after DRO"
+        inputs: { maximum: 4564.44, factor: 0.9150 }
+        expected:
+          member_benefit: 4176.46
+          survivor_benefit: 3132.35
+        demo_case_ref: case4-robert-dro
+      - description: "Washington — 75% J&S"
+        inputs: { maximum: 1198.03, factor: 0.9150 }
+        expected:
+          member_benefit: 1096.20
+          survivor_benefit: 822.15
+      - description: "Verify survivor = member * 0.75"
+        inputs: { maximum: 6117.68, factor: 0.9150 }
+        expected:
+          member_benefit: 5597.68
+          survivor_benefit_check: 4198.26
+          calculation: "5597.68 * 0.75 = 4198.26"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.3"
+
+    assumptions:
+      - id: Q-CALC-04
+        description: "Placeholder factor 0.9150. Same dependency on actual actuarial tables."
+        risk: MEDIUM
+        resolution: "Request actuarial tables from DERP"
+
+  # --------------------------------------------------------------------------
+  # RULE-JS-50: 50% Joint & Survivor Option
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-JS-50
+    rule_name: 50% Joint & Survivor Option
+    category: payment_options
+    description: >
+      Reduced benefit that, upon member's death, continues at 50% of the
+      member's reduced amount to the designated beneficiary for life.
+      Default option for married members who fail to make an election.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "maximum_benefit * js_50_factor"
+      variables:
+        - name: maximum_benefit
+          source: "RULE-PAY-MAXIMUM output"
+          description: "The maximum single life benefit amount"
+        - name: js_50_factor
+          source: "Actuarial table (placeholder: 0.9450)"
+          description: "ASSUMPTION [Q-CALC-04]: Placeholder factor."
+
+    result:
+      type: calculation
+      output: js_50_monthly_benefit
+      details:
+        survivor_benefit_percent: 50
+        survivor_receives: "50% of member's reduced amount"
+        default_for: "married_members_no_election"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Washington — elects 50% J&S with Michelle"
+        inputs: { maximum: 1198.03, factor: 0.9450 }
+        expected:
+          member_benefit: 1132.14
+          survivor_benefit: 566.07
+        demo_case_ref: case3-david-washington
+      - description: "Martinez — 50% J&S option (not elected but calculated)"
+        inputs: { maximum: 6117.68, factor: 0.9450 }
+        expected:
+          member_benefit: 5781.21
+          survivor_benefit: 2890.61
+        demo_case_ref: case1-robert-martinez
+      - description: "Verify survivor = member * 0.50"
+        inputs: { maximum: 1198.03, factor: 0.9450 }
+        expected:
+          member_benefit: 1132.14
+          survivor_benefit_check: 566.07
+          calculation: "1132.14 * 0.50 = 566.07"
+      - description: "Smallest J&S reduction = largest member benefit"
+        inputs: { maximum: 6117.68 }
+        expected:
+          js_100: 5414.15
+          js_75: 5597.68
+          js_50: 5781.21
+          note: "50% J&S has smallest reduction (largest member benefit)"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.4"
+
+    assumptions:
+      - id: Q-CALC-04
+        description: "Placeholder factor 0.9450. Default option for married members."
+        risk: MEDIUM
+        resolution: "Request actuarial tables from DERP"
+
+  # --------------------------------------------------------------------------
+  # RULE-JS-DEFAULT: Default Payment Option for Married Members
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-JS-DEFAULT
+    rule_name: Default Payment Option for Married Members
+    category: payment_options
+    description: >
+      If a married member fails to elect a payment option, the default
+      is 50% J&S with spouse as beneficiary.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: marital_status
+        operator: eq
+        value: "married"
+        join: AND
+      - field: payment_option_elected
+        operator: eq
+        value: false
+
+    result:
+      type: determination
+      output: default_payment_option
+      value: "50_js"
+      details:
+        beneficiary: "spouse"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Married member, no election = 50% J&S with spouse"
+        inputs: { marital_status: "married", election_made: false }
+        expected: { option: "50_js", beneficiary: "spouse" }
+      - description: "Unmarried member, no election = Maximum"
+        inputs: { marital_status: "single", election_made: false }
+        expected: { option: "maximum" }
+      - description: "Married member WITH election = elected option"
+        inputs: { marital_status: "married", election_made: true, elected: "75_js" }
+        expected: { option: "75_js", default_not_applied: true }
+      - description: "Negative — widowed member = no default applies"
+        inputs: { marital_status: "widowed", election_made: false }
+        expected: { option: "maximum", note: "No living spouse for default" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.5"
+
+  # --------------------------------------------------------------------------
+  # RULE-SPOUSAL-CONSENT: Spousal Consent Requirement
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-SPOUSAL-CONSENT
+    rule_name: Spousal Consent Requirement
+    category: payment_options
+    description: >
+      If married, spouse must be designated as beneficiary for at least
+      50% J&S option UNLESS spouse provides notarized written consent to
+      waive this right. Consent form cannot be signed/submitted more than
+      90 days before first payment. Consent is irrevocable.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: marital_status
+        operator: eq
+        value: "married"
+        join: AND
+      - field: payment_option
+        operator: in
+        value: ["maximum", "100_js_non_spouse", "75_js_non_spouse", "50_js_non_spouse"]
+        description: "Options that don't automatically protect spouse"
+
+    result:
+      type: validation
+      output: spousal_consent_required
+      details:
+        consent_form: "Spousal Consent At Retirement"
+        must_be_notarized: true
+        timing_rule: "Cannot be signed more than 90 days before first payment"
+        irrevocable: true
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — 75% J&S with spouse Elena, no consent needed"
+        inputs:
+          marital_status: "married"
+          option: "75_js"
+          beneficiary: "Elena Martinez"
+          beneficiary_is_spouse: true
+        expected:
+          consent_required: false
+          reason: "Spouse is J&S beneficiary"
+        demo_case_ref: case1-robert-martinez
+      - description: "Married member elects Maximum = consent required"
+        inputs:
+          marital_status: "married"
+          option: "maximum"
+        expected:
+          consent_required: true
+          blocked_until: "spousal_consent_received"
+      - description: "Married member, 50% J&S with non-spouse beneficiary = consent required"
+        inputs:
+          marital_status: "married"
+          option: "50_js"
+          beneficiary_is_spouse: false
+        expected:
+          consent_required: true
+      - description: "Negative — single member, any option = no consent"
+        inputs:
+          marital_status: "single"
+          option: "maximum"
+        expected:
+          consent_required: false
+      - description: "90-day timing rule — consent too early"
+        inputs:
+          marital_status: "married"
+          option: "maximum"
+          consent_date: "2025-11-01"
+          first_payment_date: "2026-04-01"
+        expected:
+          consent_required: true
+          consent_valid: false
+          reason: "Signed more than 90 days before first payment"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.6"
+
+  # --------------------------------------------------------------------------
+  # RULE-BENEFICIARY-PREDECEASE: Beneficiary Predeceases Member
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-BENEFICIARY-PREDECEASE
+    rule_name: Beneficiary Predeceases Member
+    category: payment_options
+    description: >
+      If J&S beneficiary predeceases the member, the member's benefit is
+      increased prospectively to the Maximum (single life) amount. Member
+      may NOT select a new beneficiary.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: payment_option
+        operator: in
+        value: ["100_js", "75_js", "50_js"]
+        join: AND
+      - field: beneficiary_alive
+        operator: eq
+        value: false
+
+    result:
+      type: determination
+      output: benefit_adjustment
+      details:
+        new_benefit: "Maximum (single life) amount"
+        effective: "Prospective from date of death notification"
+        new_beneficiary: "NOT allowed"
+
+    source_reference:
+      document: Retirement Application
+      section: "Page 2 — explicit statement on form"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Beneficiary dies — member benefit increases to maximum"
+        inputs:
+          current_option: "75_js"
+          current_benefit: 5597.68
+          maximum_benefit: 6117.68
+          beneficiary_dies: true
+        expected:
+          new_benefit: 6117.68
+          new_option: "maximum"
+          new_beneficiary_allowed: false
+      - description: "Beneficiary alive — no change"
+        inputs:
+          current_option: "75_js"
+          current_benefit: 5597.68
+          beneficiary_alive: true
+        expected:
+          benefit_unchanged: true
+      - description: "Maximum option — beneficiary death irrelevant"
+        inputs:
+          current_option: "maximum"
+          beneficiary: null
+        expected:
+          no_change: true
+          reason: "No J&S beneficiary to predecease"
+      - description: "Increase is prospective only — no retroactive adjustment"
+        inputs:
+          current_option: "50_js"
+          current_benefit: 5781.21
+          maximum_benefit: 6117.68
+          beneficiary_death_date: "2030-06-15"
+          notification_date: "2030-07-01"
+        expected:
+          new_benefit: 6117.68
+          effective_from: "2030-07-01"
+          retroactive: false
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 5.7"

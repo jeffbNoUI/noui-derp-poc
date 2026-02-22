@@ -431,3 +431,64 @@ Two test fixture files contain unreduced benefit amounts that do not match the f
 - **BT-004:** All corrections applied. Verified documentation foundation.
 - **BT-005:** Legacy schema created. BUILD_PLAN corrections applied.
 - **BT-006:** Day 1 complete. Schema deployed, seed data loaded, all verification passed. Return here to restart from Day 2 (rule definitions) with working database.
+
+---
+
+### Session 8: DERP Rule Definitions (Day 2, Steps 2.1–2.8)
+
+**Decision Log:**
+
+39. **DECISION: YAML Schema Follows SESSION_BRIEF Specification**
+    Created rules/definitions/schema.yaml defining the contract for all rule definitions. Key fields: rule_id, source_reference (required), test_cases (min 4), governance with inventory_ref, lookup_table for statutory tables, assumptions array for flagged items.
+
+40. **DECISION: All 52 Rules Defined Across 8 Category Files**
+    Every rule from derp-business-rules-inventory.docx is represented in YAML:
+    - membership.yaml: 5 rules (tier determination, contribution rates)
+    - service-credit.yaml: 3 rules (earned, purchased, separation)
+    - eligibility.yaml: 10 rules (vesting, normal, Rule of 75/85, early, deferred, hierarchy)
+    - benefit-calculation.yaml: 9 rules (AMS, leave payout, benefit formulas, reduction, rounding)
+    - payment-options.yaml: 7 rules (maximum, J&S options, default, spousal consent, predecease)
+    - dro.yaml: 6 rules (marital share, sequence, methods, exclusions, COLA)
+    - supplemental.yaml: 6 rules (IPR, death benefit normal/early/election/reemploy)
+    - process.yaml: 6 rules (deadline, notarization, cutoff, effective date, irrevocability, COLA)
+
+41. **DECISION: Statutory Lookup Tables Used for Reductions and Death Benefits**
+    Per CLAUDE_CODE_PROTOCOL.md: early retirement reduction and death benefit use statutory tables from the RMC, not formulas. Tables are directly auditable against the governing document. Four tables defined:
+    - Early retirement reduction Tiers 1&2: ages 55-65, factors 0.70-1.00 (RMC §18-409(b))
+    - Early retirement reduction Tier 3: ages 60-65, factors 0.70-1.00 (RMC §18-409(b))
+    - Death benefit early Tiers 1&2: ages 55-65, $2,500-$5,000 (RMC §18-411(d)(1))
+    - Death benefit early Tier 3: ages 60-65, $2,500-$5,000 (RMC §18-411(d)(2))
+
+42. **DECISION: Placeholder J&S Factors Marked Throughout**
+    All J&S rules use placeholder actuarial factors (100%: 0.8850, 75%: 0.9150, 50%: 0.9450) with explicit ASSUMPTION [Q-CALC-04] markers. When DERP provides actual tables, only the factor values change — rule structure and test cases remain valid.
+
+43. **DECISION: All Governance Fields Set to PENDING**
+    Every rule has governance.certified_by = "PENDING" per ADR-002: no rule reaches production without human approval. The YAML definitions are AI-drafted configurations awaiting human certification.
+
+### Step 2.8 Verification:
+
+- ✅ All 52 rules from inventory represented in YAML (verified by automated count)
+- ✅ Every rule has source_reference with document and section
+- ✅ Every rule has at least 4 inline test cases (happy, boundary, below, negative)
+- ✅ Rule IDs match inventory IDs exactly
+- ✅ No rule contains information not in the inventory or governing documents
+- ✅ All assumptions marked with risk ratings and resolution paths
+- ✅ Statutory lookup tables used (not formulas) for reductions and death benefits
+- ✅ YAML syntax validated (one comma-separated value error found and fixed)
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| rules/definitions/schema.yaml | Rule definition schema — contract for all YAML rules | Active |
+| rules/definitions/membership.yaml | 5 rules: tier determination, contribution rates | Active |
+| rules/definitions/service-credit.yaml | 3 rules: earned, purchased, type separation | Active |
+| rules/definitions/eligibility.yaml | 10 rules: vesting through evaluation hierarchy | Active |
+| rules/definitions/benefit-calculation.yaml | 9 rules: AMS, formulas, reduction, rounding | Active |
+| rules/definitions/payment-options.yaml | 7 rules: maximum, J&S, spousal consent | Active |
+| rules/definitions/dro.yaml | 6 rules: marital share, sequence, exclusions | Active |
+| rules/definitions/supplemental.yaml | 6 rules: IPR, death benefit | Active |
+| rules/definitions/process.yaml | 6 rules: deadlines, timing, COLA | Active |
+
+### Backtrack Points:
+- **BT-007:** Day 2 complete. All 52 rules defined in YAML with test cases. Return here to restart from Day 3 (hand calculations / backend services) with rules in place.

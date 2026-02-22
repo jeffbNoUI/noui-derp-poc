@@ -1,0 +1,685 @@
+# ============================================================================
+# Category 3: Eligibility Determination
+# ============================================================================
+# Eligibility rules gate the benefit calculation and determine whether
+# reductions apply. Evaluated in strict hierarchy per RULE-ELIG-HIERARCHY.
+#
+# Source: derp-business-rules-inventory.docx, Category 3
+# Rules: 10
+# ============================================================================
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # RULE-VESTING: Vesting Requirement
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-VESTING
+    rule_name: Vesting Requirement
+    category: eligibility
+    description: >
+      A member must have at least 5 years of credited service to be vested
+      and eligible for any retirement benefit. Vesting uses earned service
+      only — purchased service is excluded per RMC §18-415(a).
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: earned_service_years
+        operator: gte
+        value: 5.0
+
+    result:
+      type: determination
+      output: vested
+      values: [true, false]
+
+    source_reference:
+      document: RMC
+      section: "§18-402(31)"
+      verification: CONFIRMED
+
+    effective_date: "1987-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — clearly vested with 28.75 years"
+        inputs: { earned_service_years: 28.75 }
+        expected: { vested: true }
+        demo_case_ref: case1-robert-martinez
+      - description: "Boundary — exactly 5.00 years = vested"
+        inputs: { earned_service_years: 5.00 }
+        expected: { vested: true }
+      - description: "Just below — 4.99 years = not vested"
+        inputs: { earned_service_years: 4.99 }
+        expected: { vested: false }
+      - description: "Negative — purchased service excluded from vesting"
+        inputs: { earned_service_years: 4.00, purchased_service_years: 2.00 }
+        expected: { vested: false, total_service: 6.00, earned_only: 4.00 }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.1"
+
+    assumptions:
+      - id: VESTING-ERA
+        description: >
+          For POC scope, all synthetic members are post-1987 hires, so
+          5-year vesting applies. The 10-year pre-1987 rule is documented
+          but not expected in demo cases.
+        risk: LOW
+        resolution: "Confirmed by restricting seed data to post-1987"
+
+  # --------------------------------------------------------------------------
+  # RULE-NORMAL-RET: Normal Retirement Eligibility
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-NORMAL-RET
+    rule_name: Normal Retirement Eligibility
+    category: eligibility
+    description: >
+      Age 65 or older AND at least 5 years of credited service = normal
+      retirement. Full unreduced benefit. Applies to all tiers.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: age_at_retirement
+        operator: gte
+        value: 65
+        join: AND
+      - field: earned_service_years
+        operator: gte
+        value: 5.0
+
+    result:
+      type: determination
+      output: retirement_type
+      value: normal
+      details:
+        benefit_reduction: 0
+        unreduced: true
+
+    source_reference:
+      document: RMC
+      section: "§18-402(20), §18-408"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Age 65 with 5 years service = normal retirement"
+        inputs: { age_at_retirement: 65, earned_service_years: 5.00 }
+        expected: { retirement_type: "normal", reduction: 0 }
+      - description: "Age 70 with 30 years = normal retirement"
+        inputs: { age_at_retirement: 70, earned_service_years: 30.00 }
+        expected: { retirement_type: "normal", reduction: 0 }
+      - description: "Just below — age 64 with 30 years = NOT normal"
+        inputs: { age_at_retirement: 64, earned_service_years: 30.00 }
+        expected: { retirement_type_not: "normal", check_rule_of_n: true }
+      - description: "Negative — age 65 with only 4 years = NOT eligible"
+        inputs: { age_at_retirement: 65, earned_service_years: 4.00 }
+        expected: { eligible: false, reason: "not_vested" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.2"
+
+  # --------------------------------------------------------------------------
+  # RULE-RULE-OF-75: Rule of 75 Eligibility
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-RULE-OF-75
+    rule_name: Rule of 75 Eligibility
+    category: eligibility
+    description: >
+      For Tiers 1 and 2: if age + earned service credit >= 75 AND member
+      has attained minimum age 55, member qualifies for unreduced benefit.
+      Uses EARNED service only — purchased excluded per §18-415(a).
+    tier_applicability: [1, 2]
+
+    conditions:
+      - field: tier
+        operator: in
+        value: [1, 2]
+        join: AND
+      - field: age_plus_earned_service
+        operator: gte
+        value: 75
+        join: AND
+      - field: age_at_retirement
+        operator: gte
+        value: 55
+
+    result:
+      type: determination
+      output: rule_of_75_qualifies
+      values: [true, false]
+      details:
+        benefit_reduction: 0
+        unreduced: true
+
+    source_reference:
+      document: RMC
+      section: "§18-402(20)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — meets Rule of 75"
+        inputs: { tier: 1, age: 63, earned_service: 28.75 }
+        expected: { rule_met: true, sum: 91.75, min_age_met: true }
+        demo_case_ref: case1-robert-martinez
+      - description: "Exact boundary — sum = 75.00"
+        inputs: { tier: 1, age: 55, earned_service: 20.00 }
+        expected: { rule_met: true, sum: 75.00, min_age_met: true }
+      - description: "Just below — sum = 74.99"
+        inputs: { tier: 1, age: 55, earned_service: 19.99 }
+        expected: { rule_met: false, sum: 74.99 }
+      - description: "Kim — does not meet (73.17 < 75)"
+        inputs: { tier: 2, age: 55, earned_service: 18.17 }
+        expected: { rule_met: false, sum: 73.17 }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Meets sum but not min age — must wait"
+        inputs: { tier: 1, age: 54, earned_service: 21.00 }
+        expected: { rule_met: false, sum: 75.00, min_age_met: false, deferred_until_age: 55 }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.3"
+
+    assumptions:
+      - id: Q-CALC-02-IMPACT
+        description: >
+          The age + service sum depends on how partial years are calculated.
+          Year-month vs exact day could change whether a member is 0.01
+          above or below 75.
+        risk: MEDIUM
+        resolution: "CRITICAL — Confirm partial year method with DERP"
+
+  # --------------------------------------------------------------------------
+  # RULE-RULE-OF-85: Rule of 85 Eligibility
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-RULE-OF-85
+    rule_name: Rule of 85 Eligibility
+    category: eligibility
+    description: >
+      For Tier 3: if age + earned service credit >= 85 AND member has
+      attained minimum age 60, member qualifies for unreduced benefit.
+      Uses EARNED service only — purchased excluded per §18-415(a).
+    tier_applicability: [3]
+
+    conditions:
+      - field: tier
+        operator: eq
+        value: 3
+        join: AND
+      - field: age_plus_earned_service
+        operator: gte
+        value: 85
+        join: AND
+      - field: age_at_retirement
+        operator: gte
+        value: 60
+
+    result:
+      type: determination
+      output: rule_of_85_qualifies
+      values: [true, false]
+      details:
+        benefit_reduction: 0
+        unreduced: true
+
+    source_reference:
+      document: RMC
+      section: "§18-402(20)"
+      verification: CONFIRMED
+
+    effective_date: "2011-07-01"
+    end_date: null
+
+    test_cases:
+      - description: "Washington — does NOT meet Rule of 85"
+        inputs: { tier: 3, age: 63, earned_service: 13.58 }
+        expected: { rule_met: false, sum: 76.58 }
+        demo_case_ref: case3-david-washington
+      - description: "Exact boundary — sum = 85.00"
+        inputs: { tier: 3, age: 60, earned_service: 25.00 }
+        expected: { rule_met: true, sum: 85.00, min_age_met: true }
+      - description: "Just below — sum = 84.99"
+        inputs: { tier: 3, age: 60, earned_service: 24.99 }
+        expected: { rule_met: false, sum: 84.99 }
+      - description: "Meets sum but not min age — must wait"
+        inputs: { tier: 3, age: 59, earned_service: 26.00 }
+        expected: { rule_met: false, sum: 85.00, min_age_met: false, deferred_until_age: 60 }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.4"
+
+  # --------------------------------------------------------------------------
+  # RULE-EARLY-RET-T12: Early Retirement Eligibility (Tiers 1 & 2)
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-EARLY-RET-T12
+    rule_name: Early Retirement Eligibility (Tiers 1 & 2)
+    category: eligibility
+    description: >
+      Age 55 or older AND at least 5 years of credited service AND does
+      not meet normal retirement or Rule of 75. Benefit is reduced.
+    tier_applicability: [1, 2]
+
+    conditions:
+      - field: tier
+        operator: in
+        value: [1, 2]
+        join: AND
+      - field: age_at_retirement
+        operator: gte
+        value: 55
+        join: AND
+      - field: earned_service_years
+        operator: gte
+        value: 5.0
+        join: AND
+      - field: normal_retirement_met
+        operator: eq
+        value: false
+        join: AND
+      - field: rule_of_75_met
+        operator: eq
+        value: false
+
+    result:
+      type: determination
+      output: early_retirement_eligible
+      value: true
+      details:
+        reduction_applies: true
+        reduction_rule: RULE-EARLY-REDUCE-T12
+
+    source_reference:
+      document: RMC
+      section: "§18-408, §18-409(b)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Kim — early retirement eligible at age 55"
+        inputs: { tier: 2, age: 55, earned_service: 18.17, rule_of_75_met: false }
+        expected: { early_eligible: true, reduction_applies: true }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Boundary — age 55 with 5 years = eligible"
+        inputs: { tier: 1, age: 55, earned_service: 5.00, rule_of_75_met: false }
+        expected: { early_eligible: true }
+      - description: "Just below — age 54 = NOT eligible"
+        inputs: { tier: 2, age: 54, earned_service: 18.00, rule_of_75_met: false }
+        expected: { early_eligible: false, reason: "below_minimum_age" }
+      - description: "Negative — meets Rule of 75 = NOT early"
+        inputs: { tier: 1, age: 63, earned_service: 28.75, rule_of_75_met: true }
+        expected: { early_eligible: false, reason: "rule_of_75_met" }
+        demo_case_ref: case1-robert-martinez
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.5"
+
+  # --------------------------------------------------------------------------
+  # RULE-EARLY-RET-T3: Early Retirement Eligibility (Tier 3)
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-EARLY-RET-T3
+    rule_name: Early Retirement Eligibility (Tier 3)
+    category: eligibility
+    description: >
+      Age 60 or older AND at least 5 years of credited service AND does
+      not meet normal retirement or Rule of 85. Benefit is reduced.
+    tier_applicability: [3]
+
+    conditions:
+      - field: tier
+        operator: eq
+        value: 3
+        join: AND
+      - field: age_at_retirement
+        operator: gte
+        value: 60
+        join: AND
+      - field: earned_service_years
+        operator: gte
+        value: 5.0
+        join: AND
+      - field: normal_retirement_met
+        operator: eq
+        value: false
+        join: AND
+      - field: rule_of_85_met
+        operator: eq
+        value: false
+
+    result:
+      type: determination
+      output: early_retirement_eligible
+      value: true
+      details:
+        reduction_applies: true
+        reduction_rule: RULE-EARLY-REDUCE-T3
+
+    source_reference:
+      document: RMC
+      section: "§18-408, §18-409(b)"
+      verification: CONFIRMED
+
+    effective_date: "2011-07-01"
+    end_date: null
+
+    test_cases:
+      - description: "Washington — early retirement eligible at age 63"
+        inputs: { tier: 3, age: 63, earned_service: 13.58, rule_of_85_met: false }
+        expected: { early_eligible: true, reduction_applies: true }
+        demo_case_ref: case3-david-washington
+      - description: "Boundary — age 60 with 5 years = eligible"
+        inputs: { tier: 3, age: 60, earned_service: 5.00, rule_of_85_met: false }
+        expected: { early_eligible: true }
+      - description: "Just below — age 59 = NOT eligible for Tier 3"
+        inputs: { tier: 3, age: 59, earned_service: 20.00, rule_of_85_met: false }
+        expected: { early_eligible: false, reason: "below_minimum_age_t3" }
+      - description: "Negative — meets Rule of 85 = NOT early"
+        inputs: { tier: 3, age: 60, earned_service: 25.00, rule_of_85_met: true }
+        expected: { early_eligible: false, reason: "rule_of_85_met" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.6"
+
+  # --------------------------------------------------------------------------
+  # RULE-EARLY-REDUCE-T12: Early Retirement Reduction (Tiers 1 & 2)
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-EARLY-REDUCE-T12
+    rule_name: Early Retirement Reduction (Tiers 1 & 2)
+    category: eligibility
+    description: >
+      Benefit reduced by 3% per year under age 65. Maximum reduction 30%
+      at age 55. Reduction is permanent. Uses statutory lookup table by
+      integer age — NOT a formula.
+    tier_applicability: [1, 2]
+
+    # Statutory table from RMC §18-409(b) — use this, not a formula
+    lookup_table:
+      description: >
+        Reduction factor by integer age at retirement. The statute defines
+        this table directly. A formula (1 - years_under_65 * 0.03) would
+        produce the same values but the TABLE is the governing document.
+      entries:
+        55: 0.70
+        56: 0.73
+        57: 0.76
+        58: 0.79
+        59: 0.82
+        60: 0.85
+        61: 0.88
+        62: 0.91
+        63: 0.94
+        64: 0.97
+        65: 1.00
+
+    result:
+      type: calculation
+      output: reduction_factor
+      details:
+        permanent: true
+        note: "Reduction is permanent for lifetime — does NOT change at age 65"
+
+    source_reference:
+      document: RMC
+      section: "§18-409(b)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Kim — age 55, 30% reduction (factor 0.70)"
+        inputs: { tier: 2, age_at_retirement: 55 }
+        expected: { reduction_factor: 0.70, reduction_percent: 30 }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Age 64 — minimal 3% reduction"
+        inputs: { tier: 1, age_at_retirement: 64 }
+        expected: { reduction_factor: 0.97, reduction_percent: 3 }
+      - description: "Age 65 — no reduction"
+        inputs: { tier: 2, age_at_retirement: 65 }
+        expected: { reduction_factor: 1.00, reduction_percent: 0 }
+      - description: "Age 60 — 15% reduction"
+        inputs: { tier: 1, age_at_retirement: 60 }
+        expected: { reduction_factor: 0.85, reduction_percent: 15 }
+      - description: "Negative — age 63 with Rule of 75 met = no reduction"
+        inputs: { tier: 1, age_at_retirement: 63, rule_of_75_met: true }
+        expected: { reduction_factor: 1.00, reduction_applies: false }
+        demo_case_ref: case1-robert-martinez
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.7"
+
+    assumptions:
+      - id: Q-CALC-03
+        description: >
+          Integer-age approach confirmed by RMC statutory table (lists integer
+          ages only). No monthly proration. DERP staff confirmation would
+          eliminate any ambiguity.
+        risk: MEDIUM
+        resolution: "Confirm with DERP staff"
+
+  # --------------------------------------------------------------------------
+  # RULE-EARLY-REDUCE-T3: Early Retirement Reduction (Tier 3)
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-EARLY-REDUCE-T3
+    rule_name: Early Retirement Reduction (Tier 3)
+    category: eligibility
+    description: >
+      Benefit reduced by 6% per year under age 65. Maximum reduction 30%
+      at age 60. Reduction is permanent. Uses statutory lookup table by
+      integer age — NOT a formula.
+    tier_applicability: [3]
+
+    # Statutory table from RMC §18-409(b) — use this, not a formula
+    lookup_table:
+      description: >
+        Reduction factor by integer age at retirement. Note: Tier 3 table
+        increments are 6% (70, 76, 82, 88, 94, 100) — not uniform 3%.
+      entries:
+        60: 0.70
+        61: 0.76
+        62: 0.82
+        63: 0.88
+        64: 0.94
+        65: 1.00
+
+    result:
+      type: calculation
+      output: reduction_factor
+      details:
+        permanent: true
+        note: "Reduction is permanent for lifetime — does NOT change at age 65"
+
+    source_reference:
+      document: RMC
+      section: "§18-409(b)"
+      verification: CONFIRMED
+
+    effective_date: "2011-07-01"
+    end_date: null
+
+    test_cases:
+      - description: "Washington — age 63, 12% reduction (factor 0.88)"
+        inputs: { tier: 3, age_at_retirement: 63 }
+        expected: { reduction_factor: 0.88, reduction_percent: 12 }
+        demo_case_ref: case3-david-washington
+      - description: "Age 60 — maximum 30% reduction"
+        inputs: { tier: 3, age_at_retirement: 60 }
+        expected: { reduction_factor: 0.70, reduction_percent: 30 }
+      - description: "Age 65 — no reduction"
+        inputs: { tier: 3, age_at_retirement: 65 }
+        expected: { reduction_factor: 1.00, reduction_percent: 0 }
+      - description: "Age 64 — minimal 6% reduction"
+        inputs: { tier: 3, age_at_retirement: 64 }
+        expected: { reduction_factor: 0.94, reduction_percent: 6 }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.8"
+
+  # --------------------------------------------------------------------------
+  # RULE-DEFERRED: Deferred Retirement
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-DEFERRED
+    rule_name: Deferred Retirement
+    category: eligibility
+    description: >
+      Vested member who terminates employment before reaching any retirement
+      eligibility. Benefits calculated based on service and salary at
+      termination. Must wait until reaching eligibility age to begin payments.
+      If application deadline missed (30 days), automatically classified
+      as deferred.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: vested
+        operator: eq
+        value: true
+        join: AND
+      - field: normal_retirement_met
+        operator: eq
+        value: false
+        join: AND
+      - field: rule_of_n_met
+        operator: eq
+        value: false
+        join: AND
+      - field: early_retirement_met
+        operator: eq
+        value: false
+
+    result:
+      type: determination
+      output: retirement_type
+      value: deferred
+      details:
+        benefit_calculated_at: termination_date
+        payments_begin: eligibility_age
+
+    source_reference:
+      document: RMC
+      section: "§18-402(10), §18-408"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Vested member terminates at age 50 = deferred"
+        inputs: { age: 50, earned_service: 10.00, tier: 2, terminated: true }
+        expected: { retirement_type: "deferred", payments_begin_at_age: 55 }
+      - description: "Vested member misses 30-day application deadline"
+        inputs: { age: 55, earned_service: 18.00, tier: 2, deadline_missed: true }
+        expected: { retirement_type: "deferred", reason: "deadline_missed" }
+      - description: "Non-vested member terminates = no benefit"
+        inputs: { age: 45, earned_service: 4.00, terminated: true }
+        expected: { eligible: false, reason: "not_vested" }
+      - description: "Negative — member meets early retirement = NOT deferred"
+        inputs: { age: 55, earned_service: 18.00, tier: 2, early_ret_met: true }
+        expected: { retirement_type_not: "deferred" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.9"
+
+  # --------------------------------------------------------------------------
+  # RULE-ELIG-HIERARCHY: Eligibility Evaluation Order
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-ELIG-HIERARCHY
+    rule_name: Eligibility Evaluation Order
+    category: eligibility
+    description: >
+      Eligibility is evaluated in strict order: (1) Tier determination,
+      (2) Age at retirement, (3) Service credit separation, (4) Vesting
+      check, (5) Normal retirement check, (6) Rule of 75/85 check,
+      (7) Early retirement check, (8) Deferred if none met. First
+      qualifying category applies.
+    tier_applicability: [1, 2, 3]
+
+    result:
+      type: routing
+      output: eligibility_classification
+      details:
+        evaluation_order:
+          - step: 1
+            rule: "RULE-TIER-1 / RULE-TIER-2 / RULE-TIER-3"
+            action: "Determine tier"
+          - step: 2
+            action: "Calculate age at retirement date"
+          - step: 3
+            rule: "RULE-SVC-SEPARATION"
+            action: "Separate service credit by type"
+          - step: 4
+            rule: "RULE-VESTING"
+            action: "Check vesting (earned service >= 5 years)"
+          - step: 5
+            rule: "RULE-NORMAL-RET"
+            action: "Check normal retirement (age >= 65, service >= 5)"
+          - step: 6
+            rule: "RULE-RULE-OF-75 / RULE-RULE-OF-85"
+            action: "Check Rule of N (tier-specific)"
+          - step: 7
+            rule: "RULE-EARLY-RET-T12 / RULE-EARLY-RET-T3"
+            action: "Check early retirement (tier-specific min age)"
+          - step: 8
+            rule: "RULE-DEFERRED"
+            action: "If none met, classify as deferred"
+
+    source_reference:
+      document: RMC
+      section: "Derived from RMC structure; evaluation order is architectural decision"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Martinez — classified as Rule of 75 (not normal, not early)"
+        inputs: { tier: 1, age: 63, earned_service: 28.75 }
+        expected: { classification: "rule_of_75", reduction: 0 }
+        demo_case_ref: case1-robert-martinez
+      - description: "Kim — classified as early retirement"
+        inputs: { tier: 2, age: 55, earned_service: 18.17 }
+        expected: { classification: "early", reduction_rule: "RULE-EARLY-REDUCE-T12" }
+        demo_case_ref: case2-jennifer-kim
+      - description: "Washington — classified as early retirement"
+        inputs: { tier: 3, age: 63, earned_service: 13.58 }
+        expected: { classification: "early", reduction_rule: "RULE-EARLY-REDUCE-T3" }
+        demo_case_ref: case3-david-washington
+      - description: "Member meets both normal and Rule of 75 = normal"
+        inputs: { tier: 1, age: 65, earned_service: 25.00 }
+        expected: { classification: "normal", note: "Normal takes precedence" }
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 3.10"
