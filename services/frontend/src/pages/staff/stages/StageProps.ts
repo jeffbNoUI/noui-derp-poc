@@ -5,7 +5,7 @@
  */
 import type {
   Member, ServiceCreditSummary, EligibilityResult, BenefitResult,
-  PaymentOptionsResult, DRORecord, DROResult,
+  PaymentOptionsResult, DRORecord, DROResult, ApplicationIntake,
 } from '@/types/Member'
 
 export interface StageProps {
@@ -17,6 +17,7 @@ export interface StageProps {
   paymentOptions?: PaymentOptionsResult
   dros?: DRORecord[]
   droCalc?: DROResult
+  applicationIntake?: ApplicationIntake
   retirementDate: string
   onRetirementDateChange: (date: string) => void
   electedOption: string

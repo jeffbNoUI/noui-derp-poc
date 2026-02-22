@@ -57,6 +57,7 @@ const case4DROs: DRORecord[] = [
 ]
 
 const ALL_BASE_STAGES = [
+  'application-intake',
   'member-verify',
   'service-credit',
   'eligibility',
@@ -67,6 +68,7 @@ const ALL_BASE_STAGES = [
 ]
 
 const ALL_STAGES_WITH_DRO = [
+  'application-intake',
   'member-verify',
   'service-credit',
   'eligibility',
@@ -81,25 +83,25 @@ const ALL_STAGES_WITH_DRO = [
 
 describe('guided-composition', () => {
   describe('composeStageIds', () => {
-    it('Case 1 (Robert Martinez) — 7 stages, no DRO', () => {
+    it('Case 1 (Robert Martinez) — 8 stages, no DRO', () => {
       const ids = composeStageIds(case1SC, undefined)
       expect(ids).toEqual(ALL_BASE_STAGES)
       expect(ids).not.toContain('dro')
     })
 
-    it('Case 2 (Jennifer Kim) — 7 stages, no DRO, has purchased service', () => {
+    it('Case 2 (Jennifer Kim) — 8 stages, no DRO, has purchased service', () => {
       const ids = composeStageIds(case2SC, undefined)
       expect(ids).toEqual(ALL_BASE_STAGES)
       expect(ids).not.toContain('dro')
     })
 
-    it('Case 3 (David Washington) — 7 stages, no DRO', () => {
+    it('Case 3 (David Washington) — 8 stages, no DRO', () => {
       const ids = composeStageIds(case3SC, undefined)
       expect(ids).toEqual(ALL_BASE_STAGES)
       expect(ids).not.toContain('dro')
     })
 
-    it('Case 4 (Robert Martinez + DRO) — 8 stages, includes DRO', () => {
+    it('Case 4 (Robert Martinez + DRO) — 9 stages, includes DRO', () => {
       const ids = composeStageIds(case4SC, case4DROs)
       expect(ids).toEqual(ALL_STAGES_WITH_DRO)
       expect(ids).toContain('dro')
@@ -119,7 +121,7 @@ describe('guided-composition', () => {
   describe('composeStages', () => {
     it('returns full StageHelp objects with correct IDs', () => {
       const stages = composeStages(case1SC, undefined)
-      expect(stages).toHaveLength(7)
+      expect(stages).toHaveLength(8)
       expect(stages.map(s => s.id)).toEqual(ALL_BASE_STAGES)
       // Each stage has required help fields
       for (const stage of stages) {

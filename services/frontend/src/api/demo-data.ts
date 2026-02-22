@@ -9,7 +9,7 @@
 import type {
   Member, EmploymentEvent, SalaryRecord, AMSResult, ServiceCreditSummary,
   Beneficiary, DRORecord, EligibilityResult, BenefitResult,
-  PaymentOptionsResult, ScenarioResult, DROResult,
+  PaymentOptionsResult, ScenarioResult, DROResult, ApplicationIntake,
 } from '@/types/Member'
 
 // ─── Case 1: Robert Martinez — Tier 1, Rule of 75, Leave Payout ─────────────
@@ -380,6 +380,86 @@ const case4PaymentOptions: PaymentOptionsResult = {
   ],
 }
 
+// ─── Application Intake Fixtures ─────────────────────────────────────────────
+// Document checklists and timeline data for the Application Intake stage (Stage 0).
+// Documents vary by marital status, tier, age, and DRO presence.
+
+const case1Intake: ApplicationIntake = {
+  application_received_date: '2026-03-10',
+  last_day_worked: '2026-03-31',
+  retirement_effective_date: '2026-04-01',
+  notarization_confirmed: true,
+  notarization_date: '2026-03-10',
+  deadline_met: true,
+  days_before_last_day: 21,
+  payment_cutoff_met: true,
+  cutoff_date: '2026-03-15',
+  first_payment_date: '2026-05-01',
+  combined_payment: false,
+  package_complete: true,
+  complete_package_date: '2026-03-12',
+  documents: [
+    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
+    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
+    { doc_type: 'BIRTH_CERT_SPOUSE', doc_name: 'Birth Certificate (Spouse)', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-10' },
+    { doc_type: 'MARRIAGE_CERT', doc_name: 'Marriage Certificate', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-10' },
+    { doc_type: 'SS_ESTIMATE', doc_name: 'Social Security Benefit Estimate', required: true, conditional_on: 'Tier 1/2, age 62+', status: 'RECEIVED', received_date: '2026-03-12' },
+    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
+  ],
+}
+
+const case2Intake: ApplicationIntake = {
+  application_received_date: '2026-04-08',
+  last_day_worked: '2026-04-30',
+  retirement_effective_date: '2026-05-01',
+  notarization_confirmed: true,
+  notarization_date: '2026-04-08',
+  deadline_met: true,
+  days_before_last_day: 22,
+  payment_cutoff_met: true,
+  cutoff_date: '2026-04-15',
+  first_payment_date: '2026-06-01',
+  combined_payment: false,
+  package_complete: true,
+  complete_package_date: '2026-04-08',
+  documents: [
+    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
+    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
+    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
+  ],
+}
+
+const case3Intake: ApplicationIntake = {
+  application_received_date: '2026-03-12',
+  last_day_worked: '2026-03-31',
+  retirement_effective_date: '2026-04-01',
+  notarization_confirmed: true,
+  notarization_date: '2026-03-12',
+  deadline_met: true,
+  days_before_last_day: 19,
+  payment_cutoff_met: true,
+  cutoff_date: '2026-03-15',
+  first_payment_date: '2026-05-01',
+  combined_payment: false,
+  package_complete: true,
+  complete_package_date: '2026-03-14',
+  documents: [
+    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
+    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
+    { doc_type: 'BIRTH_CERT_SPOUSE', doc_name: 'Birth Certificate (Spouse)', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-12' },
+    { doc_type: 'MARRIAGE_CERT', doc_name: 'Marriage Certificate', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-14' },
+    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
+  ],
+}
+
+const case4Intake: ApplicationIntake = {
+  ...case1Intake,
+  documents: [
+    ...case1Intake.documents,
+    { doc_type: 'DECREE_DISSOLUTION', doc_name: 'Decree of Dissolution (DRO)', required: true, conditional_on: 'DRO on file', status: 'RECEIVED', received_date: '2026-03-10' },
+  ],
+}
+
 // ─── Demo Data Registry ──────────────────────────────────────────────────────
 
 const DEMO_MEMBERS: Record<string, Member> = {
@@ -447,6 +527,13 @@ const DEMO_DROS: Record<string, DRORecord[]> = {
 
 const DEMO_DRO_RESULT: Record<string, DROResult> = {
   '10004': case4DROResult,
+}
+
+const DEMO_INTAKE: Record<string, ApplicationIntake> = {
+  '10001': case1Intake,
+  '10002': case2Intake,
+  '10003': case3Intake,
+  '10004': case4Intake,
 }
 
 // ─── Scenario Calculator (deterministic rules engine simulation) ──────────
@@ -569,6 +656,12 @@ export function isDemoMode(): boolean {
 }
 
 export const demoApi = {
+  getApplicationIntake: (id: string) => {
+    const intake = DEMO_INTAKE[id]
+    if (!intake) return Promise.reject(new Error(`No demo intake for ${id}`))
+    return delay(intake)
+  },
+
   getMember: (id: string) => {
     const m = DEMO_MEMBERS[id]
     if (!m) return Promise.reject(new Error(`Demo member ${id} not found. Try 10001-10004.`))

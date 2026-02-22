@@ -3,6 +3,7 @@
  * Consumed by: GuidedWorkspace
  * Depends on: All Stage*.tsx files
  */
+export { Stage0ApplicationIntake } from './Stage0ApplicationIntake'
 export { Stage1MemberVerify } from './Stage1MemberVerify'
 export { Stage2ServiceCredit } from './Stage2ServiceCredit'
 export { Stage3Eligibility } from './Stage3Eligibility'

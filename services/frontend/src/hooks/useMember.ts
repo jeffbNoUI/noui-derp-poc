@@ -48,3 +48,11 @@ export function useDROs(memberId: string) {
     enabled: !!memberId,
   })
 }
+
+export function useApplicationIntake(memberId: string) {
+  return useQuery({
+    queryKey: ['applicationIntake', memberId],
+    queryFn: () => api.getApplicationIntake(memberId),
+    enabled: !!memberId,
+  })
+}

@@ -8,7 +8,7 @@
  *   guided-help.ts, guided-composition.ts, stage components
  */
 import { useState, useCallback, useEffect, useReducer } from 'react'
-import { useMember, useServiceCredit, useDROs } from '@/hooks/useMember'
+import { useMember, useServiceCredit, useDROs, useApplicationIntake } from '@/hooks/useMember'
 import {
   useEligibility, useBenefitCalculation, usePaymentOptions,
   useDROCalculation, useSaveElection,
@@ -19,7 +19,7 @@ import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 import { composeStages } from './guided-composition'
 import type { StageHelp } from './guided-help'
 import {
-  Stage1MemberVerify, Stage2ServiceCredit, Stage3Eligibility,
+  Stage0ApplicationIntake, Stage1MemberVerify, Stage2ServiceCredit, Stage3Eligibility,
   Stage4BenefitCalc, Stage5PaymentOptions, Stage6Supplemental,
   Stage7DRO, Stage8ReviewCertify,
 } from './stages'
@@ -125,6 +125,7 @@ const LEAVE_PAYOUTS: Record<string, number> = {
 
 // ─── Stage component registry ────────────────────────────────
 const STAGE_COMPONENTS: Record<string, React.ComponentType<StageProps>> = {
+  'application-intake': Stage0ApplicationIntake,
   'member-verify': Stage1MemberVerify,
   'service-credit': Stage2ServiceCredit,
   'eligibility': Stage3Eligibility,
@@ -145,6 +146,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   const member = useMember(memberId)
   const serviceCredit = useServiceCredit(memberId)
   const dros = useDROs(memberId)
+  const intake = useApplicationIntake(memberId)
   const eligibility = useEligibility(memberId, retirementDate)
   const benefit = useBenefitCalculation(memberId, retirementDate)
   const paymentOptions = usePaymentOptions(memberId, retirementDate)
@@ -249,7 +251,8 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   const stageProps: StageProps = {
     memberId, member: m, serviceCredit: sc, eligibility: elig,
     benefit: ben, paymentOptions: opts, dros: dros.data,
-    droCalc: dro, retirementDate, onRetirementDateChange: setRetirementDate,
+    droCalc: dro, applicationIntake: intake.data,
+    retirementDate, onRetirementDateChange: setRetirementDate,
     electedOption: state.electedOption || (hasDRO ? 'j&s_75' : 'maximum'),
     onElectOption: (opt: string) => dispatch({ type: 'ELECT_OPTION', option: opt }),
     leavePayout,

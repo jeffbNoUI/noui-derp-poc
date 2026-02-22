@@ -23,6 +23,9 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
 
 // Live API — calls backend services
 const liveApi = {
+  getApplicationIntake: (id: string) =>
+    fetchJSON<import('@/types/Member').ApplicationIntake>(`${CONNECTOR_BASE}/members/${id}/application-intake`),
+
   getMember: (id: string) =>
     fetchJSON<import('@/types/Member').Member>(`${CONNECTOR_BASE}/members/${id}`),
 

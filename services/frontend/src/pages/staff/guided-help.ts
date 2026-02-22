@@ -28,6 +28,32 @@ export interface StageHelp {
 
 export const STAGE_HELP: StageHelp[] = [
   {
+    id: 'application-intake',
+    title: 'Application Intake',
+    icon: '\uD83D\uDCC2',
+    subtitle: 'Document completeness and application timeline',
+    onboarding:
+      'Before any eligibility check or benefit calculation, the physical notarized retirement application ' +
+      'and all required supporting documents must be in hand. The application must be filed within 30 calendar ' +
+      'days of the member\'s last day worked (\u00A718-402(10)). The complete package must arrive by the 15th ' +
+      'of the month before the effective date to ensure on-time first payment. The retirement effective date ' +
+      'is always the first of the month following separation (\u00A718-402(10)).',
+    rules: [
+      { citation: 'RMC \u00A718-402(10)', desc: 'Application within 30 days of last day worked' },
+      { citation: 'RMC \u00A718-402(10)', desc: 'Notarized signature required on application' },
+      { citation: 'DERP Policy', desc: 'Package by 15th of month before effective date for on-time payment' },
+      { citation: 'RMC \u00A718-402(10)', desc: 'Effective date: first of month following separation' },
+    ],
+    checklist: [
+      'Notarized application received',
+      'Application filed within 30-day deadline',
+      'All required documents received',
+      'Payment cutoff date verified',
+    ],
+    confirmLabel: 'Confirm Intake Complete',
+    nextAction: 'Verify member identity and data quality',
+  },
+  {
     id: 'member-verify',
     title: 'Member Verification',
     icon: '\uD83D\uDCCB',

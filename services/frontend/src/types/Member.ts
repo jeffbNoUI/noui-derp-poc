@@ -167,6 +167,32 @@ export interface AuditEntry {
   source_reference?: string
 }
 
+export interface IntakeDocument {
+  doc_type: string
+  doc_name: string
+  required: boolean
+  conditional_on?: string
+  status: 'RECEIVED' | 'PENDING' | 'WAIVED' | 'NOT_APPLICABLE'
+  received_date: string | null
+}
+
+export interface ApplicationIntake {
+  application_received_date: string
+  last_day_worked: string
+  retirement_effective_date: string
+  notarization_confirmed: boolean
+  notarization_date: string | null
+  deadline_met: boolean
+  days_before_last_day: number
+  payment_cutoff_met: boolean
+  cutoff_date: string
+  first_payment_date: string
+  combined_payment: boolean
+  documents: IntakeDocument[]
+  package_complete: boolean
+  complete_package_date: string | null
+}
+
 export interface APIResponse<T> {
   data: T
   meta: {
