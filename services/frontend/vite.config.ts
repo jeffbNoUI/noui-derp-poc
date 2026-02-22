@@ -11,6 +11,7 @@ export default defineConfig({
     },
   },
   server: {
+    port: 5175,
     proxy: {
       '/api/v1/members': 'http://localhost:8081',
       '/api/v1/eligibility': 'http://localhost:8082',

@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest'
 import { demoApi } from './demo-data'
 
-function expectClose(actual: number, expected: number, label: string, tolerance = 0.01) {
+function expectClose(actual: number, expected: number, _label: string, tolerance = 0.01) {
   expect(Math.abs(actual - expected)).toBeLessThanOrEqual(tolerance)
 }
 
