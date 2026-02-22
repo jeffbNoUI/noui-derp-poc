@@ -228,6 +228,18 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   const tc = tierMeta[m.tier] || tierMeta[1]
   const age = elig?.age_at_retirement ?? 0
 
+  // Case-level status — derived from confirmation progress and save state
+  const confirmedCount = stages.filter(s => state.confirmed.has(s.id)).length
+  const caseStatus = state.saveStatus === 'saved'
+    ? { label: 'Submitted', color: C.success }
+    : state.saveStatus === 'error'
+      ? { label: 'Error', color: C.danger }
+      : allConfirmed
+        ? { label: 'Ready', color: '#F59E0B' }
+        : confirmedCount > 0
+          ? { label: `${confirmedCount}/${stages.length}`, color: C.accent }
+          : null
+
   // Benefit amount for banner — elected option amount, or net benefit, or pending
   const elOpt = opts?.options.find(o => o.option_type === (state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')))
   const bannerBenefit = elOpt?.monthly_amount ?? ben?.net_monthly_benefit ?? 0
@@ -273,6 +285,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
               { l: 'Retiring', v: retirementDate.slice(5), c: C.accent },
               { l: tc.label, v: tc.sub, c: tc.color },
               ...(hasDRO ? [{ l: 'DRO', v: 'Active', c: '#A855F7' }] : []),
+              ...(caseStatus ? [{ l: 'Case', v: caseStatus.label, c: caseStatus.color }] : []),
             ].map(t => (
               <div key={t.l} style={{
                 padding: '2px 7px', borderRadius: '4px', background: C.surface,
