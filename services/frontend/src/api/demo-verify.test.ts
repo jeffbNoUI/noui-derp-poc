@@ -124,6 +124,82 @@ describe('Demo Data Verification', () => {
     })
   })
 
+  describe('Scenario Modeler — projected benefits for different retirement dates', () => {
+    it('Jennifer Kim: base date returns exact fixture values', async () => {
+      const scenarios = await demoApi.calculateScenarios('10002', ['2026-05-01'])
+      expect(scenarios).toHaveLength(1)
+      expect(scenarios[0].retirement_date).toBe('2026-05-01')
+      expect(scenarios[0].age_at_retirement).toBe(55)
+      expect(scenarios[0].retirement_type).toBe('early')
+      expect(scenarios[0].reduction_factor).toBe(0.70)
+      expectClose(scenarios[0].net_monthly_benefit, 1633.07, 'base_benefit')
+    })
+
+    it('Jennifer Kim: waiting 1 year crosses Rule of 75 — no reduction, ~$2,518', async () => {
+      const scenarios = await demoApi.calculateScenarios('10002', ['2027-05-01'])
+      expect(scenarios).toHaveLength(1)
+      const s = scenarios[0]
+      expect(s.age_at_retirement).toBe(56)
+      expect(s.retirement_type).toBe('rule_of_75')
+      expect(s.reduction_factor).toBe(1.0)
+      // Demo story expects ~$2,518; AMS grows ~3% → exact value near $2,516
+      expect(s.net_monthly_benefit).toBeGreaterThan(2450)
+      expect(s.net_monthly_benefit).toBeLessThan(2600)
+    })
+
+    it('Jennifer Kim: 1 year before is not eligible (age 54 < 55 min)', async () => {
+      const scenarios = await demoApi.calculateScenarios('10002', ['2025-05-01'])
+      expect(scenarios[0].eligible).toBe(false)
+      expect(scenarios[0].net_monthly_benefit).toBe(0)
+    })
+
+    it('Jennifer Kim: full 4-date comparison shows dramatic benefit increase', async () => {
+      const dates = ['2025-05-01', '2026-05-01', '2027-05-01', '2028-05-01']
+      const scenarios = await demoApi.calculateScenarios('10002', dates)
+      expect(scenarios).toHaveLength(4)
+      // 2025: not eligible (age 54)
+      expect(scenarios[0].eligible).toBe(false)
+      // 2026: early, 30% reduction → ~$1,633
+      expect(scenarios[1].retirement_type).toBe('early')
+      expect(scenarios[1].reduction_factor).toBe(0.70)
+      // 2027: Rule of 75, no reduction → ~$2,518
+      expect(scenarios[2].retirement_type).toBe('rule_of_75')
+      expect(scenarios[2].reduction_factor).toBe(1.0)
+      // 2028: Rule of 75, no reduction → ~$2,711
+      expect(scenarios[3].retirement_type).toBe('rule_of_75')
+      // Benefit should increase year over year (when eligible)
+      expect(scenarios[2].net_monthly_benefit).toBeGreaterThan(scenarios[1].net_monthly_benefit * 1.4)
+      expect(scenarios[3].net_monthly_benefit).toBeGreaterThan(scenarios[2].net_monthly_benefit)
+    })
+
+    it('Robert Martinez: all scenarios show Rule of 75 (already qualified)', async () => {
+      const dates = ['2025-04-01', '2026-04-01', '2027-04-01']
+      const scenarios = await demoApi.calculateScenarios('10001', dates)
+      // All dates should qualify for Rule of 75
+      scenarios.forEach(s => {
+        expect(s.eligible).toBe(true)
+        expect(s.retirement_type).toBe('rule_of_75')
+        expect(s.reduction_factor).toBe(1.0)
+      })
+      // Benefit should increase with more service years
+      expect(scenarios[2].net_monthly_benefit).toBeGreaterThan(scenarios[0].net_monthly_benefit)
+    })
+
+    it('David Washington: Tier 3 reduction decreases as he approaches 65', async () => {
+      const dates = ['2026-04-01', '2027-04-01', '2028-04-01']
+      const scenarios = await demoApi.calculateScenarios('10003', dates)
+      // 2026: age 63, 12% reduction (2 years × 6%)
+      expect(scenarios[0].reduction_factor).toBe(0.88)
+      // 2027: age 64, 6% reduction (1 year × 6%)
+      expect(scenarios[1].reduction_factor).toBe(0.94)
+      // 2028: age 65, normal retirement, no reduction
+      expect(scenarios[2].reduction_factor).toBe(1.0)
+      expect(scenarios[2].retirement_type).toBe('normal')
+      // Benefits should increase significantly
+      expect(scenarios[2].net_monthly_benefit).toBeGreaterThan(scenarios[0].net_monthly_benefit)
+    })
+  })
+
   describe('Case 4: Robert Martinez DRO', () => {
     it('has active DRO record', async () => {
       const dros = await demoApi.getDROs('10004')

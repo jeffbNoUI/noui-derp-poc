@@ -449,6 +449,111 @@ const DEMO_DRO_RESULT: Record<string, DROResult> = {
   '10004': case4DROResult,
 }
 
+// ─── Scenario Calculator (deterministic rules engine simulation) ──────────
+// Computes projected benefit for each requested retirement date using DERP plan
+// provisions. Simulates what the Go backend /api/v1/benefit/scenario would return.
+// AMS projected with ~3% annual salary growth for future dates.
+// Consumed by: ScenarioModeler.tsx via demoApi.calculateScenarios
+// Depends on: DEMO_BENEFIT, DEMO_ELIGIBILITY fixtures (for base date exact values)
+
+/** Tier provisions from RMC — multiplier, eligibility thresholds, reduction rates */
+const TIER_PROVISIONS: Record<number, {
+  multiplier: number
+  ruleOfN: number
+  minEarlyAge: number
+  reductionPerYear: number  // 3% Tiers 1/2 (RMC §18-409(b)), 6% Tier 3
+}> = {
+  1: { multiplier: 0.02, ruleOfN: 75, minEarlyAge: 55, reductionPerYear: 0.03 },
+  2: { multiplier: 0.015, ruleOfN: 75, minEarlyAge: 55, reductionPerYear: 0.03 },
+  3: { multiplier: 0.015, ruleOfN: 85, minEarlyAge: 60, reductionPerYear: 0.06 },
+}
+
+/** Member data needed for scenario projection — derived from fixture constants above */
+const SCENARIO_MEMBER_DATA: Record<string, {
+  dob: string; hireDate: string; tier: number
+  purchasedService: number; baseAMS: number; baseRetirementDate: string
+}> = {
+  '10001': { dob: '1963-03-08', hireDate: '1997-06-15', tier: 1, purchasedService: 0, baseAMS: 10639.45, baseRetirementDate: '2026-04-01' },
+  '10002': { dob: '1970-06-22', hireDate: '2008-03-01', tier: 2, purchasedService: 3.00, baseAMS: 7347.62, baseRetirementDate: '2026-05-01' },
+  '10003': { dob: '1963-02-14', hireDate: '2012-09-01', tier: 3, purchasedService: 0, baseAMS: 6684.52, baseRetirementDate: '2026-04-01' },
+  '10004': { dob: '1963-03-08', hireDate: '1997-06-15', tier: 1, purchasedService: 0, baseAMS: 10639.45, baseRetirementDate: '2026-04-01' },
+}
+
+/** Age in completed years at a given date */
+function ageAt(dob: string, date: string): number {
+  const birth = new Date(dob)
+  const d = new Date(date)
+  let age = d.getFullYear() - birth.getFullYear()
+  const mDiff = d.getMonth() - birth.getMonth()
+  if (mDiff < 0 || (mDiff === 0 && d.getDate() < birth.getDate())) age--
+  return age
+}
+
+/** Service credit in years (complete months / 12) from hire to end date */
+function earnedServiceYears(hireDate: string, endDate: string): number {
+  const s = new Date(hireDate)
+  const e = new Date(endDate)
+  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth())
+  return Math.round((months / 12) * 100) / 100
+}
+
+/** Compute a single scenario result for a given member + retirement date */
+function computeScenario(memberId: string, retirementDate: string): ScenarioResult {
+  const md = SCENARIO_MEMBER_DATA[memberId]
+  if (!md) {
+    return { retirement_date: retirementDate, age_at_retirement: 0, eligible: false, retirement_type: 'unknown', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
+  }
+
+  const tp = TIER_PROVISIONS[md.tier]
+  const age = ageAt(md.dob, retirementDate)
+  const earnedSvc = earnedServiceYears(md.hireDate, retirementDate)
+  const totalSvcForBenefit = earnedSvc + md.purchasedService
+  // Purchased service excluded from Rule of 75/85 — RMC §18-407(c)
+  const totalSvcForEligibility = earnedSvc
+
+  // Project AMS with ~3% annual salary growth (bidirectional from base date)
+  const yearsDiff = (new Date(retirementDate).getTime() - new Date(md.baseRetirementDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
+  const projectedAMS = md.baseAMS * Math.pow(1.03, yearsDiff)
+
+  // Vesting check — 5 years earned service required (RMC §18-403)
+  if (earnedSvc < 5) {
+    return { retirement_date: retirementDate, age_at_retirement: age, eligible: false, retirement_type: 'not_vested', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
+  }
+
+  // Eligibility determination — RMC §18-408, §18-409
+  let retirementType: string
+  let reductionFactor: number
+  const ruleOfNValue = age + totalSvcForEligibility
+
+  if (age >= 65) {
+    retirementType = 'normal'
+    reductionFactor = 1.0
+  } else if (ruleOfNValue >= tp.ruleOfN && age >= tp.minEarlyAge) {
+    retirementType = md.tier <= 2 ? 'rule_of_75' : 'rule_of_85'
+    reductionFactor = 1.0
+  } else if (age >= tp.minEarlyAge) {
+    retirementType = 'early'
+    const yearsUnder65 = 65 - age
+    reductionFactor = Math.round((1.0 - yearsUnder65 * tp.reductionPerYear) * 100) / 100
+  } else {
+    return { retirement_date: retirementDate, age_at_retirement: age, eligible: false, retirement_type: 'not_eligible', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
+  }
+
+  // Benefit formula: AMS × multiplier × total_service × reduction — RMC §18-408
+  // Round only the final monthly benefit to cents (CLAUDE.md: carry full precision)
+  const netMonthly = Math.round(projectedAMS * tp.multiplier * totalSvcForBenefit * reductionFactor * 100) / 100
+
+  return {
+    retirement_date: retirementDate,
+    age_at_retirement: age,
+    eligible: true,
+    retirement_type: retirementType,
+    reduction_factor: reductionFactor,
+    net_monthly_benefit: netMonthly,
+    annual_benefit: Math.round(netMonthly * 12 * 100) / 100,
+  }
+}
+
 // ─── Demo Data API (simulates network delay) ─────────────────────────────────
 
 function delay<T>(data: T, ms = 200): Promise<T> {
@@ -502,18 +607,30 @@ export const demoApi = {
   },
 
   calculateScenarios: (memberId: string, retirementDates: string[]) => {
-    const b = DEMO_BENEFIT[memberId]
-    if (!b) return delay([] as ScenarioResult[])
-    const e = DEMO_ELIGIBILITY[memberId]
-    return delay(retirementDates.map((d) => ({
-      retirement_date: d,
-      age_at_retirement: e?.age_at_retirement ?? 63,
-      eligible: true,
-      retirement_type: e?.retirement_type ?? 'normal',
-      reduction_factor: b.reduction_factor,
-      net_monthly_benefit: b.net_monthly_benefit,
-      annual_benefit: b.net_monthly_benefit * 12,
-    })))
+    const md = SCENARIO_MEMBER_DATA[memberId]
+    if (!md) return delay([] as ScenarioResult[])
+
+    const results = retirementDates.map((d) => {
+      // For the base retirement date, return exact fixture data (penny-accurate)
+      if (d === md.baseRetirementDate) {
+        const e = DEMO_ELIGIBILITY[memberId]
+        const b = DEMO_BENEFIT[memberId]
+        if (e && b) {
+          return {
+            retirement_date: d,
+            age_at_retirement: e.age_at_retirement,
+            eligible: e.eligible,
+            retirement_type: e.retirement_type,
+            reduction_factor: b.reduction_factor,
+            net_monthly_benefit: b.net_monthly_benefit,
+            annual_benefit: Math.round(b.net_monthly_benefit * 12 * 100) / 100,
+          }
+        }
+      }
+      // For other dates, compute projected values
+      return computeScenario(memberId, d)
+    })
+    return delay(results)
   },
 
   calculateDRO: (memberId: string) => {
