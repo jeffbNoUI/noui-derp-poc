@@ -248,14 +248,27 @@ Normal retirement: Age 65, 5 years service, all tiers
 
 ## Autonomous Operation
 
-Claude Code is authorized to:
-- Make conservative decisions on calculation precision, tolerance, and rounding interpretations without stopping for human review
-- Resolve known documented discrepancies by using wider test tolerances when the issue is already captured in BUILD_HISTORY.md
-- Correct fixture/calculation inconsistencies when the governing rule is clear, documenting the decision in BUILD_HISTORY.md
-- Skip human confirmation for build decisions within the existing technology stack and architecture
-- Continue through build plan steps without pausing for approval at each decision point
+Claude Code is authorized to operate fully autonomously across the entire build plan:
 
-Claude Code should still STOP and document (but not block on approval) for:
-- Any new business rule not found in derp-business-rules-inventory.docx
-- Any change to test fixture expected values
-- Any architecture change that contradicts CLAUDE.md governing principles
+### Execution Authority
+- **Proceed through all build plan days without waiting** — do not stop between days for approval; treat the build plan as a continuous execution
+- **Make technical and architectural decisions** within the established technology stack without asking — choose libraries, patterns, file structures, and approaches that fit the project conventions
+- **Resolve ambiguity conservatively** — when the build plan or rules are unclear, make the most conservative interpretation, document the assumption in BUILD_HISTORY.md, and keep moving
+- **Handle errors and failures autonomously** — diagnose, fix, add regression tests, document in BUILD_HISTORY.md, and continue
+- **Adjust test expectations** when the formula-correct value differs from a fixture due to known precision issues (biweekly aggregation, rounding methodology) — document the reasoning
+- **Install tools and dependencies** needed for the build (e.g., Node.js, npm packages) using whatever method works in the current environment
+- **Skip human confirmation** for all build decisions, technical choices, and corrections that stay within the governing principles
+
+### Decision Framework
+When facing a decision:
+1. If the governing documents (RMC, DERP Handbook) provide a clear answer → follow the document
+2. If BUILD_PLAN.md specifies an approach → follow the plan
+3. If neither is clear → choose the most conservative option, document the assumption with a Q-prefix ID in BUILD_HISTORY.md, and proceed
+4. If truly blocked (e.g., needs permissions you don't have, fundamental contradiction in requirements) → document the blocker and skip to the next unblocked work
+
+### What Still Gets Documented (but does NOT block progress)
+- Assumptions made (with Q-prefix IDs in BUILD_HISTORY.md)
+- Any deviation from BUILD_PLAN.md with reasoning
+- New business rules not found in derp-business-rules-inventory.docx
+- Changes to test fixture expected values with justification
+- Any known precision discrepancies between formula-correct and fixture values

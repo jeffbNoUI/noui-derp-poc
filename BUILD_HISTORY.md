@@ -756,3 +756,64 @@ Two test fixture files contain unreduced benefit amounts that do not match the f
 
 ### Backtrack Points:
 - **BT-010:** Day 5 complete. Intelligence service fully implemented with 25 passing tests. Eligibility, benefit, payment options, and DRO calculators all verified against demo case fixtures. Return here to restart from Day 6 (Relevance Engine / Composition).
+
+---
+
+## Build Day 6 — February 22, 2026
+
+### Session 12: Frontend Foundation + Core Components
+
+**Environment Setup:**
+- Node.js 20.19.1 installed as standalone binary at `/home/jeffb/.local/node-v20.19.1-linux-arm64/bin/` (no sudo needed)
+- Vite 7.3.1, React 19.2.0, TypeScript 5.9.3
+- Tailwind CSS v4 with Vite plugin, TanStack Query, lucide-react icons
+- shadcn/ui pattern (clsx + tailwind-merge + class-variance-authority)
+
+**Decision Log:**
+- **Q-FRONT-01:** Used Tailwind CSS v4 (with `@tailwindcss/vite` plugin and `@theme` directive) instead of v3. v4 was the version resolved by npm. No postcss.config needed.
+- **Q-FRONT-02:** React 19 was scaffolded by Vite. Proceeding with it — all dependencies are compatible.
+- **Q-FRONT-03:** Demo case member IDs on welcome screen use placeholder IDs (10001-10004). These will be updated when wired to actual database seed data.
+- **Q-FRONT-04:** Frontend proxies API calls through Vite dev server (development) and nginx (production/Docker). Connector endpoints on port 8081, intelligence on 8082.
+- **Q-FRONT-05:** Updated CLAUDE.md Autonomous Operation section to authorize full build plan execution without stopping between days.
+- **Q-FRONT-06:** Set up scoped Claude Code project permissions for autonomous tool execution within the project directory.
+
+**Verification:**
+- TypeScript: `tsc -b` — clean, no errors
+- Vite build: `npm run build` — success, 272.96 kB JS + 16.85 kB CSS
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/frontend/vite.config.ts | Vite config with Tailwind v4, path aliases, API proxy | Active |
+| services/frontend/src/index.css | Tailwind v4 imports + custom theme | Active |
+| services/frontend/src/lib/utils.ts | cn() utility, formatCurrency, formatDate, formatPercent | Active |
+| services/frontend/src/types/Member.ts | All TypeScript types matching Go API models | Active |
+| services/frontend/src/api/client.ts | API client with typed fetch for connector + intelligence | Active |
+| services/frontend/src/hooks/useMember.ts | React Query hooks for member data endpoints | Active |
+| services/frontend/src/hooks/useCalculations.ts | React Query hooks for calculation endpoints | Active |
+| services/frontend/src/components/MemberBanner.tsx | Member header with tier badge + service credit | Active |
+| services/frontend/src/components/AlertBar.tsx | Contextual alerts (info/warning/error/success) | Active |
+| services/frontend/src/components/EmploymentTimeline.tsx | Visual employment event timeline | Active |
+| services/frontend/src/components/SalaryTable.tsx | Salary history with AMS window highlighting | Active |
+| services/frontend/src/components/WorkspaceShell.tsx | App shell with header, search, footer | Active |
+| services/frontend/src/components/LoadingSpinner.tsx | Loading state component | Active |
+| services/frontend/src/components/ErrorDisplay.tsx | Error state component with retry | Active |
+| services/frontend/src/pages/MemberWorkspace.tsx | Main workspace page composing all components | Active |
+| services/frontend/Dockerfile | Multi-stage: node build → nginx serve | Active |
+| services/frontend/nginx.conf | Nginx config with API proxying to backend services | Active |
+| infrastructure/helm/noui-derp/templates/frontend-deployment.yaml | K8s Deployment | Active |
+| infrastructure/helm/noui-derp/templates/frontend-service.yaml | K8s NodePort Service | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| services/frontend/src/App.tsx | Replaced Vite scaffolding with workspace app | Active |
+| services/frontend/src/main.tsx | Added QueryClientProvider wrapper | Active |
+| services/frontend/tsconfig.app.json | Added path aliases (@/) | Active |
+| infrastructure/helm/noui-derp/values.yaml | Added frontend service config | Active |
+| CLAUDE.md | Enhanced Autonomous Operation section | Active |
+
+### Backtrack Points:
+- **BT-011:** Day 6 complete. Frontend foundation with 4 core components (MemberBanner, AlertBar, EmploymentTimeline, SalaryTable), workspace shell, API client, React Query hooks, TypeScript types, Dockerfile, Helm charts. Build clean. Return here to restart from Day 7 (Calculation + Analysis Components).

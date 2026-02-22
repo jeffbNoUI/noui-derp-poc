@@ -40,3 +40,19 @@ intelligence:
     limits:
       cpu: 500m
       memory: 256Mi
+
+# Frontend (React workspace)
+frontend:
+  replicas: 1
+  image:
+    repository: noui-derp/frontend
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 3000
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
