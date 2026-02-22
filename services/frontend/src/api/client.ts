@@ -14,8 +14,17 @@ import {
 const CONNECTOR_BASE = '/api/v1'
 const INTELLIGENCE_BASE = '/api/v1'
 
+/** Demo case short IDs → backend member IDs (database uses M-1xxxxx format) */
+const DEMO_CASE_MAP: Record<string, string> = {
+  '10001': 'M-100001', // Robert Martinez
+  '10002': 'M-100002', // Jennifer Kim
+  '10003': 'M-100003', // David Washington
+  '10004': 'M-100001', // Robert Martinez DRO variant — same DB member as Case 1
+}
+
 /** Convert frontend short ID (10001) to backend format (M-100001). Pass through if already prefixed. */
 export function toBackendId(id: string): string {
+  if (DEMO_CASE_MAP[id]) return DEMO_CASE_MAP[id]
   if (/^\d+$/.test(id)) return `M-${id.padStart(6, '0')}`
   return id
 }

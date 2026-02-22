@@ -17,8 +17,14 @@ import {
 import { toBackendId } from './client'
 
 describe('toBackendId', () => {
-  it('prepends M- and zero-pads numeric IDs', () => {
-    expect(toBackendId('10001')).toBe('M-010001')
+  it('maps demo case short IDs to database format', () => {
+    expect(toBackendId('10001')).toBe('M-100001')
+    expect(toBackendId('10002')).toBe('M-100002')
+    expect(toBackendId('10003')).toBe('M-100003')
+    expect(toBackendId('10004')).toBe('M-100001') // DRO variant
+  })
+
+  it('pads generic numeric IDs to 6 digits', () => {
     expect(toBackendId('100001')).toBe('M-100001')
     expect(toBackendId('1')).toBe('M-000001')
   })
