@@ -1227,7 +1227,7 @@ Created the AI-accelerated change management demonstration package, showing how 
 
 ---
 
-## Build Complete
+## Build Plan Complete — Summary
 
 **Summary:**
 - 15-day build plan executed across 19 sessions
@@ -1238,7 +1238,7 @@ Created the AI-accelerated change management demonstration package, showing how 
 - Phase 1 Transparent — every calculation shows its work
 - Demo mode: standalone, no backend required, all data verified
 
-**Test Count by Service:**
+**Test Count by Service (at build plan completion):**
 
 | Service | Tests | Categories |
 |---------|-------|-----------|
@@ -1246,3 +1246,326 @@ Created the AI-accelerated change management demonstration package, showing how 
 | Intelligence | 54 | Eligibility (15), Benefit (13), DRO (4), Rules (8), Data Quality (18), Change Mgmt (1) |
 | Frontend | 23 | Composition (5), Demo Verification (18) |
 | **Total** | **94** | |
+
+---
+
+# Post-Build Enhancements
+
+Work beyond the original 15-day build plan. Driven by analysis findings, usability reviews, and sync documents from the Claude project workspace.
+
+---
+
+## Post-Build Session 21 — February 22, 2026
+
+### Code Hygiene Pass + Regression Test Suite (87f441a)
+
+**Decision Log:**
+
+71. **DECISION: Shared Components Extracted**
+    Extracted Badge and InfoCallout into `src/components/shared/` for reuse across staff and portal workspaces. Previously duplicated inline.
+
+72. **DECISION: Constants Centralized**
+    Created `src/lib/constants.ts` with `DEFAULT_RETIREMENT_DATES`, `DEMO_CASES`, and `fmt()` as single source of truth. Previously scattered across multiple files.
+
+73. **DECISION: Application Wizard Steps Split to Individual Files**
+    `ApplicationWizard.tsx` exceeded the 200-line limit. Each of the 7 wizard steps extracted into `src/pages/portal/steps/Step{1-7}*.tsx` with a shared `StepProps` interface. Wizard.tsx dropped from ~500 lines to ~90.
+
+74. **DECISION: Theme Barrel Export with Tests**
+    Created `src/theme/index.test.ts` with 7 tests validating theme exports, color format integrity, and tier metadata completeness. Theme barrel `src/theme/index.ts` exports both legacy (`C`, `tierMeta`, `fmt`) and new (`useTheme`, `ThemeProvider`, `memberTheme`).
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| src/components/shared/Badge.tsx | Shared badge pill component | Active |
+| src/components/shared/InfoCallout.tsx | Shared callout box component | Active |
+| src/lib/constants.ts | Centralized constants (demo dates, cases, fmt) | Active |
+| src/lib/constants.test.ts | Constants tests (10) | Active |
+| src/pages/portal/steps/Step1-7*.tsx | 7 extracted wizard step files | Active |
+| src/pages/portal/steps/StepProps.ts | Shared wizard step prop interface | Active |
+| src/pages/portal/wizard.test.ts | Wizard logic tests (19) | Active |
+| src/api/portal-demo-data.test.ts | Portal demo data contract tests (12) | Active |
+| src/theme/index.test.ts | Theme export tests (7) | Active |
+
+**Test Count:** Frontend 23 → 71 (+48 new: 10 constants, 19 wizard, 12 portal data, 7 theme)
+
+---
+
+## Post-Build Session 22 — February 22, 2026
+
+### Staff Guided Mode Workspace (de1b8de)
+
+Built the cardstack-style guided workspace — sequential stage-by-stage retirement application processing replacing the single-page BenefitWorkspace for staff.
+
+**Decision Log:**
+
+75. **DECISION: Guided Mode as Separate Route**
+    Staff workspace now has two entry points: `/staff/case/:id` (original BenefitWorkspace) and `/staff/case/:id/guided` (new GuidedWorkspace). Welcome screen links to guided mode by default.
+
+76. **DECISION: Stage Composition is Conditional**
+    `guided-composition.ts` filters stages based on member data. DRO stage only appears when the member has active DROs. Composition is deterministic — same data always produces same stages.
+
+77. **DECISION: 8 Stage Components Created**
+    Each stage is a separate file in `src/pages/staff/stages/`: MemberVerify, ServiceCredit, Eligibility, BenefitCalc, PaymentOptions, Supplemental, DRO, ReviewCertify. All share a `StageProps` interface.
+
+78. **DECISION: Learning Module with Three Layers**
+    `guided-help.ts` provides per-stage metadata: onboarding narrative, rule citations, and verification checklist items. Each layer is independently toggleable.
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| src/pages/staff/GuidedWorkspace.tsx | Main guided workspace component | Active |
+| src/pages/staff/guided-composition.ts | Stage composition logic | Active |
+| src/pages/staff/guided-composition.test.ts | Composition tests (9) | Active |
+| src/pages/staff/guided-help.ts | Stage metadata, onboarding, rules, checklists | Active |
+| src/pages/staff/stages/Stage1-8*.tsx | 8 stage components | Active |
+| src/pages/staff/stages/StageProps.ts | Shared stage prop interface | Active |
+| src/pages/staff/stages/index.ts | Barrel export | Active |
+
+**Test Count:** Frontend 71 → 80 (+9 composition tests)
+
+---
+
+## Post-Build Session 23 — February 22, 2026
+
+### Guided Mode UX Overhaul (9b814e0)
+
+Major UX improvements to the guided workspace based on initial review.
+
+**Decision Log:**
+
+79. **DECISION: Single Source of Truth for Benefit Display**
+    Benefit amount shown ONLY in the member banner — no competing display in stage content. Per Workspace UX Principle: "Every key data value has exactly ONE prominent display location."
+
+80. **DECISION: Interactive Checklists Gate Confirmation**
+    When the checklist layer is active, all checklist items must be checked before the confirm button enables. This enforces verification discipline while allowing experienced users to toggle the checklist off.
+
+81. **DECISION: Workspace UX Principles Added to CLAUDE.md**
+    Three principles codified: Single Source of Truth Display, No Redundant Chrome, Learning Module Architecture (three independent layers). These govern all future workspace development.
+
+---
+
+## Post-Build Session 24 — February 22, 2026
+
+### Sync Audit — Claude Project Documents (9ce5ac5, 47716f4)
+
+Merged documents from the Claude project analysis workspace into the repo.
+
+**Decision Log:**
+
+82. **DECISION: docs/sync/ as Drop Zone**
+    Created `docs/sync/` directory (gitignored) as a raw drop zone for documents uploaded from the Claude project workspace. SYNC_MANIFEST.md tracks document disposition.
+
+83. **DECISION: Analysis Documents Merged**
+    Merged 16 documents from the Claude project workspace into `docs/`: architecture documents, UX prototypes, defect management framework, cardstack usability review, application management services, verification test framework, and others.
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| docs/noui-cardstack-usability-review.docx | 7 usability findings for guided workspace | Active — driving post-build work |
+| docs/noui-application-management-services.docx | Application management architecture | Reference |
+| docs/noui-defect-prevention-framework.docx | Defect prevention framework | Reference |
+| docs/noui-defect-taxonomy-metrics.docx | Defect taxonomy and metrics | Reference |
+| docs/noui-defect-monitoring-dashboard.docx | Defect monitoring dashboard | Reference |
+| docs/noui-defect-resolution-backlog.docx | Defect resolution backlog | Reference |
+| docs/noui-verification-test-framework.docx | Verification test framework | Reference |
+| docs/noui-multi-portal-ux-research.md | Multi-portal UX research | Reference |
+| docs/embedded-issues.md | Embedded issues tracker | Reference |
+
+---
+
+## Post-Build Session 25 — February 22, 2026
+
+### Scenario Modeler Fix + Cardstack Findings F-1, F-2, F-3 (152e959, fcbdffe, 02047f9, 7038c91)
+
+Addressed the first three cardstack usability findings plus a scenario modeler bug.
+
+**Decision Log:**
+
+84. **DECISION: Scenario Modeler Recalculation Fix**
+    The scenario modeler was displaying the same benefit for all projected retirement dates — it wasn't recalculating eligibility/benefit for each date. Fixed to produce date-specific results. Added 6 new verification tests.
+
+85. **DECISION: F-3 — Stage-Specific Confirm Labels**
+    Generic "Confirm & Continue" replaced with stage-specific labels describing the decision being made. Examples: "Verify Identity", "Approve Service Credit", "Confirm Eligibility", "Record Election". Added `confirmLabel` field to `StageHelp` interface.
+
+86. **DECISION: F-2 — Case-Level Status Indicator**
+    Added confirmation progress badge to the member banner showing `{confirmed}/{total}` count, "Ready" when all confirmed, or "Submitted"/"Error" after save. Derived from confirmation state — no new data source needed.
+
+87. **DECISION: F-2 — Application Intake Stage (Stage 0)**
+    Added Stage 0 (Application Intake) as a document completeness gate. Displays: received date, last day worked, effective date, notarization status, deadline compliance, payment cutoff, and per-document status table. Package must be complete before proceeding.
+
+88. **DECISION: ApplicationIntake and IntakeDocument Types Added**
+    Created `ApplicationIntake` and `IntakeDocument` interfaces in `Member.ts`. Demo data includes per-case intake documents with received dates, document types, and conditional requirements.
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| src/api/demo-data.ts | Scenario modeler fix + intake demo data for all 4 cases | Active |
+| src/api/demo-verify.test.ts | +6 scenario verification tests | Active |
+| src/pages/staff/guided-help.ts | +confirmLabel field, +application-intake stage metadata | Active |
+| src/pages/staff/guided-composition.test.ts | Updated stage lists to include application-intake | Active |
+| src/pages/staff/GuidedWorkspace.tsx | Intake data hook, case status badge, Stage 0 in registry | Active |
+| src/pages/staff/stages/Stage0ApplicationIntake.tsx | New — document completeness gate | Active |
+| src/types/Member.ts | +ApplicationIntake, +IntakeDocument interfaces | Active |
+
+**Test Count:** Frontend 80 → 86 (+6 scenario verification tests)
+
+---
+
+## Post-Build Session 26 — February 22, 2026
+
+### Sync: Proficiency Model + Operational Intelligence (34b5b65)
+
+Merged proficiency model and operational intelligence documents from the Claude project workspace.
+
+**Decision Log:**
+
+89. **DECISION: Proficiency Model Accepted as Reference**
+    `noui-proficiency-skills-development-model.docx` defines a skills-based proficiency tracking model. Accepted as reference for future F-1 completion (composition depth by complexity). Not yet wired into code.
+
+90. **DECISION: Operational Intelligence Dashboard Prototype**
+    `noui-operational-intelligence-dashboard.md` and `noui-operational-intelligence.jsx` provide a dashboard specification and React prototype. Accepted as reference for future analytics work.
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| docs/noui-proficiency-skills-development-model.docx | Proficiency model — future F-1 completion dependency | Reference |
+| docs/noui-operational-intelligence-dashboard.md | Operational intelligence dashboard spec | Reference |
+| docs/noui-operational-intelligence.jsx | Operational intelligence React prototype | Reference |
+
+---
+
+## Post-Build Session 27 — February 22, 2026
+
+### Cardstack Usability Findings F-4, F-5, F-6, F-7 (f004849)
+
+Implemented the remaining four cardstack usability findings. Major refactoring of GuidedWorkspace.tsx (696 → 398 lines).
+
+**Decision Log:**
+
+91. **DECISION: Phase 0 — Extract LearningModule + State Types**
+    Extracted state types, reducer, and initial state into `guided-types.ts` (144 lines). Extracted LearningModule into `LearningModule.tsx` (259 lines). GuidedWorkspace.tsx dropped from 696 to 398 lines.
+
+92. **DECISION: F-5 — Confidence/Status Signals as Pure Functions**
+    Created `guided-signals.ts` with `computeStageSignal()` and `computeAllSignals()` — pure functions with no React dependency. Each stage gets a green/amber/red signal based on data context. 18 tests covering all 9 stage types across demo cases.
+
+93. **Q-001: Marital Status Inferred from Intake Documents**
+    No `marital_status` field on Member type. Married status inferred from intake documents: if `MARRIAGE_CERT` with status `RECEIVED` exists, member is treated as married for spousal consent warnings. Documented as assumption.
+
+94. **DECISION: F-5 — ProgressBar Extracted with Signal Dots**
+    Progress bar extracted into `ProgressBar.tsx` with 6px colored dots at each segment indicating confidence level. Hover shows signal reason. Includes Guided/Expert mode toggle pill.
+
+95. **DECISION: F-7 — Case Status Bar**
+    Created `CaseStatusBar.tsx` showing received date, case age (days), payment deadline, and assigned analyst. Inserted between member banner and progress bar. Returns null when no intake data.
+
+96. **DECISION: F-4 — Analyst Input Fields in Stage 5**
+    Added `AnalystInputs` type to `guided-types.ts` with three fields: `beneficiaryName` (text, visible when J&S elected), `deathBenefitInstallments` (50/100 toggle, always visible), `spousalConsentObtained` (checkbox, visible when Maximum elected). State managed via new `UPDATE_ANALYST_INPUT` reducer action.
+
+97. **DECISION: F-6 — Expert Mode as Collapsible Card View**
+    Created `ExpertMode.tsx` — all stages visible as collapsible cards in a single scrollable view. Each card header shows icon, title, signal dot with reason, and confirmed badge. Expanded cards show stage component + inline mini-checklist with confirm button. LearningModule sidebar syncs to last-expanded stage. Bottom navigation hidden in expert mode.
+
+### Files Created:
+
+| File | Purpose | Lines | Status |
+|------|---------|-------|--------|
+| src/pages/staff/guided-types.ts | State types, reducer, initial state | 144 | Active |
+| src/pages/staff/guided-signals.ts | Pure signal computation | 112 | Active |
+| src/pages/staff/guided-signals.test.ts | Signal computation tests (18) | 271 | Active |
+| src/pages/staff/LearningModule.tsx | Extracted Learning Module | 259 | Active |
+| src/pages/staff/ProgressBar.tsx | Progress bar + signal dots + mode toggle | 96 | Active |
+| src/pages/staff/CaseStatusBar.tsx | Case metadata bar | 58 | Active |
+| src/pages/staff/ExpertMode.tsx | All-stages collapsible view | 191 | Active |
+
+### Files Modified:
+
+| File | Change | Status |
+|------|--------|--------|
+| GuidedWorkspace.tsx | Extract LearningModule (-240 lines), import new components, add signal computation, conditional guided/expert render. 696 → 398 lines | Active |
+| stages/StageProps.ts | +optional `analystInputs` + `onUpdateAnalystInput` | Active |
+| stages/Stage5PaymentOptions.tsx | +analyst input section (beneficiary, installments, consent). 105 → 186 lines | Active |
+
+**Test Count:** Frontend 86 → 104 (+18 signal tests)
+
+---
+
+## Post-Build Session 28 — February 22, 2026
+
+### F-1 Adaptive Card Depth (31bffc1)
+
+Completed the remaining piece of cardstack finding F-1: adaptive card depth based on confidence signals. Green-signal stages now render as compact summary cards, reducing clean-case processing from ~15 interactions to ~3 minutes.
+
+**Decision Log:**
+
+98. **DECISION: Two Depth Levels — Full and Summary**
+    Each stage gets a `depth` of `'full'` or `'summary'` at render time. Full = current behavior (complete stage component). Summary = compact card showing 2-3 key values + signal reason + "Show Details" link. Depth is computed from the confidence signal: green → summary, amber/red → full. DRO and review-certify are always full regardless of signal.
+
+99. **DECISION: Summary Fields as Metadata in guided-help.ts**
+    Each stage's summary content is defined as a `summaryFields` array on the `StageHelp` interface — structured `{ label, path, format }` entries. `path` is a dot-notation traversal into `StageProps` (e.g., `'benefit.net_monthly_benefit'`). Format types: `'fmt'` (currency), `'years'` (Xy), `'text'` (raw), `'badge'` (colored pill). No per-stage summary components needed — one generic `StageSummary.tsx` renders all.
+
+100. **DECISION: Summary Stages Bypass Checklist Gating**
+     Green-signal stages are pre-verified — the confirm button is immediately enabled without requiring checklist interaction. This is the key mechanism for faster clean-case processing.
+
+101. **DECISION: Manual Expansion is Sticky**
+     `EXPAND_STAGE` action adds the stageId to `manuallyExpanded: Set<string>` in state. Once expanded, a stage stays full for the session. Reset on member change.
+
+102. **DECISION: Expert Mode Shows Summary in Collapsed Cards**
+     In expert mode, collapsed summary-depth stages show a compact `StageSummary` between the header row and expand area. Full-depth stages show only the header when collapsed (existing behavior). Clicking "Show Details" on a summary expands to the full stage component.
+
+### Files Created:
+
+| File | Purpose | Lines | Status |
+|------|---------|-------|--------|
+| src/pages/staff/guided-depth.ts | `computeStageDepth()` + `resolveSummaryValues()` pure functions | 53 | Active |
+| src/pages/staff/StageSummary.tsx | Generic summary card renderer driven by metadata | 128 | Active |
+
+### Files Modified:
+
+| File | Change | Status |
+|------|--------|--------|
+| guided-help.ts | +`SummaryField` interface, +`summaryFields` arrays on 7 stages | Active |
+| guided-types.ts | +`manuallyExpanded: Set<string>`, +`EXPAND_STAGE` action/reducer | Active |
+| GuidedWorkspace.tsx | Compute depths, conditional StageSummary/StageComponent rendering, summary stages bypass checklist, pass depths to ExpertMode | Active |
+| ExpertMode.tsx | Accept `depths` prop, show `StageSummary` in collapsed summary-depth cards, summary stages bypass checklist gating | Active |
+
+### Unchanged (zero modifications):
+
+All 9 stage components, LearningModule, ProgressBar, CaseStatusBar, guided-signals.ts, guided-composition.ts.
+
+---
+
+## Cardstack Usability Findings Tracker
+
+| Finding | Description | Status | Commit |
+|---------|-------------|--------|--------|
+| F-1 | Decision stages / composition depth by complexity | Complete | fcbdffe, 31bffc1 |
+| F-2 | Application intake gate | Complete | 7038c91 |
+| F-3 | Stage-specific confirm labels | Complete | fcbdffe |
+| F-4 | Analyst input fields (beneficiary, installments, consent) | Complete | f004849 |
+| F-5 | Confidence signals (green/amber/red per stage) | Complete | f004849 |
+| F-6 | Expert mode (all stages as collapsible cards) | Complete | f004849 |
+| F-7 | Case status bar (received date, age, deadline, analyst) | Complete | f004849 |
+
+---
+
+## Current State — Post-Build
+
+**Test Count by Service (current):**
+
+| Service | Tests | Categories |
+|---------|-------|-----------|
+| Connector | 17 | AMS calculation (8), API handlers (9) |
+| Intelligence | 54 | Eligibility (15), Benefit (13), DRO (4), Rules (8), Data Quality (18), Change Mgmt (1) |
+| Frontend | 104 | Composition (5+9), Demo Verification (24), Constants (10), Wizard (19), Portal Data (12), Theme (7), Signals (18) |
+| **Total** | **175** | |
+
+**Open Items:**
+
+| Item | Description | Priority | Next Step |
+|------|-------------|----------|-----------|
+| Frontend-backend integration | Wire frontend to Go services (currently demo fixtures only) | High | Connect API client to connector/intelligence endpoints |
+| Proficiency model integration | Wire proficiency model into expert mode / learning module defaults | Medium | Design integration points with guided-types.ts |
+| BUILD_HISTORY documentation | Kept current | Ongoing | Update after each session |
