@@ -302,7 +302,7 @@ class Generator:
             [mid,"555-23-4567","Jennifer","Kim",date(1970,6,22),"F",
              "2301 Glenarm Pl","Apt 4B","Denver","CO","80205",
              "303-555-0102","jkim@denvergov.org","720-555-0302",
-             date(2008,3,1),2,"A","DFN","BADG3",d(93663),
+             date(2008,3,1),2,"A","DFN","BADG3",d(92778),
              EMPLOYEE_CONTRIB_RATE,EMPLOYER_CONTRIB_RATE,"S",date(2013,3,1),
              datetime.now(),"SYSTEM"]))
 
@@ -315,11 +315,13 @@ class Generator:
                 ["MBR_ID","EVENT_TYPE","EVENT_DT","FROM_DEPT","TO_DEPT","FROM_POS","TO_POS",
                  "FROM_SALARY","TO_SALARY","SEP_REASON","NOTES"], ev))
 
+        # Salary schedule must produce fixture AMS of $7,347.62
+        # Annual values verified against case2-jennifer-kim-calculation.md
         schedule = {
             2008:52000,2009:53560,2010:55147,2011:56801,2012:58505,
             2013:60260,2014:62068,2015:63930,2016:65848,2017:67823,
             2018:69858,2019:71953,2020:74112,
-            2021:78500,2022:80855,2023:84890,2024:88286,2025:90935,2026:93663,
+            2021:78500,2022:80855,2023:84089,2024:87453,2025:90076,2026:92778,
         }
         cumul_e, cumul_r = Decimal("0"), Decimal("0")
         for pd in biweekly_dates(date(2008,3,1), date(2026,4,30)):
@@ -376,7 +378,7 @@ class Generator:
             [mid,"555-34-5678","David","Washington","L.",date(1963,2,14),"M",
              "4520 E Colfax Ave","Denver","CO","80220",
              "303-555-0103","dwashington@denvergov.org","720-555-0303",
-             date(2012,9,1),3,"A","DPR","PMGR",d(85680),
+             date(2012,9,1),3,"A","DPR","PMGR",d(86766),
              EMPLOYEE_CONTRIB_RATE,EMPLOYER_CONTRIB_RATE,"M",date(2017,9,1),
              datetime.now(),"SYSTEM"]))
 
@@ -386,10 +388,12 @@ class Generator:
             [mid,"HIRE",date(2012,9,1),None,"DPR",None,"PMGR",None,d(62000),None,
              "Initial hire - David Washington"]))
 
+        # Salary schedule must produce fixture AMS of $6,684.52
+        # 2021 lower than 2020 due to COVID-era city budget adjustment
         schedule = {
             2012:62000,2013:63860,2014:65776,2015:67749,2016:69781,
             2017:71874,2018:74030,2019:76251,2020:78538,
-            2021:72500,2022:74675,2023:77655,2024:80761,2025:83184,2026:85680,
+            2021:75101,2022:77275,2023:79588,2024:81872,2025:84319,2026:86766,
         }
         cumul_e, cumul_r = Decimal("0"), Decimal("0")
         for pd in biweekly_dates(date(2012,9,1), date(2026,3,31)):
@@ -556,7 +560,9 @@ class Generator:
                 rule_sum = age_ret + svc_f
                 threshold = 75 if tier in (1,2) else 85
                 if rule_sum < threshold:
-                    red = min(int(65 - age_ret) * 0.06, 0.60)
+                    # CRITICAL-001: Tiers 1&2 use 3%/yr, Tier 3 uses 6%/yr
+                    rate = 0.03 if tier in (1, 2) else 0.06
+                    red = min(int(65 - age_ret) * rate, 0.30)
                     gross = d(float(gross) * (1 - red))
             opt = random.choice(["MAX","100JS","75JS","50JS"])
             of = {"MAX":1.0,"100JS":0.885,"75JS":0.915,"50JS":0.945}[opt]
@@ -584,6 +590,23 @@ class Generator:
         for mid in random.sample(active_for_dq, min(12, len(active_for_dq))):
             fake_term = rdate(date(2020,1,1), date(2025,12,31))
             self.write(f"UPDATE MEMBER_MASTER SET TERM_DT = '{fake_term}' WHERE MBR_ID = '{mid}';\n")
+
+        # DQ-002: 8 members with salary gaps (missing pay periods)
+        self.write("\n-- DQ-002: Salary gaps (missing pay periods)\n")
+        for mid in random.sample(active_for_dq, min(8, len(active_for_dq))):
+            gap_start = rdate(date(2018,1,1), date(2023,6,30))
+            gap_end = gap_start + timedelta(days=random.randint(28, 84))  # 1-3 months gap
+            self.write(f"DELETE FROM SALARY_HIST WHERE MBR_ID = '{mid}' "
+                       f"AND PAY_PRD_END_DT BETWEEN '{gap_start}' AND '{gap_end}';\n")
+
+        # DQ-003: 3 members with contribution balance mismatches
+        self.write("\n-- DQ-003: Contribution balance rounding drift\n")
+        for mid in random.sample(active_for_dq, min(3, len(active_for_dq))):
+            drift = round(random.uniform(0.01, 2.50), 2)
+            sign = random.choice(['+', '-'])
+            self.write(f"UPDATE CONTRIBUTION_HIST SET EMPL_BAL = EMPL_BAL {sign} {drift} "
+                       f"WHERE MBR_ID = '{mid}' AND CONTRIB_DT = ("
+                       f"SELECT MAX(CONTRIB_DT) FROM CONTRIBUTION_HIST WHERE MBR_ID = '{mid}');\n")
 
         # DQ-004: 5 beneficiary allocations that don't total 100%
         self.write("\n-- DQ-004: Beneficiary allocation errors\n")

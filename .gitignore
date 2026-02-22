@@ -25,6 +25,7 @@ dist/
 # Database
 *.db
 *.sqlite
+database/seed/output/
 
 # Build artifacts
 *.log
