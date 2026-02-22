@@ -157,7 +157,7 @@ Robert's benefit base for payment options is now $4,564.44 (not $6,117.68).
 | Maximum | 1.0000 | $4,564.44 Ã— 1.0000 | **$4,564.44** |
 | 100% J&S | 0.8850 | $4,564.44 Ã— 0.8850 | **$4,039.53** |
 | 75% J&S | 0.9150 | $4,564.44 Ã— 0.9150 | **$4,176.46** |
-| 50% J&S | 0.9350 | $4,564.44 Ã— 0.9350 | **$4,267.75** |
+| 50% J&S | 0.9450 | $4,564.44 Ã— 0.9450 | **$4,313.40** |
 
 ### 10.4 Robert's Elected Option
 
@@ -233,15 +233,12 @@ Robert's benefit base for payment options is now $4,564.44 (not $6,117.68).
 
 ### 13.2 Patricia's IPR Eligibility
 
-**Per RMC Â§18-412 and DRO provisions:**
-- Alternate payees under DRO may be eligible for IPR on their share
-- Calculation would be based on service during marriage
-- This depends on specific DRO language
+**Per RMC Â§18-418(b)(8) and RULE-DRO-NO-IPR:**
+- Former spouse (alternate payee) under DRO is **NOT eligible** for IPR
+- Patricia receives her DRO share ($1,553.24/month) but no IPR supplement
+- This exclusion applies regardless of years of marital service
 
-*For this example, assuming Patricia receives proportional IPR:*
-- Her service fraction: 18.25 years
-- Pre-Medicare: $12.50 Ã— 18.25 = $228.13/month
-- Post-Medicare: $6.25 Ã— 18.25 = $114.06/month
+**Patricia's IPR: $0.00 (not eligible)**
 
 ---
 
@@ -281,9 +278,9 @@ Robert's benefit base for payment options is now $4,564.44 (not $6,117.68).
 | **Elected Option** | 75% J&S | Single Life | Survivor |
 | **Monthly Benefit** | $4,176.46 | $1,553.24 | â€” |
 | **After Robert's Death** | â€” | $1,553.24 | $3,132.35 |
-| **IPR (pre-Medicare)** | $359.38 | ~$228.13* | â€” |
+| **IPR (pre-Medicare)** | $359.38 | $0.00 (not eligible) | â€” |
 
-*Patricia's IPR eligibility depends on DRO terms
+*Per RMC Â§18-418(b)(8): DRO alternate payees are not eligible for IPR
 
 ---
 

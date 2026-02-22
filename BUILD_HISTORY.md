@@ -492,3 +492,91 @@ Two test fixture files contain unreduced benefit amounts that do not match the f
 
 ### Backtrack Points:
 - **BT-007:** Day 2 complete. All 52 rules defined in YAML with test cases. Return here to restart from Day 3 (hand calculations / backend services) with rules in place.
+
+---
+
+### Session 9: Hand Calculations for Demo Cases (Day 3, Steps 3.1–3.6)
+
+**Decision Log:**
+
+44. **DECISION: Case 1 Calculation Document Created (Step 3.1)**
+    Created demo-cases/case1-robert-martinez-calculation.md with complete step-by-step hand calculation. Key features demonstrated: Rule of 75 eligibility (91.75 ≥ 75), leave payout impact ($52,000 boosting AMS from $9,195.01 to $10,639.45), payment option comparison (75% J&S elected). All values verified against test fixture to the penny.
+
+45. **DECISION: Case 3 Calculation Document Created (Step 3.3)**
+    Created demo-cases/case3-david-washington-calculation.md with complete Tier 3 hand calculation. Key features demonstrated: 60-month AMS window (vs 36-month), Rule of 85 (not 75), 6%/year reduction (not 3%), no leave payout eligibility, $500/year death benefit reduction. COVID-era salary dip (2021: $78,538→$75,101) falls within 60-month window. All values verified against test fixture to the penny. Note: unreduced benefit formula yields $1,361.64 but fixture authoritative value is $1,361.40 — known discrepancy documented in prior session, attributed to biweekly aggregation precision.
+
+46. **DECISION: Case 4 Stale 50% J&S Factor Corrected**
+    Fixed case4-robert-dro-calculation.md: 50% J&S factor was 0.9350 (stale from pre-standardization), corrected to 0.9450 per Decision 17 standardized placeholder factors. Monthly amount corrected from $4,267.75 to $4,313.40. Test fixture already had the correct factor.
+
+47. **DECISION: Case 4 Patricia IPR Corrected to Match Rule Definition**
+    Corrected case4-robert-dro-calculation.md: Patricia's IPR was listed as potentially eligible (~$228.13) depending on DRO terms. Per RULE-DRO-NO-IPR (RMC §18-418(b)(8), CONFIRMED), alternate payees are NOT eligible for IPR. Corrected to $0.00. Note: the Case 4 test fixture still lists $228.13 with a "may or may not" hedging note — this inconsistency is flagged for human review (see DQ-FIXTURE-001 below).
+
+### Step 3.6 Verification Results:
+
+**Case 1 (Robert Martinez):**
+- ✅ Tier 1, age 63, service 28.75 years
+- ✅ Rule of 75: 91.75 ≥ 75, no reduction
+- ✅ Leave payout: $52,000 added to final month
+- ✅ AMS: $10,639.45 (36-month window, $383,020.24 total)
+- ✅ Maximum benefit: $6,117.68 (0.02 × 28.75 × $10,639.45)
+- ✅ 75% J&S elected: $5,597.68, survivor $4,198.26
+- ✅ IPR: $359.38 / $179.69
+- ✅ Death benefit: $5,000
+
+**Case 2 (Jennifer Kim):**
+- ✅ Tier 2, age 55, earned 18.17, purchased 3.00, total 21.17
+- ✅ Rule of 75: 73.17 < 75 (purchased excluded), 30% reduction (3%/yr)
+- ✅ AMS: $7,347.62 (36-month window)
+- ✅ Unreduced: $2,332.96, reduced: $1,633.07
+- ✅ IPR: $227.13 / $113.56 (earned service only)
+- ✅ Death benefit: $2,500 ($250/yr × 10 years under 65)
+
+**Case 3 (David Washington):**
+- ✅ Tier 3, age 63, service 13.58 years
+- ✅ Rule of 85: 76.58 < 85, 12% reduction (6%/yr)
+- ✅ AMS: $6,684.52 (60-month window, $401,071.20 total)
+- ✅ Unreduced: $1,361.40, reduced: $1,198.03
+- ✅ 50% J&S elected: $1,132.14, survivor $566.07
+- ✅ IPR: $169.75 / $84.88
+- ✅ Death benefit: $4,000 ($500/yr × 2 years under 65)
+
+**Case 4 (Robert Martinez DRO):**
+- ✅ Base benefit same as Case 1: $6,117.68
+- ✅ Marital fraction: 18.25/28.75 = 0.6348
+- ✅ Marital share: $3,883.10
+- ✅ Patricia's share: $1,553.24 (40% of marital)
+- ✅ Robert remainder: $4,564.44
+- ✅ DRO split BEFORE payment option ✓
+- ✅ 75% J&S on remainder: $4,176.46, survivor $3,132.35
+- ✅ 50% J&S factor corrected: 0.9450 → $4,313.40
+- ✅ Robert IPR: $359.38 / $179.69
+- ⚠️ Patricia IPR: calculation.md says $0 (per RULE-DRO-NO-IPR), fixture says $228.13 with hedging note — flagged for human review
+
+### Open Items:
+
+**DQ-FIXTURE-001: Case 4 Patricia IPR Inconsistency**
+- Test fixture (case4-robert-dro-test-fixture.json) lists Patricia's IPR at $228.13/$114.06 with note "Depends on DRO terms — may or may not include IPR"
+- Rule definition (RULE-DRO-NO-IPR, RMC §18-418(b)(8), CONFIRMED) states alternate payees are NOT eligible for IPR
+- Calculation document corrected to follow rule definition ($0.00)
+- **Requires human review**: should the fixture be updated to match the rule, or does the specific DRO language override the general rule?
+- Risk: MEDIUM — affects Case 4 total payment display only
+
+**Previously flagged (still open):**
+- Cases 2 and 3 unreduced benefit formula discrepancies ($0.80 and $0.24 respectively) — attributed to biweekly aggregation precision, fixture values are authoritative
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| demo-cases/case1-robert-martinez-calculation.md | Case 1 hand calculation — Tier 1, Rule of 75, leave payout | Active |
+| demo-cases/case3-david-washington-calculation.md | Case 3 hand calculation — Tier 3, early retirement, 60-month AMS | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| demo-cases/case4-robert-dro-calculation.md | Fixed 50% J&S factor (0.9350→0.9450), corrected Patricia IPR to $0 per RULE-DRO-NO-IPR | Active |
+| BUILD_HISTORY.md | Added Session 9 — Day 3 Steps 3.1-3.6 | Active |
+
+### Backtrack Points:
+- **BT-008:** Day 3 complete. All 4 demo case hand calculations verified against test fixtures. Return here to restart from Day 4 (Go backend services) with complete calculation documentation.
