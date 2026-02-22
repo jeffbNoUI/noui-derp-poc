@@ -31,30 +31,10 @@ export function Stage8ReviewCertify({
   const ruleMet = elig?.retirement_type === 'rule_of_75' || elig?.retirement_type === 'rule_of_85'
   const reductionPct = elig ? Math.round((1 - elig.reduction_factor) * 100) : 0
   const elOpt = opts?.options.find(o => o.option_type === electedOption)
-  const finalMonthly = elOpt?.monthly_amount ?? ben?.net_monthly_benefit ?? 0
 
   return (
     <div>
-      {/* Hero summary card */}
-      <div style={{
-        padding: '14px', background: C.accentMuted, borderRadius: '8px',
-        border: `1px solid ${C.accentSolid}`, textAlign: 'center' as const, marginBottom: '12px',
-      }}>
-        <div style={{ color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1.5px' }}>
-          {dro ? 'Monthly Benefit (After DRO)' : 'Monthly Benefit'}
-        </div>
-        <div style={{
-          color: C.accent, fontSize: '30px', fontWeight: 700, fontFamily: 'monospace',
-          marginTop: '4px', textShadow: `0 0 25px ${C.accentGlow}`,
-        }}>
-          {fmt(finalMonthly)}
-        </div>
-        <div style={{ color: C.textSecondary, fontSize: '10.5px', marginTop: '3px' }}>
-          {m.first_name} {m.last_name} · {retirementDate} · {tc.label}
-        </div>
-      </div>
-
-      {/* Section summaries */}
+      {/* Section summaries — benefit amount lives in the member banner */}
       <div style={{
         borderRadius: '6px', overflow: 'hidden', border: `1px solid ${C.borderSubtle}`,
         marginBottom: '8px',

@@ -5,7 +5,7 @@
  * Depends on: StageProps, theme (C, tierMeta, fmt), Badge
  */
 import type { StageProps } from './StageProps'
-import { C, tierMeta, fmt } from '@/theme'
+import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 
 function Field({ label, value, sub, badge }: {

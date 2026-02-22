@@ -99,6 +99,28 @@ When writing code comments, documentation, demo scripts, or any user-facing text
 - "AI composes the workspace to show the right information for each situation"
 - "The system shows its work. Every calculation is transparent and verifiable."
 
+## Workspace UX Principles
+
+### Single Source of Truth Display
+Every key data value (benefit amount, progress, eligibility status) has exactly ONE
+prominent display location. Other components may reference the value in context
+(e.g., formula breakdown) but must not create a competing "hero" display.
+Benefit amount → member banner. Progress → header bar. Eligibility → stage 3 content.
+
+### No Redundant Chrome
+Each piece of UI chrome (progress bars, status badges, navigation) appears exactly
+once. If two areas show the same information, one must be removed.
+
+### Learning Module Architecture
+The guided workspace help panel is a Learning Module with three independent layers:
+- **Onboarding** (teaching narrative) — admin-controllable, toggleable by user
+- **Rules Reference** (citations) — always available, toggleable
+- **Verification Checklist** (interactive) — admin-controllable, toggleable by user
+
+Each layer can be independently shown/hidden. Checklist items gate stage confirmation
+when the checklist layer is active. Future capability: proficiency tracking adjusts
+default layer visibility based on demonstrated accuracy.
+
 ## Development Workflow
 
 ### Before Starting Any Task

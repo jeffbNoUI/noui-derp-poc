@@ -184,7 +184,6 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
         <Field label="Reduction" value={`\u00D7 ${ben.reduction_factor.toFixed(2)} (\u2212${reductionPct}%)`}
           badge={{ text: `\u2212${fmt(ben.gross_monthly_benefit - ben.net_monthly_benefit)}/mo`, bg: C.dangerMuted, color: C.danger }} />
       )}
-      <Field label="Net Monthly Benefit" value={fmt(ben.net_monthly_benefit)} highlight />
       <Field label="Annual Benefit" value={fmt(ben.net_monthly_benefit * 12)} />
 
       {reductionPct === 0 && (

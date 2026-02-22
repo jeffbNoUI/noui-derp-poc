@@ -125,9 +125,9 @@ describe('guided-composition', () => {
       for (const stage of stages) {
         expect(stage.title).toBeTruthy()
         expect(stage.icon).toBeTruthy()
-        expect(stage.helpText).toBeTruthy()
-        expect(stage.keyRules.length).toBeGreaterThan(0)
-        expect(stage.whatToVerify.length).toBeGreaterThan(0)
+        expect(stage.onboarding).toBeTruthy()
+        expect(stage.rules.length).toBeGreaterThan(0)
+        expect(stage.checklist.length).toBeGreaterThan(0)
       }
     })
 
