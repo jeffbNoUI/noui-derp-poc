@@ -5,7 +5,7 @@
  * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom
  */
 import { Component, type ReactNode } from 'react'
-import { Outlet, useNavigate, useParams } from 'react-router-dom'
+import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { DEMO_CASES } from '@/lib/constants'
@@ -28,6 +28,8 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 export function StaffLayout() {
   const navigate = useNavigate()
   const { memberId } = useParams()
+  const location = useLocation()
+  const isGuided = location.pathname.endsWith('/guided')
 
   return (
     <div style={{
@@ -51,6 +53,34 @@ export function StaffLayout() {
           <span style={{ color: C.textMuted, fontSize: '11px' }}>Staff Workspace</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+          {memberId && (
+            <div style={{
+              display: 'flex', borderRadius: '4px', overflow: 'hidden',
+              border: `1px solid ${C.border}`,
+            }}>
+              <button
+                onClick={() => navigate(`/staff/case/${memberId}`)}
+                style={{
+                  fontSize: '9px', color: isGuided ? C.textMuted : C.accent,
+                  textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+                  background: isGuided ? 'transparent' : C.accentMuted,
+                  border: 'none', padding: '2px 8px', cursor: 'pointer',
+                  fontWeight: isGuided ? 400 : 600,
+                }}
+              >Expert</button>
+              <button
+                onClick={() => navigate(`/staff/case/${memberId}/guided`)}
+                style={{
+                  fontSize: '9px', color: isGuided ? C.accent : C.textMuted,
+                  textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+                  background: isGuided ? C.accentMuted : 'transparent',
+                  border: 'none', borderLeft: `1px solid ${C.border}`,
+                  padding: '2px 8px', cursor: 'pointer',
+                  fontWeight: isGuided ? 600 : 400,
+                }}
+              >Guided</button>
+            </div>
+          )}
           <button onClick={() => navigate('/')} style={{
             fontSize: '9px', color: C.textMuted, textTransform: 'uppercase' as const,
             letterSpacing: '1px', background: 'none', border: `1px solid ${C.border}`,
@@ -81,7 +111,7 @@ export function StaffLayout() {
           const t = tierMeta[c.tier]
           const isActive = memberId === c.id
           return (
-            <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}`)} style={{
+            <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}${isGuided ? '/guided' : ''}`)} style={{
               padding: '3px 9px', borderRadius: '5px',
               border: `1px solid ${isActive ? t.color : C.border}`,
               background: isActive ? t.muted : 'transparent',

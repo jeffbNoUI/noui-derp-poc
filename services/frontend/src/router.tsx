@@ -10,6 +10,7 @@ import { MemberLayout } from '@/layouts/MemberLayout'
 import { PortalSwitcher } from '@/pages/PortalSwitcher'
 import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
 import { StaffCaseView } from '@/pages/StaffCaseView'
+import { StaffGuidedView } from '@/pages/StaffGuidedView'
 import { MemberDashboard } from '@/pages/portal/MemberDashboard'
 import { ApplicationWizard } from '@/pages/portal/ApplicationWizard'
 import { ApplicationStatus } from '@/pages/portal/ApplicationStatus'
@@ -25,6 +26,7 @@ export const router = createBrowserRouter([
     children: [
       { index: true, element: <StaffWelcomeScreen /> },
       { path: 'case/:memberId', element: <StaffCaseView /> },
+      { path: 'case/:memberId/guided', element: <StaffGuidedView /> },
     ],
   },
   {

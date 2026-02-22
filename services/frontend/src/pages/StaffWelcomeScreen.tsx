@@ -3,6 +3,7 @@
  * Consumed by: router.tsx (index route under /staff)
  * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom
  */
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
@@ -11,6 +12,7 @@ import { DEMO_CASES } from '@/lib/constants'
 
 export function StaffWelcomeScreen() {
   const navigate = useNavigate()
+  const [mode, setMode] = useState<'expert' | 'guided'>('expert')
 
   return (
     <div style={{
@@ -29,8 +31,34 @@ export function StaffWelcomeScreen() {
         color: C.textSecondary, fontSize: '12px', maxWidth: '400px',
         textAlign: 'center' as const, lineHeight: '1.5',
       }}>
-        Select a demo case below to load a member's retirement workspace.
+        Select a mode and demo case below to load a member's retirement workspace.
         Every calculation is transparent and verifiable.
+      </div>
+
+      {/* Mode selector */}
+      <div style={{
+        display: 'flex', borderRadius: '6px', overflow: 'hidden',
+        border: `1px solid ${C.border}`,
+      }}>
+        <button onClick={() => setMode('expert')} style={{
+          padding: '6px 16px', border: 'none', cursor: 'pointer',
+          fontSize: '11px', fontWeight: mode === 'expert' ? 600 : 400,
+          color: mode === 'expert' ? C.accent : C.textMuted,
+          background: mode === 'expert' ? C.accentMuted : 'transparent',
+          letterSpacing: '0.5px',
+        }}>Expert</button>
+        <button onClick={() => setMode('guided')} style={{
+          padding: '6px 16px', border: 'none', borderLeft: `1px solid ${C.border}`,
+          cursor: 'pointer', fontSize: '11px', fontWeight: mode === 'guided' ? 600 : 400,
+          color: mode === 'guided' ? C.accent : C.textMuted,
+          background: mode === 'guided' ? C.accentMuted : 'transparent',
+          letterSpacing: '0.5px',
+        }}>Guided</button>
+      </div>
+      <div style={{ color: C.textDim, fontSize: '10px', maxWidth: '350px', textAlign: 'center' as const }}>
+        {mode === 'expert'
+          ? 'All panels visible. Click to expand, confirm in any order.'
+          : 'Step-by-step processing with contextual help and rule citations.'}
       </div>
       <div style={{
         display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
@@ -39,7 +67,7 @@ export function StaffWelcomeScreen() {
         {DEMO_CASES.map(c => {
           const t = tierMeta[c.tier]
           return (
-            <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}`)} style={{
+            <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}${mode === 'guided' ? '/guided' : ''}`)} style={{
               padding: '14px', background: C.surface,
               border: `1px solid ${C.borderSubtle}`, borderRadius: '8px',
               cursor: 'pointer', textAlign: 'left' as const,
