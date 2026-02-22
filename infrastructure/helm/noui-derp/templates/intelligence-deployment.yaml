@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: intelligence
+  labels:
+    app: intelligence
+    part-of: noui-derp
+spec:
+  replicas: {{ .Values.intelligence.replicas }}
+  selector:
+    matchLabels:
+      app: intelligence
+  template:
+    metadata:
+      labels:
+        app: intelligence
+    spec:
+      containers:
+        - name: intelligence
+          image: "{{ .Values.intelligence.image.repository }}:{{ .Values.intelligence.image.tag }}"
+          imagePullPolicy: {{ .Values.intelligence.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.intelligence.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "{{ .Values.intelligence.port }}"
+            - name: CONNECTOR_URL
+              value: {{ .Values.intelligence.connectorUrl }}
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.intelligence.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.intelligence.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.intelligence.resources | nindent 12 }}

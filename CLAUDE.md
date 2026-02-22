@@ -245,3 +245,17 @@ Employer contribution: 17.95% (updated from 11% — per DERP Handbook Jan 2024)
 Normal retirement: Age 65, 5 years service, all tiers
 
 **CRITICAL:** Early retirement reduction for Tiers 1 & 2 is 3% per year, NOT 6%. Verified against DERP Active Member Handbook (p.17), DERP website, and FAQ. See CRITICAL-001-resolution.md.
+
+## Autonomous Operation
+
+Claude Code is authorized to:
+- Make conservative decisions on calculation precision, tolerance, and rounding interpretations without stopping for human review
+- Resolve known documented discrepancies by using wider test tolerances when the issue is already captured in BUILD_HISTORY.md
+- Correct fixture/calculation inconsistencies when the governing rule is clear, documenting the decision in BUILD_HISTORY.md
+- Skip human confirmation for build decisions within the existing technology stack and architecture
+- Continue through build plan steps without pausing for approval at each decision point
+
+Claude Code should still STOP and document (but not block on approval) for:
+- Any new business rule not found in derp-business-rules-inventory.docx
+- Any change to test fixture expected values
+- Any architecture change that contradicts CLAUDE.md governing principles

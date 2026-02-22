@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: intelligence
+  labels:
+    app: intelligence
+    part-of: noui-derp
+spec:
+  type: ClusterIP
+  selector:
+    app: intelligence
+  ports:
+    - port: {{ .Values.intelligence.port }}
+      targetPort: {{ .Values.intelligence.port }}
+      protocol: TCP
+      name: http
