@@ -1,0 +1,495 @@
+/*
+ * NoUI Design System — DERP Brand Theme
+ * ======================================
+ * 
+ * PURPOSE: This is the single authoritative source for all visual design
+ * tokens, component patterns, and AI composition rules for the NoUI platform.
+ * Derived from DERP's brand identity (derp.org).
+ *
+ * REPLACES: noui-design-system.css + noui-design-tokens.css (consolidated)
+ *
+ * USAGE: Import in the frontend application root. All components should 
+ * reference these variables rather than hardcoding values. When building
+ * for a different pension client, swap this file — component structure stays 
+ * identical.
+ *
+ * CONVENTIONS:
+ *   - All custom properties use the --noui-* namespace
+ *   - Tailwind config extends from these values (see Section 7)
+ *   - Semantic naming (--noui-primary, not --noui-teal)
+ *   - All color pairings meet WCAG AA contrast minimums
+ *
+ * BRAND SOURCE: derp.org — teal primary (#00796b), orange accent (#e65100)
+ * FONTS: Google Fonts — Plus Jakarta Sans, Source Sans 3, JetBrains Mono
+ */
+
+
+/* ============================================================
+   1. COLOR TOKENS
+   ============================================================ */
+
+:root {
+
+  /* --- Primary (DERP Teal) --------------------------------- */
+  --noui-primary:         #00796b;     /* Buttons, active states, links */
+  --noui-primary-hover:   #00695c;     /* Button hover, link hover */
+  --noui-primary-light:   #b2dfdb;     /* Completed step badges, light accents */
+  --noui-primary-surface: #e0f2f1;     /* Selected row bg, formula highlight bg */
+  --noui-primary-on:      #ffffff;     /* Text on primary-colored backgrounds */
+
+  /* --- Accent (DERP Orange) -------------------------------- */
+  --noui-accent:          #e65100;     /* Warning badges, attention items */
+  --noui-accent-mid:      #ff8f00;     /* Hover/lighter accent contexts */
+  --noui-accent-light:    #fff3e0;     /* Warning banner backgrounds */
+  --noui-accent-on:       #e65100;     /* Text on accent-light backgrounds */
+
+  /* --- Semantic: Status ------------------------------------ */
+  --noui-success:         #2e7d32;     /* Met/pass indicators, verified */
+  --noui-success-light:   #e8f5e9;     /* Success badge backgrounds */
+  --noui-danger:          #c62828;     /* Errors, failed validation, reductions */
+  --noui-danger-light:    #ffebee;     /* Error banner backgrounds */
+  --noui-info:            #0369a1;     /* Informational badges */
+  --noui-info-light:      #e0f2fe;     /* Info badge backgrounds */
+
+  /* --- Surfaces -------------------------------------------- */
+  --noui-bg:              #f6f9f9;     /* Page background — slight teal warmth */
+  --noui-bg-surface:      #ffffff;     /* Card/panel backgrounds */
+  --noui-bg-surface-alt:  #eef5f5;     /* Alternate rows, secondary panels, metadata bars */
+
+  /* --- Text ------------------------------------------------ */
+  --noui-text:            #1a2e2e;     /* Primary text, headings */
+  --noui-text-secondary:  #4a6767;     /* Labels, descriptions */
+  --noui-text-tertiary:   #7a9696;     /* Metadata, timestamps, placeholders */
+  --noui-text-disabled:   #a8c0c0;     /* Disabled form fields */
+
+  /* --- Borders --------------------------------------------- */
+  --noui-border:          #d0dede;     /* Card borders, dividers */
+  --noui-border-subtle:   #e2ecec;     /* Inner dividers, row separators */
+  --noui-border-focus:    #00796b;     /* Focus ring color (matches primary) */
+
+  /* --- Sidebar --------------------------------------------- */
+  --noui-sidebar-bg:      #00363a;     /* Deep dark teal */
+  --noui-sidebar-text:    #a0c4c4;     /* Default nav text */
+  --noui-sidebar-active:  #4db6ac;     /* Active nav item text/icon */
+  --noui-sidebar-hover:   #004d40;     /* Nav item hover background */
+  --noui-sidebar-brand:   #ffffff;     /* "NoUI" brand text */
+
+  /* --- Header ---------------------------------------------- */
+  --noui-header-bg:       #ffffff;
+  --noui-header-border:   #d0dede;
+
+  /* --- Badges & Tags --------------------------------------- */
+  --noui-badge-bg:        #e0f2f1;     /* Tier badge, informational badges */
+  --noui-badge-text:      #00695c;
+  --noui-tag-bg:          #b2dfdb;     /* Action tags: "Show derivation", "Audit log" */
+  --noui-tag-text:        #004d40;
+
+
+  /* ============================================================
+     2. TYPOGRAPHY TOKENS
+     ============================================================ */
+
+  /* --- Font Stacks ----------------------------------------- */
+  --noui-font-heading:    'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --noui-font-body:       'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --noui-font-mono:       'JetBrains Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  /* --- Font Sizes ------------------------------------------ */
+  --noui-text-xs:         0.6875rem;   /* 11px — labels, captions, metadata, source refs */
+  --noui-text-sm:         0.75rem;     /* 12px — table cells, badge text, breakdown values */
+  --noui-text-base:       0.8125rem;   /* 13px — body text, form fields, nav items */
+  --noui-text-md:         0.875rem;    /* 14px — card titles, descriptions, formula results */
+  --noui-text-lg:         0.9375rem;   /* 15px — member name, section headers */
+  --noui-text-xl:         1rem;        /* 16px — sidebar brand, page titles */
+  --noui-text-2xl:        1.25rem;     /* 20px — workspace title */
+
+  /* --- Font Weights ---------------------------------------- */
+  --noui-weight-normal:   400;
+  --noui-weight-medium:   500;
+  --noui-weight-semibold: 600;
+  --noui-weight-bold:     700;
+
+  /* --- Letter Spacing -------------------------------------- */
+  --noui-tracking-tight:  -0.02em;     /* Headings */
+  --noui-tracking-normal:  0;          /* Body */
+  --noui-tracking-wide:    0.02em;     /* Badges */
+  --noui-tracking-wider:   0.05em;     /* Uppercase labels (TIER 1, etc.) */
+
+
+  /* ============================================================
+     3. SPACING, RADII & EFFECTS
+     ============================================================ */
+
+  /* --- Spacing --------------------------------------------- */
+  --noui-space-1:         4px;
+  --noui-space-2:         8px;
+  --noui-space-3:         12px;
+  --noui-space-4:         16px;
+  --noui-space-5:         20px;
+  --noui-space-6:         24px;
+  --noui-space-8:         32px;
+  --noui-space-10:        40px;
+
+  /* --- Radii ----------------------------------------------- */
+  --noui-radius-sm:       4px;         /* Small tags, inline badges */
+  --noui-radius-md:       6px;         /* Buttons, form inputs, formula boxes */
+  --noui-radius-lg:       8px;         /* Cards, panels */
+  --noui-radius-xl:       10px;        /* Modal dialogs */
+  --noui-radius-pill:     14px;        /* Process step pills, tier badges */
+  --noui-radius-full:     9999px;      /* Circular indicators, rounded buttons */
+
+  /* --- Shadows --------------------------------------------- */
+  --noui-shadow-sm:       0 1px 3px rgba(0, 54, 58, 0.06),
+                          0 1px 2px rgba(0, 54, 58, 0.04);
+  --noui-shadow-md:       0 4px 12px rgba(0, 54, 58, 0.08);
+  --noui-shadow-lg:       0 8px 24px rgba(0, 54, 58, 0.12);
+
+  /* --- Transitions ----------------------------------------- */
+  --noui-transition-fast: 100ms ease;
+  --noui-transition-base: 150ms ease;
+  --noui-transition-slow: 250ms ease;
+
+
+  /* ============================================================
+     4. COMPONENT-SPECIFIC TOKENS
+     ============================================================
+     Semantic aliases that map base tokens to component roles.
+     Components should prefer these over raw color tokens where
+     a specific alias exists.
+     ============================================================ */
+
+  /* --- Process Step Pills ---------------------------------- */
+  --noui-step-completed-bg:    var(--noui-primary-light);
+  --noui-step-completed-text:  var(--noui-primary);
+  --noui-step-active-bg:       var(--noui-primary);
+  --noui-step-active-text:     var(--noui-primary-on);
+  --noui-step-upcoming-bg:     transparent;
+  --noui-step-upcoming-text:   var(--noui-text-tertiary);
+  --noui-step-upcoming-border: var(--noui-border);
+
+  /* --- Calculation Formula Box ----------------------------- */
+  --noui-formula-bg:           var(--noui-primary-surface);
+  --noui-formula-border:       var(--noui-primary-light);
+  --noui-formula-text:         var(--noui-primary);
+
+  /* --- Selection States (radio buttons, selected rows) ----- */
+  --noui-selected-border:      var(--noui-primary);
+  --noui-selected-bg:          var(--noui-primary-surface);
+
+  /* --- Warning Banners (spousal consent, etc.) ------------- */
+  --noui-warning-bg:           var(--noui-accent-light);
+  --noui-warning-text:         var(--noui-accent);
+  --noui-warning-icon:         var(--noui-accent);
+
+  /* --- Data Quality Severity ------------------------------- */
+  --noui-dq-critical-bg:       var(--noui-danger-light);
+  --noui-dq-critical-text:     var(--noui-danger);
+  --noui-dq-warning-bg:        var(--noui-accent-light);
+  --noui-dq-warning-text:      var(--noui-accent);
+  --noui-dq-info-bg:           var(--noui-badge-bg);
+  --noui-dq-info-text:         var(--noui-badge-text);
+}
+
+
+/* ============================================================
+   5. COMPONENT PATTERNS
+   ============================================================
+   
+   These are reference patterns, not prescriptive classes.
+   Use as guidance when building Tailwind/shadcn components.
+   ============================================================ */
+
+/* --- Cards ------------------------------------------------- 
+   Every data cluster lives in its own card with clear 
+   boundaries. Staff scan, not scroll.
+   
+   Structure:
+     .card               — container with border + shadow
+     .card-header        — title bar with section name + statute ref
+     .card-body          — content area
+     
+   Pattern:
+     background:    var(--noui-bg-surface)
+     border:        1px solid var(--noui-border)
+     border-radius: var(--noui-radius-lg)
+     box-shadow:    var(--noui-shadow-sm)
+     
+   Header divider:
+     border-bottom: 1px solid var(--noui-border-subtle)
+*/
+
+/* --- Formula Display --------------------------------------- 
+   Calculation formulas are the centerpiece of pension admin.
+   Always monospace, always inside a highlighted container.
+   
+   Pattern:
+     font-family:   var(--noui-font-mono)
+     background:    var(--noui-formula-bg)
+     border:        1px solid var(--noui-formula-border)
+     color:         var(--noui-formula-text)
+     text-align:    center
+     
+   Result value: bold, slightly larger than formula text
+*/
+
+/* --- Badges & Tags ----------------------------------------- 
+   Semantic color communicates status at a glance.
+   
+   Tier badge:
+     background: var(--noui-primary-surface)
+     color:      var(--noui-primary)
+     
+   Eligibility met:
+     background: var(--noui-success-light)
+     color:      var(--noui-success)
+     
+   Warning/attention:
+     background: var(--noui-accent-light)
+     color:      var(--noui-accent)
+     
+   Info/reference:
+     background: var(--noui-info-light)
+     color:      var(--noui-info)
+     
+   All badges: 
+     font-size:      var(--noui-text-xs)
+     font-weight:    var(--noui-weight-semibold)
+     letter-spacing: var(--noui-tracking-wide)
+     padding:        2px 8px
+     border-radius:  var(--noui-radius-pill)
+
+   Uppercase labels (TIER 1, ACTIVE, etc.):
+     letter-spacing: var(--noui-tracking-wider)
+     text-transform: uppercase
+*/
+
+/* --- Process Stepper --------------------------------------- 
+   Linear workflow indicator. Current step is primary-filled,
+   completed steps use primary-light, future steps are outlined.
+   
+   Completed:
+     background: var(--noui-step-completed-bg)
+     color:      var(--noui-step-completed-text)
+     
+   Active:
+     background: var(--noui-step-active-bg)
+     color:      var(--noui-step-active-text)
+     
+   Upcoming:
+     background: var(--noui-step-upcoming-bg)
+     border:     1px solid var(--noui-step-upcoming-border)
+     color:      var(--noui-step-upcoming-text)
+*/
+
+/* --- Selection Cards (e.g. Payment Options) ---------------- 
+   Radio-style selection with card treatment.
+   
+   Default:
+     border: 1px solid var(--noui-border)
+     
+   Selected:
+     border:     2px solid var(--noui-selected-border)
+     background: var(--noui-selected-bg)
+     
+   Dollar amounts always in monospace:
+     font-family: var(--noui-font-mono)
+     font-weight: var(--noui-weight-semibold)
+*/
+
+/* --- Warning Banners --------------------------------------- 
+   Contextual alerts (e.g. spousal consent, reduction notices).
+   
+   Pattern:
+     background:    var(--noui-warning-bg)
+     color:         var(--noui-warning-text)
+     border-radius: var(--noui-radius-md)
+     padding:       var(--noui-space-3)
+     font-size:     var(--noui-text-xs)
+     
+   Icon: ⚠ inline, slightly larger than text
+     color: var(--noui-warning-icon)
+*/
+
+/* --- Source Reference Bar ---------------------------------- 
+   Always visible at bottom of calculation workspace.
+   Shows governing statute, verification status, action links.
+   
+   Pattern:
+     background: var(--noui-bg-surface-alt)
+     border:     1px solid var(--noui-border-subtle)
+     color:      var(--noui-text-tertiary)
+     font-size:  var(--noui-text-xs)
+     
+   Action tags ("Show derivation", "Audit log"):
+     background: var(--noui-tag-bg)
+     color:      var(--noui-tag-text)
+     cursor:     pointer
+*/
+
+/* --- Data Rows (Key-Value Breakdown) ----------------------- 
+   Used in calculation details, member info panels.
+   
+   Label (left):
+     color:     var(--noui-text-secondary)
+     font-size: var(--noui-text-sm)
+     
+   Value (right):
+     font-family: var(--noui-font-mono)
+     font-weight: var(--noui-weight-semibold)
+     
+   Context tag (e.g. "Tier 1", "Incl. leave payout"):
+     background:    var(--noui-bg-surface-alt)
+     color:         var(--noui-text-tertiary)
+     font-size:     9px
+     padding:       1px 6px
+     border-radius: var(--noui-radius-sm)
+     
+   Row separator:
+     border-bottom: 1px solid var(--noui-border-subtle)
+*/
+
+/* --- Data Quality Dashboard -------------------------------- 
+   Severity-colored indicators for data quality findings.
+   
+   Critical:
+     background: var(--noui-dq-critical-bg)
+     color:      var(--noui-dq-critical-text)
+     
+   Warning:
+     background: var(--noui-dq-warning-bg)
+     color:      var(--noui-dq-warning-text)
+     
+   Informational:
+     background: var(--noui-dq-info-bg)
+     color:      var(--noui-dq-info-text)
+*/
+
+
+/* ============================================================
+   6. TYPOGRAPHY RULES & AI COMPOSITION DESIGN RULES
+   ============================================================ */
+
+/*
+   TYPOGRAPHY
+   ----------
+   Headings: Plus Jakarta Sans, bold, tight tracking
+   Body text: Source Sans 3, normal weight
+   Monospace (all calculations, dollar amounts, IDs): JetBrains Mono
+
+   MONOSPACE FOR MONEY
+   Any time a dollar sign appears, that value renders in
+   var(--noui-font-mono). No exceptions. This includes inline
+   values in sentences, table cells, badges, and formula displays.
+
+   CARDS NOT PAGES
+   Every data cluster (calculation, payment options, salary
+   history, eligibility) renders as a discrete card with
+   var(--noui-border) outline and var(--noui-shadow-sm).
+
+   SOURCE ALWAYS VISIBLE
+   Every card showing business rules or calculations includes
+   a statutory reference (e.g., §18-401(a)) in the card header,
+   rendered in var(--noui-text-xs) / var(--noui-text-tertiary).
+
+   STATUS THROUGH COLOR
+   - Green (success): Rule met, verified, eligible
+   - Orange (accent): Warning, consent required, attention needed
+   - Red (danger): Failed, error, critical data quality issue
+   - Teal (badge): Informational — tier, status, category
+
+   PROGRESSIVE DISCLOSURE
+   Show the answer first (formula result in formula box).
+   Derivation available via tag buttons ("Show derivation",
+   "Audit log") styled with var(--noui-tag-*).
+
+   ACCESSIBILITY
+   All foreground/background combinations must meet WCAG AA
+   (4.5:1 for normal text, 3:1 for large text). The tokens
+   above are pre-validated for AA compliance.
+*/
+
+
+/* ============================================================
+   7. TAILWIND CONFIG EXTENSION (Reference)
+   ============================================================
+   
+   When configuring tailwind.config.ts, extend with:
+   
+   theme: {
+     extend: {
+       colors: {
+         primary: {
+           DEFAULT:   'var(--noui-primary)',
+           hover:     'var(--noui-primary-hover)',
+           light:     'var(--noui-primary-light)',
+           surface:   'var(--noui-primary-surface)',
+         },
+         accent: {
+           DEFAULT:   'var(--noui-accent)',
+           mid:       'var(--noui-accent-mid)',
+           light:     'var(--noui-accent-light)',
+         },
+         success: {
+           DEFAULT:   'var(--noui-success)',
+           light:     'var(--noui-success-light)',
+         },
+         danger: {
+           DEFAULT:   'var(--noui-danger)',
+           light:     'var(--noui-danger-light)',
+         },
+         info: {
+           DEFAULT:   'var(--noui-info)',
+           light:     'var(--noui-info-light)',
+         },
+         bg:          'var(--noui-bg)',
+         surface: {
+           DEFAULT:   'var(--noui-bg-surface)',
+           alt:       'var(--noui-bg-surface-alt)',
+         },
+         border: {
+           DEFAULT:   'var(--noui-border)',
+           subtle:    'var(--noui-border-subtle)',
+           focus:     'var(--noui-border-focus)',
+         },
+         text: {
+           DEFAULT:   'var(--noui-text)',
+           secondary: 'var(--noui-text-secondary)',
+           tertiary:  'var(--noui-text-tertiary)',
+           disabled:  'var(--noui-text-disabled)',
+         },
+         sidebar: {
+           DEFAULT:   'var(--noui-sidebar-bg)',
+           text:      'var(--noui-sidebar-text)',
+           active:    'var(--noui-sidebar-active)',
+           hover:     'var(--noui-sidebar-hover)',
+           brand:     'var(--noui-sidebar-brand)',
+         },
+       },
+       fontFamily: {
+         heading: ['var(--noui-font-heading)'],
+         body:    ['var(--noui-font-body)'],
+         mono:    ['var(--noui-font-mono)'],
+       },
+       letterSpacing: {
+         tight:  'var(--noui-tracking-tight)',
+         normal: 'var(--noui-tracking-normal)',
+         wide:   'var(--noui-tracking-wide)',
+         wider:  'var(--noui-tracking-wider)',
+       },
+       borderRadius: {
+         'noui-sm':   'var(--noui-radius-sm)',
+         'noui-md':   'var(--noui-radius-md)',
+         'noui-lg':   'var(--noui-radius-lg)',
+         'noui-xl':   'var(--noui-radius-xl)',
+         'noui-pill': 'var(--noui-radius-pill)',
+         'noui-full': 'var(--noui-radius-full)',
+       },
+       boxShadow: {
+         'noui-sm': 'var(--noui-shadow-sm)',
+         'noui-md': 'var(--noui-shadow-md)',
+         'noui-lg': 'var(--noui-shadow-lg)',
+       },
+     },
+   },
+   
+   ============================================================ */

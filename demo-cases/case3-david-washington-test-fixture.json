@@ -1,0 +1,270 @@
+{
+  "case_id": "case3-david-washington",
+  "case_name": "David Washington — Tier 3, Early Retirement",
+  "description": "Tier 3 member with 60-month AMS window and Rule of 85 (not 75), taking early retirement with 12% reduction",
+  
+  "inputs": {
+    "member": {
+      "member_id": "M-100003",
+      "first_name": "David",
+      "last_name": "Washington",
+      "date_of_birth": "1963-02-14",
+      "hire_date": "2012-09-01",
+      "termination_date": null,
+      "status": "A",
+      "tier": 3,
+      "department": "Parks and Recreation",
+      "position": "Program Manager"
+    },
+    "retirement_request": {
+      "retirement_date": "2026-04-01",
+      "last_day_worked": "2026-03-31",
+      "leave_payout_amount": 0,
+      "leave_payout_type": null
+    },
+    "application_timeline": {
+      "notification_of_intent": "2026-02-20",
+      "application_received": "2026-03-12",
+      "notarized": true,
+      "complete_package_received": "2026-03-12",
+      "processing_cutoff": "2026-03-15",
+      "package_before_cutoff": true,
+      "first_payment_date": "2026-04-01"
+    },
+    "beneficiary": {
+      "name": "Michelle Washington",
+      "relationship": "spouse",
+      "date_of_birth": "1965-08-03",
+      "allocation_percentage": 100
+    },
+    "payment_option_election": "50_js",
+    "service_credit": {
+      "employment_years": 13.58,
+      "purchased_years": 0,
+      "military_years": 0,
+      "total_for_benefit": 13.58,
+      "total_for_rule_of_85": 13.58
+    },
+    "dro": null
+  },
+  
+  "expected_outputs": {
+    "timing_validation": {
+      "application_deadline": {
+        "rule": "RULE-APPLICATION-DEADLINE",
+        "last_day_worked": "2026-03-31",
+        "application_received": "2026-03-12",
+        "days_before_last_day": 19,
+        "max_days_after": 30,
+        "passes": true
+      },
+      "notarization": {
+        "rule": "RULE-NOTARIZATION-REQUIRED",
+        "notarized": true,
+        "passes": true
+      },
+      "payment_cutoff": {
+        "rule": "RULE-PAYMENT-PROCESSING-CUTOFF",
+        "complete_package_date": "2026-03-12",
+        "cutoff_date": "2026-03-15",
+        "before_cutoff": true,
+        "first_payment": "2026-04-01",
+        "combined_payment": false,
+        "passes": true
+      }
+    },
+    "eligibility": {
+      "tier": 3,
+      "age_at_retirement": 63.00,
+      "total_service_years": 13.58,
+      "earned_service_years": 13.58,
+      "vested": true,
+      "rule_of_85_sum": 76.58,
+      "rule_of_85_qualifies": false,
+      "minimum_early_retirement_age": 60,
+      "early_retirement_eligible": true,
+      "early_retirement_reduction_rate": 0.06,
+      "early_retirement_reduction_rate_note": "6% per year for Tier 3 (confirmed: DERP Handbook p.17)",
+      "early_retirement_reduction_percent": 12,
+      "years_under_65": 2,
+      "reduction_method_note": "Uses completed years under 65, not monthly proration"
+    },
+    "leave_payout": {
+      "eligible": false,
+      "reason": "hired_after_2010"
+    },
+    "ams_calculation": {
+      "window_months": 60,
+      "window_start": "2021-04-01",
+      "window_end": "2026-03-31",
+      "total_compensation": 401071.20,
+      "ams": 6684.52
+    },
+    "benefit_calculation": {
+      "ams": 6684.52,
+      "multiplier": 0.015,
+      "service_years": 13.58,
+      "formula": "AMS × multiplier × service = 6684.52 × 0.015 × 13.58",
+      "unreduced_monthly_benefit": 1361.40,
+      "reduction_rate_per_year": 0.06,
+      "reduction_percent": 12,
+      "reduction_factor": 0.88,
+      "reduced_monthly_benefit": 1198.03
+    },
+    "payment_options": {
+      "_note": "ILLUSTRATIVE — ACTUAL FACTORS FROM DERP ACTUARIAL TABLES",
+      "_factors_assumptions": "Member age 63, beneficiary age 60, standard mortality tables",
+      "maximum": 1198.03,
+      "joint_survivor_100": {
+        "factor": 0.8850,
+        "monthly_benefit": 1060.26
+      },
+      "joint_survivor_75": {
+        "factor": 0.9150,
+        "monthly_benefit": 1096.20
+      },
+      "joint_survivor_50": {
+        "factor": 0.9450,
+        "monthly_benefit": 1132.14
+      }
+    },
+    "elected_benefit": {
+      "option": "joint_survivor_50",
+      "factor": 0.9450,
+      "monthly_benefit": 1132.14,
+      "survivor_benefit": 566.07
+    },
+    "ipr": {
+      "service_years_for_ipr": 13.58,
+      "pre_medicare_rate": 12.50,
+      "post_medicare_rate": 6.25,
+      "pre_medicare_monthly": 169.75,
+      "post_medicare_monthly": 84.88
+    },
+    "death_benefit": {
+      "retirement_type": "early",
+      "tier": 3,
+      "base_amount": 5000.00,
+      "reduction_per_year": 500,
+      "years_under_65": 2,
+      "total_reduction": 1000.00,
+      "lump_sum_amount": 4000.00,
+      "installment_options": {
+        "50_installments": 80.00,
+        "100_installments": 40.00
+      },
+      "election_note": "Irrevocable — member chooses installment count and beneficiary at retirement"
+    }
+  },
+  
+  "scenario_comparison": {
+    "retire_at_65": {
+      "retirement_date": "2028-04-01",
+      "age": 65,
+      "service_years": 15.58,
+      "rule_of_85_sum": 80.58,
+      "rule_of_85_qualifies": false,
+      "reduction_percent": 0,
+      "note": "No reduction at normal retirement age regardless of Rule of 85"
+    }
+  },
+  
+  "tier_3_distinctions": [
+    {
+      "id": "T3-001",
+      "description": "AMS uses 60-month window, not 36-month",
+      "impact": "Lower AMS due to including older, lower salaries"
+    },
+    {
+      "id": "T3-002",
+      "description": "Rule of 85 applies, not Rule of 75",
+      "impact": "Much harder to avoid early retirement reduction"
+    },
+    {
+      "id": "T3-003",
+      "description": "Minimum early retirement age is 60, not 55",
+      "impact": "Cannot retire before age 60 regardless of service"
+    },
+    {
+      "id": "T3-004",
+      "description": "Leave payout never applicable (all Tier 3 hired after 2010)",
+      "impact": "No AMS boost from leave payout"
+    },
+    {
+      "id": "T3-005",
+      "description": "Early retirement reduction rate is 6%/year, not 3%/year",
+      "impact": "Steeper penalty compared to Tiers 1 and 2"
+    },
+    {
+      "id": "T3-006",
+      "description": "Death benefit reduction is $500/year under 65, not $250/year",
+      "impact": "Steeper death benefit reduction compared to Tiers 1 and 2"
+    }
+  ],
+  
+  "rounding_strategy": {
+    "description": "Calculation rounding rules per BUILD_HISTORY Session 5, Decision 21",
+    "intermediate_calculations": "Full precision (no rounding)",
+    "ams": "Full precision",
+    "js_factors": "4 decimal places",
+    "final_monthly_benefit": "Round to cents (2 decimal places) as last step",
+    "method": "Banker's rounding (round half to even)"
+  },
+  
+  "test_points": [
+    {
+      "id": "DW-001",
+      "description": "Tier correctly identified as 3 from hire date",
+      "test": "hire_date >= 2011-07-01"
+    },
+    {
+      "id": "DW-002",
+      "description": "AMS window is 60 months",
+      "expected": 60
+    },
+    {
+      "id": "DW-003",
+      "description": "Rule of 85 evaluated, not Rule of 75",
+      "calculation": "63 + 13.58 = 76.58 < 85"
+    },
+    {
+      "id": "DW-004",
+      "description": "Early retirement reduction uses 6% rate for Tier 3",
+      "calculation": "65 - 63 = 2 years × 6% = 12%"
+    },
+    {
+      "id": "DW-005",
+      "description": "Leave payout not eligible",
+      "reason": "Hired 2012-09-01 > 2010-01-01"
+    },
+    {
+      "id": "DW-006",
+      "description": "J&S factors use standardized placeholder table",
+      "factors": {
+        "100_js": 0.8850,
+        "75_js": 0.9150,
+        "50_js": 0.9450
+      }
+    },
+    {
+      "id": "DW-007",
+      "description": "Application within 30-day deadline",
+      "test": "application_received 2026-03-12 is before last_day_worked 2026-03-31"
+    },
+    {
+      "id": "DW-008",
+      "description": "Application notarized",
+      "test": "notarized = true"
+    },
+    {
+      "id": "DW-009",
+      "description": "Complete package before 15th cutoff",
+      "test": "complete_package_received 2026-03-12 < 2026-03-15"
+    },
+    {
+      "id": "DW-010",
+      "description": "Lump-sum death benefit correctly calculated for early Tier 3",
+      "calculation": "$5,000 - ($500 × 2) = $4,000"
+    }
+  ]
+}

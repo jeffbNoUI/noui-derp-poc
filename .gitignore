@@ -1,0 +1,30 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Go
+/services/*/tmp/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Node
+node_modules/
+dist/
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite
+
+# Build artifacts
+*.log

@@ -1,0 +1,241 @@
+{
+  "case_id": "case4-robert-dro",
+  "case_name": "Robert Martinez with DRO — Tier 1, Rule of 75, DRO Division",
+  "description": "Same as Case 1 but with Domestic Relations Order dividing benefit with former spouse",
+  
+  "inputs": {
+    "member": {
+      "member_id": "M-100001",
+      "first_name": "Robert",
+      "last_name": "Martinez",
+      "date_of_birth": "1963-03-08",
+      "hire_date": "1997-06-15",
+      "termination_date": null,
+      "status": "A",
+      "tier": 1,
+      "department": "Public Works",
+      "position": "Senior Engineer"
+    },
+    "retirement_request": {
+      "retirement_date": "2026-04-01",
+      "last_day_worked": "2026-03-31",
+      "leave_payout_amount": 52000.00,
+      "leave_payout_type": "sick_vacation"
+    },
+    "application_timeline": {
+      "notification_of_intent": "2026-02-12",
+      "application_received": "2026-03-10",
+      "notarized": true,
+      "complete_package_received": "2026-03-10",
+      "processing_cutoff": "2026-03-15",
+      "package_before_cutoff": true,
+      "first_payment_date": "2026-04-01",
+      "dro_note": "DRO already on file and approved prior to retirement — does not delay package"
+    },
+    "current_spouse": {
+      "name": "Elena Martinez",
+      "relationship": "spouse",
+      "date_of_birth": "1966-09-15",
+      "allocation_percentage": 100
+    },
+    "payment_option_election": "75_js",
+    "service_credit": {
+      "employment_years": 28.75,
+      "purchased_years": 0,
+      "military_years": 0,
+      "total_for_benefit": 28.75,
+      "total_for_rule_of_75": 28.75
+    },
+    "dro": {
+      "has_dro": true,
+      "alternate_payee": {
+        "name": "Patricia Martinez",
+        "relationship": "former_spouse",
+        "date_of_birth": "1964-04-22"
+      },
+      "marriage_date": "1999-08-15",
+      "divorce_date": "2017-11-03",
+      "division_method": "percentage",
+      "division_value": 0.40,
+      "division_description": "40% of marital share"
+    }
+  },
+  
+  "expected_outputs": {
+    "timing_validation": {
+      "application_deadline": {
+        "rule": "RULE-APPLICATION-DEADLINE",
+        "last_day_worked": "2026-03-31",
+        "application_received": "2026-03-10",
+        "days_before_last_day": 21,
+        "max_days_after": 30,
+        "passes": true
+      },
+      "notarization": {
+        "rule": "RULE-NOTARIZATION-REQUIRED",
+        "notarized": true,
+        "passes": true
+      },
+      "payment_cutoff": {
+        "rule": "RULE-PAYMENT-PROCESSING-CUTOFF",
+        "complete_package_date": "2026-03-10",
+        "cutoff_date": "2026-03-15",
+        "before_cutoff": true,
+        "first_payment": "2026-04-01",
+        "combined_payment": false,
+        "passes": true
+      }
+    },
+    "base_benefit_same_as_case_1": {
+      "ams": 10639.45,
+      "maximum_monthly_benefit": 6117.68
+    },
+    "dro_calculation": {
+      "total_service_years": 28.75,
+      "marriage_start": "1999-08-15",
+      "marriage_end": "2017-11-03",
+      "service_during_marriage_years": 18.25,
+      "marital_fraction": 0.6348,
+      "marital_share_of_benefit": 3883.10,
+      "dro_percentage": 0.40,
+      "alternate_payee_share": 1553.24,
+      "member_remaining_benefit": 4564.44
+    },
+    "payment_options_after_dro": {
+      "_note": "ILLUSTRATIVE — ACTUAL FACTORS FROM DERP ACTUARIAL TABLES",
+      "_factors_assumptions": "Member age 63, beneficiary age 59, standard mortality tables",
+      "base_for_options": 4564.44,
+      "maximum": 4564.44,
+      "joint_survivor_100": {
+        "factor": 0.8850,
+        "monthly_benefit": 4039.53
+      },
+      "joint_survivor_75": {
+        "factor": 0.9150,
+        "monthly_benefit": 4176.46
+      },
+      "joint_survivor_50": {
+        "factor": 0.9450,
+        "monthly_benefit": 4313.40
+      }
+    },
+    "elected_benefit": {
+      "option": "joint_survivor_75",
+      "factor": 0.9150,
+      "monthly_benefit": 4176.46,
+      "survivor_benefit": 3132.35,
+      "beneficiary": "Elena Martinez"
+    },
+    "alternate_payee_benefit": {
+      "recipient": "Patricia Martinez",
+      "monthly_benefit": 1553.24,
+      "payment_type": "single_life",
+      "starts": "2026-04-01"
+    },
+    "total_derp_payout": {
+      "during_member_lifetime": {
+        "to_robert": 4176.46,
+        "to_patricia": 1553.24,
+        "total": 5729.70
+      },
+      "after_member_death": {
+        "to_elena": 3132.35,
+        "to_patricia": 1553.24,
+        "total": 4685.59
+      }
+    },
+    "comparison_to_case_1": {
+      "case_1_robert_monthly": 5597.68,
+      "case_4_robert_monthly": 4176.46,
+      "reduction_due_to_dro": 1421.22
+    },
+    "ipr": {
+      "robert": {
+        "service_years": 28.75,
+        "pre_medicare_monthly": 359.38,
+        "post_medicare_monthly": 179.69
+      },
+      "patricia": {
+        "service_years": 18.25,
+        "pre_medicare_monthly": 228.13,
+        "post_medicare_monthly": 114.06,
+        "note": "Depends on DRO terms — may or may not include IPR"
+      }
+    },
+    "death_benefit": {
+      "retirement_type": "rule_of_75",
+      "tier": 1,
+      "lump_sum_amount": 5000.00,
+      "reduction_note": "No reduction — qualifies for Rule of 75 (normal retirement equivalent)",
+      "installment_options": {
+        "50_installments": 100.00,
+        "100_installments": 50.00
+      },
+      "election_note": "Irrevocable — member chooses installment count and beneficiary at retirement",
+      "dro_note": "Death benefit is separate from pension benefit — DRO does not affect death benefit unless DRO terms specify otherwise"
+    },
+    "ss_makeup": {
+      "status": "out_of_scope",
+      "eligible": true,
+      "eligibility_note": "Tier 1 member, age 63, born after 1938 — would qualify. Not calculated in POC.",
+      "rule": "RULE-SS-MAKEUP",
+      "rule_status": "placeholder"
+    }
+  },
+  
+  "dro_test_points": [
+    {
+      "id": "DRO-001",
+      "description": "Marital fraction calculated correctly",
+      "calculation": "18.25 / 28.75",
+      "expected": 0.6348
+    },
+    {
+      "id": "DRO-002",
+      "description": "Marital share of benefit calculated correctly",
+      "calculation": "6117.68 * 0.6348",
+      "expected": 3883.10
+    },
+    {
+      "id": "DRO-003",
+      "description": "Alternate payee share calculated correctly",
+      "calculation": "3883.10 * 0.40",
+      "expected": 1553.24
+    },
+    {
+      "id": "DRO-004",
+      "description": "Member remaining benefit correct",
+      "calculation": "6117.68 - 1553.24",
+      "expected": 4564.44
+    },
+    {
+      "id": "DRO-005",
+      "description": "DRO split applied BEFORE payment option",
+      "test": "Payment options calculated on 4564.44, not 6117.68"
+    },
+    {
+      "id": "DRO-006",
+      "description": "Patricia and Elena can both receive benefits simultaneously",
+      "after_death_total": 4685.59
+    },
+    {
+      "id": "DRO-007",
+      "description": "J&S factors use standardized placeholder table",
+      "factors": {
+        "100_js": 0.8850,
+        "75_js": 0.9150,
+        "50_js": 0.9450
+      }
+    },
+    {
+      "id": "DRO-008",
+      "description": "Application within 30-day deadline",
+      "test": "application_received 2026-03-10 is before last_day_worked 2026-03-31"
+    },
+    {
+      "id": "DRO-009",
+      "description": "Lump-sum death benefit is $5,000 for Rule of 75 retirement",
+      "expected": 5000.00
+    }
+  ]
+}
