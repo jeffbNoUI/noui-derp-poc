@@ -817,3 +817,58 @@ Two test fixture files contain unreduced benefit amounts that do not match the f
 
 ### Backtrack Points:
 - **BT-011:** Day 6 complete. Frontend foundation with 4 core components (MemberBanner, AlertBar, EmploymentTimeline, SalaryTable), workspace shell, API client, React Query hooks, TypeScript types, Dockerfile, Helm charts. Build clean. Return here to restart from Day 7 (Calculation + Analysis Components).
+
+---
+
+## Build Day 7 — February 22, 2026
+
+### Session 13: Calculation + Analysis Components
+
+**Components Created:**
+All 8 calculation/analysis components from BUILD_PLAN Day 7:
+
+1. **BenefitCalculationPanel** — Centerpiece component showing full formula, step-by-step calculation with inputs, intermediate values, and final benefit. Includes IPR and death benefit sub-sections. Full audit trail display.
+2. **PaymentOptionsComparison** — Side-by-side comparison of all 4 payment options (Maximum, J&S 100%, 75%, 50%) with reduction factors, survivor percentages, and spousal consent note.
+3. **ScenarioModeler** — Interactive retirement date comparison. Generates ±1/+2 year scenarios from selected date. Includes visual bar chart comparison of benefits.
+4. **DROImpactPanel** — Full DRO calculation breakdown: marital fraction, marital share, alternate payee amount, member net after DRO. Only renders when member has active DRO.
+5. **ServiceCreditSummaryPanel** — Service credit breakdown with visual bar. Prominently calls out the purchased service exclusion from Rule of 75/85 and IPR.
+6. **EligibilityPanel** — Eligibility evaluation with pass/fail conditions, Rule of N calculation, reduction factor, and full audit trail.
+7. **LeavePayoutInfo** — Leave payout eligibility and amount. Only renders for Tier 1/2 members hired before 2010.
+8. **EarlyRetirementReduction** — Shows reduction calculation step-by-step. Displays green "no reduction" message when member qualifies for unreduced benefit.
+9. **IPRPanel** — IPR calculation with rate, eligible years, and formula display.
+
+**MemberWorkspace Updated:**
+- Added retirement date selector
+- Conditionally renders calculation panels only when date is selected
+- DRO panel only appears when member has active DRO
+- Leave payout only appears for eligible members
+- Early retirement reduction only appears when reduction factor < 1.0
+- Added DRO alert to AlertBar
+
+**Verification:**
+- TypeScript: `tsc -b` — clean after fixing unused import
+- Vite build: success, 305.94 kB JS + 19.64 kB CSS
+- Go backend: All 25 intelligence + 17 connector tests pass
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/frontend/src/components/BenefitCalculationPanel.tsx | Full benefit calculation display | Active |
+| services/frontend/src/components/PaymentOptionsComparison.tsx | 4-option payment comparison | Active |
+| services/frontend/src/components/ScenarioModeler.tsx | Interactive date scenario comparison | Active |
+| services/frontend/src/components/DROImpactPanel.tsx | DRO division calculation | Active |
+| services/frontend/src/components/ServiceCreditSummaryPanel.tsx | Service credit breakdown | Active |
+| services/frontend/src/components/EligibilityPanel.tsx | Eligibility evaluation display | Active |
+| services/frontend/src/components/LeavePayoutInfo.tsx | Leave payout eligibility | Active |
+| services/frontend/src/components/EarlyRetirementReduction.tsx | Reduction calculator display | Active |
+| services/frontend/src/components/IPRPanel.tsx | IPR calculation display | Active |
+
+### Files Updated:
+
+| File | Changes | Status |
+|------|---------|--------|
+| services/frontend/src/pages/MemberWorkspace.tsx | Integrated all calculation components with conditional rendering | Active |
+
+### Backtrack Points:
+- **BT-012:** Day 7 complete. All 9 calculation/analysis components created and integrated into workspace. Build clean. Return here to restart from Day 8 (Workspace Composition + Integration).
