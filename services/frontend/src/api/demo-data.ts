@@ -726,7 +726,7 @@ export const demoApi = {
     return delay(results)
   },
 
-  calculateDRO: (memberId: string) => {
+  calculateDRO: (memberId: string, _retirementDate?: string) => {
     const d = DEMO_DRO_RESULT[memberId]
     if (!d) return Promise.reject(new Error(`No DRO for ${memberId}`))
     return delay(d)

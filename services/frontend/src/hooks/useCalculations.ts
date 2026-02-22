@@ -33,10 +33,10 @@ export function useScenarios(memberId: string, retirementDates: string[]) {
   })
 }
 
-export function useDROCalculation(memberId: string, enabled = true) {
+export function useDROCalculation(memberId: string, retirementDate?: string, enabled = true) {
   return useQuery({
-    queryKey: ['droCalc', memberId],
-    queryFn: () => api.calculateDRO(memberId),
+    queryKey: ['droCalc', memberId, retirementDate],
+    queryFn: () => api.calculateDRO(memberId, retirementDate),
     enabled: !!memberId && enabled,
   })
 }

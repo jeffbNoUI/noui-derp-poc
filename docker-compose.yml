@@ -1,0 +1,62 @@
+# Local development stack for DERP NoUI POC.
+# Launches PostgreSQL (with schema + seed), connector, and intelligence services.
+#
+# Usage:
+#   docker compose up --build        # Build and start all services
+#   docker compose down -v           # Stop and remove volumes
+#
+# The frontend dev server (Vite) runs outside Docker:
+#   cd services/frontend && npm run dev
+# Vite proxy routes /api/v1/members/* → connector:8081, /api/v1/{eligibility,benefit,dro}/* → intelligence:8082
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: derp_legacy
+      POSTGRES_USER: derp_app
+      POSTGRES_PASSWORD: derp_app_pwd
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./database/schema/001_legacy_schema.sql:/docker-entrypoint-initdb.d/001_legacy_schema.sql:ro
+      - ./database/seed/output/002_seed_data.sql:/docker-entrypoint-initdb.d/002_seed_data.sql:ro
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U derp_app -d derp_legacy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  connector:
+    build:
+      context: ./services/connector
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: derp_app
+      DB_PASS: derp_app_pwd
+      DB_NAME: derp_legacy
+      DB_SSLMODE: disable
+      PORT: "8081"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  intelligence:
+    build:
+      context: ./services/intelligence
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      CONNECTOR_URL: http://connector:8081
+      PORT: "8082"
+    depends_on:
+      - connector
+
+volumes:
+  pgdata:

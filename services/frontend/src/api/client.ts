@@ -1,10 +1,21 @@
+/**
+ * API client — dual-mode: demoApi (default) or liveApi (opt-in via ?live query param).
+ * Consumed by: all hooks (useMember, useCalculations, usePortal)
+ * Depends on: demo-data.ts (demo fixtures), mappers.ts (Go→TS response transforms)
+ */
 import type { APIResponse, APIError } from '@/types/Member'
 import { isDemoMode, demoApi } from './demo-data'
+import {
+  mapMember, mapBeneficiaries, mapServiceCredit, mapDRORecords,
+  mapEligibility, mapBenefit, mapPaymentOptions, mapScenarios,
+  mapDROResult, buildSyntheticIntake,
+} from './mappers'
 
 const CONNECTOR_BASE = '/api/v1'
 const INTELLIGENCE_BASE = '/api/v1'
 
-async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function fetchRaw(url: string, options?: RequestInit): Promise<any> {
   const res = await fetch(url, {
     headers: { 'Content-Type': 'application/json' },
     ...options,
@@ -17,17 +28,27 @@ async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
     throw new Error(err.error.message)
   }
 
-  const body: APIResponse<T> = await res.json()
+  const body: APIResponse<unknown> = await res.json()
   return body.data
 }
 
-// Live API — calls backend services
-const liveApi = {
-  getApplicationIntake: (id: string) =>
-    fetchJSON<import('@/types/Member').ApplicationIntake>(`${CONNECTOR_BASE}/members/${id}/application-intake`),
+async function fetchJSON<T>(url: string, options?: RequestInit): Promise<T> {
+  return fetchRaw(url, options) as Promise<T>
+}
 
-  getMember: (id: string) =>
-    fetchJSON<import('@/types/Member').Member>(`${CONNECTOR_BASE}/members/${id}`),
+// Live API — calls backend services, maps Go JSON → TypeScript types
+const liveApi = {
+  getApplicationIntake: async (id: string) => {
+    // No Go endpoint for intake — build synthetic from member data
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}`)
+    const member = mapMember(raw)
+    return buildSyntheticIntake(member)
+  },
+
+  getMember: async (id: string) => {
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}`)
+    return mapMember(raw)
+  },
 
   getEmployment: (id: string) =>
     fetchJSON<import('@/types/Member').EmploymentEvent[]>(`${CONNECTOR_BASE}/members/${id}/employment`),
@@ -37,44 +58,60 @@ const liveApi = {
       `${CONNECTOR_BASE}/members/${id}/salary`
     ),
 
-  getServiceCredit: (id: string) =>
-    fetchJSON<import('@/types/Member').ServiceCreditSummary>(`${CONNECTOR_BASE}/members/${id}/service-credit`),
+  getServiceCredit: async (id: string) => {
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/service-credit`)
+    return mapServiceCredit(raw)
+  },
 
-  getBeneficiaries: (id: string) =>
-    fetchJSON<import('@/types/Member').Beneficiary[]>(`${CONNECTOR_BASE}/members/${id}/beneficiaries`),
+  getBeneficiaries: async (id: string) => {
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/beneficiaries`)
+    return mapBeneficiaries(raw)
+  },
 
-  getDROs: (id: string) =>
-    fetchJSON<import('@/types/Member').DRORecord[]>(`${CONNECTOR_BASE}/members/${id}/dro`),
+  getDROs: async (id: string) => {
+    const raw = await fetchRaw(`${CONNECTOR_BASE}/members/${id}/dro`)
+    return mapDRORecords(raw)
+  },
 
-  evaluateEligibility: (memberId: string, retirementDate: string) =>
-    fetchJSON<import('@/types/Member').EligibilityResult>(`${INTELLIGENCE_BASE}/eligibility/evaluate`, {
+  evaluateEligibility: async (memberId: string, retirementDate: string) => {
+    const raw = await fetchRaw(`${INTELLIGENCE_BASE}/eligibility/evaluate`, {
       method: 'POST',
       body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
-    }),
+    })
+    return mapEligibility(raw, retirementDate)
+  },
 
-  calculateBenefit: (memberId: string, retirementDate: string) =>
-    fetchJSON<import('@/types/Member').BenefitResult>(`${INTELLIGENCE_BASE}/benefit/calculate`, {
+  calculateBenefit: async (memberId: string, retirementDate: string) => {
+    const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/calculate`, {
       method: 'POST',
       body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
-    }),
+    })
+    return mapBenefit(raw)
+  },
 
-  calculatePaymentOptions: (memberId: string, retirementDate: string) =>
-    fetchJSON<import('@/types/Member').PaymentOptionsResult>(`${INTELLIGENCE_BASE}/benefit/options`, {
+  calculatePaymentOptions: async (memberId: string, retirementDate: string) => {
+    const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/options`, {
       method: 'POST',
       body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate }),
-    }),
+    })
+    return mapPaymentOptions(raw)
+  },
 
-  calculateScenarios: (memberId: string, retirementDates: string[]) =>
-    fetchJSON<import('@/types/Member').ScenarioResult[]>(`${INTELLIGENCE_BASE}/benefit/scenario`, {
+  calculateScenarios: async (memberId: string, retirementDates: string[]) => {
+    const raw = await fetchRaw(`${INTELLIGENCE_BASE}/benefit/scenario`, {
       method: 'POST',
       body: JSON.stringify({ member_id: memberId, retirement_dates: retirementDates }),
-    }),
+    })
+    return mapScenarios(raw)
+  },
 
-  calculateDRO: (memberId: string) =>
-    fetchJSON<import('@/types/Member').DROResult>(`${INTELLIGENCE_BASE}/dro/calculate`, {
+  calculateDRO: async (memberId: string, retirementDate?: string) => {
+    const raw = await fetchRaw(`${INTELLIGENCE_BASE}/dro/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ member_id: memberId }),
-    }),
+      body: JSON.stringify({ member_id: memberId, retirement_date: retirementDate ?? '' }),
+    })
+    return mapDROResult(raw)
+  },
 
   saveElection: (election: {
     member_id: string; retirement_date: string; payment_option: string
@@ -90,5 +127,5 @@ const liveApi = {
 }
 
 // Export the appropriate API based on demo mode.
-// Demo mode is activated by ?demo query parameter or VITE_DEMO_MODE=true env var.
+// Demo mode is the default for the POC — opt OUT with ?live query param.
 export const api = isDemoMode() ? demoApi : liveApi

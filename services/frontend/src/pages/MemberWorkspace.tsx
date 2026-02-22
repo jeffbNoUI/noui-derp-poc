@@ -37,6 +37,7 @@ export function MemberWorkspace({ memberId }: MemberWorkspaceProps) {
   const paymentOptions = usePaymentOptions(memberId, retirementDate)
   const droCalc = useDROCalculation(
     memberId,
+    retirementDate,
     !!retirementDate && !!dros.data && dros.data.length > 0
   )
 

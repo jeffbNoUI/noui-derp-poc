@@ -66,7 +66,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   const benefit = useBenefitCalculation(memberId, retirementDate)
   const paymentOptions = usePaymentOptions(memberId, retirementDate)
   const hasDRO = !!dros.data && dros.data.length > 0
-  const droCalc = useDROCalculation(memberId, retirementDate !== '' && hasDRO)
+  const droCalc = useDROCalculation(memberId, retirementDate, retirementDate !== '' && hasDRO)
   const saveElection = useSaveElection()
 
   // Reset when member changes
