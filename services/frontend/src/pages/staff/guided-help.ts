@@ -7,6 +7,17 @@
  */
 import type { ServiceCreditSummary, DRORecord } from '@/types/Member'
 
+/** Summary field definition for adaptive card depth — drives StageSummary rendering */
+export interface SummaryField {
+  label: string
+  /** Dot-path into StageProps to extract the value, or a static display string */
+  path: string
+  /** Format function: 'fmt' (currency), 'years' (Xy), 'text' (raw), 'badge' */
+  format: 'fmt' | 'years' | 'text' | 'badge'
+  /** Badge color when format is 'badge' */
+  badgeColor?: 'success' | 'accent' | 'warn'
+}
+
 export interface StageHelp {
   id: string
   title: string
@@ -24,6 +35,8 @@ export interface StageHelp {
   nextAction: string
   /** If present, stage is only shown when this returns true */
   conditional?: (sc: ServiceCreditSummary | undefined, dros: DRORecord[] | undefined) => boolean
+  /** Fields to display in summary (compact) mode — undefined means always full (F-1) */
+  summaryFields?: SummaryField[]
 }
 
 export const STAGE_HELP: StageHelp[] = [
@@ -52,6 +65,11 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Confirm Intake Complete',
     nextAction: 'Verify member identity and data quality',
+    summaryFields: [
+      { label: 'Package', path: 'applicationIntake.package_complete', format: 'badge', badgeColor: 'success' },
+      { label: 'Received', path: 'applicationIntake.application_received_date', format: 'text' },
+      { label: 'Cutoff', path: 'applicationIntake.payment_cutoff_met', format: 'badge', badgeColor: 'success' },
+    ],
   },
   {
     id: 'member-verify',
@@ -75,6 +93,11 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Verify Identity',
     nextAction: 'Review service credit breakdown',
+    summaryFields: [
+      { label: 'Member', path: 'member.first_name', format: 'text' },
+      { label: 'Tier', path: 'member.tier', format: 'badge', badgeColor: 'accent' },
+      { label: 'Vested', path: 'serviceCredit.total_for_eligibility', format: 'years' },
+    ],
   },
   {
     id: 'service-credit',
@@ -99,6 +122,11 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Approve Service Credit',
     nextAction: 'Set retirement date and check eligibility',
+    summaryFields: [
+      { label: 'Earned', path: 'serviceCredit.earned_service_years', format: 'years' },
+      { label: 'Purchased', path: 'serviceCredit.purchased_service_years', format: 'years' },
+      { label: 'For Benefit', path: 'serviceCredit.total_for_benefit', format: 'years' },
+    ],
   },
   {
     id: 'eligibility',
@@ -124,6 +152,11 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Confirm Eligibility',
     nextAction: 'Review salary history and benefit calculation',
+    summaryFields: [
+      { label: 'Type', path: 'eligibility.retirement_type', format: 'badge', badgeColor: 'accent' },
+      { label: 'Reduction', path: 'eligibility.reduction_factor', format: 'text' },
+      { label: 'Rule of N', path: 'eligibility.rule_of_n_value', format: 'text' },
+    ],
   },
   {
     id: 'benefit-calc',
@@ -150,6 +183,11 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Approve Benefit Amount',
     nextAction: 'Select payment option',
+    summaryFields: [
+      { label: 'Net Monthly', path: 'benefit.net_monthly_benefit', format: 'fmt' },
+      { label: 'AMS', path: 'benefit.ams', format: 'fmt' },
+      { label: 'Service Years', path: 'benefit.service_years_for_benefit', format: 'years' },
+    ],
   },
   {
     id: 'payment-options',
@@ -173,6 +211,10 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Record Election',
     nextAction: 'Review additional benefits (IPR and death benefit)',
+    summaryFields: [
+      { label: 'Elected', path: 'electedOption', format: 'text' },
+      { label: 'Monthly', path: 'benefit.net_monthly_benefit', format: 'fmt' },
+    ],
   },
   {
     id: 'supplemental',
@@ -196,6 +238,10 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     confirmLabel: 'Confirm Supplementals',
     nextAction: 'Review DRO impact (if applicable) or proceed to final review',
+    summaryFields: [
+      { label: 'IPR', path: 'benefit.ipr.monthly_amount', format: 'fmt' },
+      { label: 'Death Benefit', path: 'benefit.death_benefit.amount', format: 'fmt' },
+    ],
   },
   {
     id: 'dro',

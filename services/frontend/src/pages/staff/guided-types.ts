@@ -40,6 +40,8 @@ export interface GuidedState {
   viewMode: 'guided' | 'expert'
   /** Expanded stage IDs in expert mode */
   expandedStages: Set<string>
+  /** Stages manually expanded from summary to full by the user (F-1) */
+  manuallyExpanded: Set<string>
 }
 
 // ─── Actions ──────────────────────────────────────────────────
@@ -59,6 +61,7 @@ export type GuidedAction =
   | { type: 'UPDATE_ANALYST_INPUT'; field: keyof AnalystInputs; value: string | number | boolean }
   | { type: 'TOGGLE_VIEW_MODE' }
   | { type: 'TOGGLE_EXPAND'; stageId: string }
+  | { type: 'EXPAND_STAGE'; stageId: string }
   | { type: 'RESET' }
 
 // ─── Initial state ────────────────────────────────────────────
@@ -79,6 +82,7 @@ export const initialState: GuidedState = {
   },
   viewMode: 'guided',
   expandedStages: new Set(),
+  manuallyExpanded: new Set(),
 }
 
 // ─── Reducer ──────────────────────────────────────────────────
@@ -137,6 +141,12 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
       if (next.has(action.stageId)) next.delete(action.stageId)
       else next.add(action.stageId)
       return { ...state, expandedStages: next }
+    }
+    case 'EXPAND_STAGE': {
+      // Mark a summary stage as manually expanded — stays full for the session
+      const next = new Set(state.manuallyExpanded)
+      next.add(action.stageId)
+      return { ...state, manuallyExpanded: next }
     }
     case 'RESET':
       return initialState

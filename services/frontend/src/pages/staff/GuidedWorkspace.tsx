@@ -19,12 +19,14 @@ import { Badge } from '@/components/shared/Badge'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 import { composeStages } from './guided-composition'
 import { computeAllSignals } from './guided-signals'
+import { computeStageDepth } from './guided-depth'
 import { reducer, initialState } from './guided-types'
 import type { StageProps } from './stages/StageProps'
 import { LearningModule } from './LearningModule'
 import { ProgressBar } from './ProgressBar'
 import { CaseStatusBar } from './CaseStatusBar'
 import { ExpertMode } from './ExpertMode'
+import { StageSummary } from './StageSummary'
 import {
   Stage0ApplicationIntake, Stage1MemberVerify, Stage2ServiceCredit, Stage3Eligibility,
   Stage4BenefitCalc, Stage5PaymentOptions, Stage6Supplemental,
@@ -109,13 +111,25 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
     },
   )
 
+  // Compute card depths for all stages (F-1 adaptive depth)
+  const depths = Object.fromEntries(
+    stages.map(s => {
+      // Manually expanded stages always show full
+      if (state.manuallyExpanded.has(s.id)) return [s.id, 'full' as const]
+      return [s.id, computeStageDepth(s.id, signals[s.id])]
+    })
+  )
+  const currentDepth = currentStage ? depths[currentStage.id] : 'full'
+
   // Checklist gating: all items must be checked before confirm (when checklist layer is on)
+  // Summary-depth stages bypass checklist gating — green signal means pre-verified
   const currentChecked = currentStage ? (state.checkedItems[currentStage.id] ?? new Set<number>()) : new Set<number>()
   const checklistComplete = currentStage
     ? currentChecked.size >= currentStage.checklist.length
     : false
+  const isSummaryStage = currentDepth === 'summary'
   const canConfirm = currentStage
-    ? (state.layers.checklist ? checklistComplete : true) && !state.confirmed.has(currentStage.id)
+    ? (isSummaryStage || (state.layers.checklist ? checklistComplete : true)) && !state.confirmed.has(currentStage.id)
     : false
 
   const handleConfirm = useCallback(() => {
@@ -314,9 +328,18 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {state.viewMode === 'guided' ? (
-          /* GUIDED MODE — single stage content (scrollable) */
+          /* GUIDED MODE — single stage content, summary or full based on depth (F-1) */
           <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 80px' }}>
-            {StageComponent && <StageComponent {...stageProps} />}
+            {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
+              <StageSummary
+                summaryFields={currentStage.summaryFields}
+                signal={signals[currentStage.id]}
+                stageProps={stageProps}
+                onExpand={() => dispatch({ type: 'EXPAND_STAGE', stageId: currentStage.id })}
+              />
+            ) : (
+              StageComponent && <StageComponent {...stageProps} />
+            )}
           </div>
         ) : (
           /* EXPERT MODE — all stages as collapsible cards */
@@ -325,11 +348,13 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
             stageComponents={STAGE_COMPONENTS}
             stageProps={stageProps}
             signals={signals}
+            depths={depths}
             confirmed={state.confirmed}
             expandedStages={state.expandedStages}
             checkedItems={state.checkedItems}
             layers={state.layers}
             onToggleExpand={(id) => dispatch({ type: 'TOGGLE_EXPAND', stageId: id })}
+            onExpandStage={(id) => dispatch({ type: 'EXPAND_STAGE', stageId: id })}
             onConfirm={handleConfirmStage}
             onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
             onToggleCheck={(stageId, index) => dispatch({ type: 'TOGGLE_CHECK', stageId, index })}
@@ -346,9 +371,10 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
             canConfirm={
               state.viewMode === 'guided'
                 ? canConfirm
-                : (state.layers.checklist
-                    ? (state.checkedItems[focusedStage.id]?.size ?? 0) >= focusedStage.checklist.length
-                    : true) && !state.confirmed.has(focusedStage.id)
+                : (depths[focusedStage.id] === 'summary'
+                    || (state.layers.checklist
+                      ? (state.checkedItems[focusedStage.id]?.size ?? 0) >= focusedStage.checklist.length
+                      : true)) && !state.confirmed.has(focusedStage.id)
             }
             isLastStage={state.viewMode === 'guided' ? isLastStage : focusedStage.id === stages[stages.length - 1]?.id}
             allConfirmed={allConfirmed}

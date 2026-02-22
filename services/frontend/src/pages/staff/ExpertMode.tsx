@@ -11,6 +11,8 @@ import { Badge } from '@/components/shared/Badge'
 import type { StageHelp } from './guided-help'
 import type { StageSignal } from './guided-signals'
 import type { StageProps } from './stages/StageProps'
+import type { StageDepth } from './guided-depth'
+import { StageSummary } from './StageSummary'
 
 const SIGNAL_COLORS: Record<string, string> = {
   green: C.success,
@@ -23,19 +25,22 @@ export interface ExpertModeProps {
   stageComponents: Record<string, React.ComponentType<StageProps>>
   stageProps: StageProps
   signals: Record<string, StageSignal>
+  depths: Record<string, StageDepth>
   confirmed: Set<string>
   expandedStages: Set<string>
   checkedItems: Record<string, Set<number>>
   layers: { checklist: boolean }
   onToggleExpand: (stageId: string) => void
+  onExpandStage: (stageId: string) => void
   onConfirm: (stageId: string) => void
   onUnconfirm: (stageId: string) => void
   onToggleCheck: (stageId: string, index: number) => void
 }
 
 export function ExpertMode({
-  stages, stageComponents, stageProps, signals, confirmed, expandedStages,
-  checkedItems, layers, onToggleExpand, onConfirm, onUnconfirm, onToggleCheck,
+  stages, stageComponents, stageProps, signals, depths, confirmed, expandedStages,
+  checkedItems, layers, onToggleExpand, onExpandStage,
+  onConfirm, onUnconfirm, onToggleCheck,
 }: ExpertModeProps) {
   return (
     <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 80px' }}>
@@ -44,10 +49,13 @@ export function ExpertMode({
         const isConfirmed = confirmed.has(stage.id)
         const signal = signals[stage.id]
         const StageComponent = stageComponents[stage.id]
+        const depth = depths[stage.id] ?? 'full'
+        const isSummary = depth === 'summary'
         const checked = checkedItems[stage.id] ?? new Set<number>()
         const checkTotal = stage.checklist.length
         const checklistComplete = checked.size >= checkTotal
-        const canConfirm = (layers.checklist ? checklistComplete : true) && !isConfirmed
+        // Summary stages bypass checklist gating — green signal = pre-verified
+        const canConfirm = (isSummary || (layers.checklist ? checklistComplete : true)) && !isConfirmed
 
         return (
           <div key={stage.id} style={{
@@ -97,6 +105,19 @@ export function ExpertMode({
                 transform: isExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
               }}>{'\u25BC'}</span>
             </div>
+
+            {/* Summary preview for collapsed summary-depth stages (F-1) */}
+            {!isExpanded && isSummary && stage.summaryFields && (
+              <div style={{ borderTop: `1px solid ${C.borderSubtle}` }}>
+                <StageSummary
+                  summaryFields={stage.summaryFields}
+                  signal={signal}
+                  stageProps={stageProps}
+                  onExpand={() => { onExpandStage(stage.id); onToggleExpand(stage.id) }}
+                  compact
+                />
+              </div>
+            )}
 
             {/* Expanded content */}
             {isExpanded && (
