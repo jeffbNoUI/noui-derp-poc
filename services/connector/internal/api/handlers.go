@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -275,6 +276,61 @@ func (h *Handlers) GetServiceCredit(w http.ResponseWriter, r *http.Request) {
 		"records":   credits,
 		"summary":   summary,
 	})
+}
+
+// SaveElection handles POST /api/v1/members/{id}/retirement-election
+func (h *Handlers) SaveElection(w http.ResponseWriter, r *http.Request) {
+	memberID := extractMemberID(r.URL.Path)
+	if memberID == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "Member ID is required")
+		return
+	}
+
+	member, err := h.q.GetMember(memberID)
+	if err != nil {
+		log.Printf("ERROR: GetMember(%s): %v", memberID, err)
+		WriteError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to retrieve member")
+		return
+	}
+	if member == nil {
+		WriteError(w, http.StatusNotFound, "MEMBER_NOT_FOUND",
+			"No member found with ID "+memberID)
+		return
+	}
+
+	var election models.RetirementElection
+	if err := json.NewDecoder(r.Body).Decode(&election); err != nil {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body: "+err.Error())
+		return
+	}
+	election.MemberID = memberID
+
+	if election.RetirementDate == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "retirement_date is required")
+		return
+	}
+	if election.PaymentOption == "" {
+		WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "payment_option is required")
+		return
+	}
+
+	caseID, err := h.q.SaveRetirementElection(&election)
+	if err != nil {
+		log.Printf("ERROR: SaveRetirementElection(%s): %v", memberID, err)
+		WriteError(w, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save election: "+err.Error())
+		return
+	}
+
+	result := models.RetirementElectionResult{
+		MemberID:       memberID,
+		CaseID:         caseID,
+		Status:         "IN_REVIEW",
+		Message:        "Retirement application submitted successfully. Case created for review.",
+		RetirementDate: election.RetirementDate,
+		PaymentOption:  election.PaymentOption,
+	}
+
+	WriteJSON(w, http.StatusCreated, result)
 }
 
 // buildServiceCreditSummary computes the separated service totals from credit records.

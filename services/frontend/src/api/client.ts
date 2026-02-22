@@ -72,6 +72,18 @@ const liveApi = {
       method: 'POST',
       body: JSON.stringify({ member_id: memberId }),
     }),
+
+  saveElection: (election: {
+    member_id: string; retirement_date: string; payment_option: string
+    monthly_benefit: number; gross_benefit: number; reduction_factor: number
+    dro_deduction?: number; ipr_amount?: number; death_benefit_amount?: number
+  }) =>
+    fetchJSON<import('@/types/Member').RetirementElectionResult>(
+      `${CONNECTOR_BASE}/members/${election.member_id}/retirement-election`, {
+        method: 'POST',
+        body: JSON.stringify(election),
+      }
+    ),
 }
 
 // Export the appropriate API based on demo mode.

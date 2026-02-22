@@ -1,4 +1,4 @@
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation } from '@tanstack/react-query'
 import { api } from '@/api/client'
 
 export function useEligibility(memberId: string, retirementDate: string) {
@@ -38,5 +38,15 @@ export function useDROCalculation(memberId: string, enabled = true) {
     queryKey: ['droCalc', memberId],
     queryFn: () => api.calculateDRO(memberId),
     enabled: !!memberId && enabled,
+  })
+}
+
+export function useSaveElection() {
+  return useMutation({
+    mutationFn: (election: {
+      member_id: string; retirement_date: string; payment_option: string
+      monthly_benefit: number; gross_benefit: number; reduction_factor: number
+      dro_deduction?: number; ipr_amount?: number; death_benefit_amount?: number
+    }) => api.saveElection(election),
   })
 }

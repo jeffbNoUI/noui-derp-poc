@@ -16,14 +16,21 @@ func NewRouter(h *Handlers) http.Handler {
 
 	// Member APIs
 	mux.HandleFunc("/api/v1/members/", func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodGet {
-			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
-			return
-		}
-
 		// Route based on path suffix
 		path := strings.TrimPrefix(r.URL.Path, "/api/v1/members/")
 		parts := strings.Split(path, "/")
+
+		// POST endpoints
+		if r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "retirement-election" {
+			h.SaveElection(w, r)
+			return
+		}
+
+		// All other endpoints are GET only
+		if r.Method != http.MethodGet {
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported for this resource")
+			return
+		}
 
 		if len(parts) == 1 && parts[0] != "" {
 			// GET /api/v1/members/{id}

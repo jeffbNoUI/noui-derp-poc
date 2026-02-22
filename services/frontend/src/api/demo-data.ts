@@ -518,4 +518,19 @@ export const demoApi = {
     if (!d) return Promise.reject(new Error(`No DRO for ${memberId}`))
     return delay(d)
   },
+
+  saveElection: (election: {
+    member_id: string; retirement_date: string; payment_option: string
+    monthly_benefit: number; gross_benefit: number; reduction_factor: number
+    dro_deduction?: number; ipr_amount?: number; death_benefit_amount?: number
+  }) => {
+    return delay({
+      member_id: election.member_id,
+      case_id: 99001,
+      status: 'IN_REVIEW',
+      message: 'Retirement application submitted successfully. Case created for review.',
+      retirement_date: election.retirement_date,
+      payment_option: election.payment_option,
+    }, 800)
+  },
 }

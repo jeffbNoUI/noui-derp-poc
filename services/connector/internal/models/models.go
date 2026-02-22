@@ -161,6 +161,29 @@ type ContributionRecord struct {
 	Quarter      int        `json:"quarter"`
 }
 
+// RetirementElection represents a retirement application submission.
+type RetirementElection struct {
+	MemberID        string  `json:"member_id"`
+	RetirementDate  string  `json:"retirement_date"`
+	PaymentOption   string  `json:"payment_option"`
+	MonthlyBenefit  float64 `json:"monthly_benefit"`
+	GrossBenefit    float64 `json:"gross_benefit"`
+	ReductionFactor float64 `json:"reduction_factor"`
+	DRODeduction    float64 `json:"dro_deduction,omitempty"`
+	IPRAmount       float64 `json:"ipr_amount,omitempty"`
+	DeathBenefit    float64 `json:"death_benefit_amount,omitempty"`
+}
+
+// RetirementElectionResult is the response after saving.
+type RetirementElectionResult struct {
+	MemberID       string `json:"member_id"`
+	CaseID         int    `json:"case_id"`
+	Status         string `json:"status"`
+	Message        string `json:"message"`
+	RetirementDate string `json:"retirement_date"`
+	PaymentOption  string `json:"payment_option"`
+}
+
 // ContributionSummary provides aggregate contribution information.
 type ContributionSummary struct {
 	TotalEmplContrib float64 `json:"total_employee_contributions"`

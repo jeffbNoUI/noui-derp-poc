@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/noui-derp-poc/connector/internal/models"
@@ -300,4 +301,74 @@ func (q *Queries) GetContributionSummary(memberID string) (*models.ContributionS
 	row2.Scan(&s.CurrentEmplBal, &s.CurrentEmprBal, &s.InterestBalance)
 
 	return s, nil
+}
+
+// SaveRetirementElection inserts a benefit payment record and a retirement case.
+// Returns the generated case ID.
+func (q *Queries) SaveRetirementElection(e *models.RetirementElection) (int, error) {
+	retDate, err := time.Parse("2006-01-02", e.RetirementDate)
+	if err != nil {
+		return 0, fmt.Errorf("parse retirement date %q: %w", e.RetirementDate, err)
+	}
+
+	now := time.Now().UTC()
+
+	// Insert into BENEFIT_PAYMENT
+	droFlg := "N"
+	if e.DRODeduction > 0 {
+		droFlg = "Y"
+	}
+	_, err = q.db.Exec(`
+		INSERT INTO BENEFIT_PAYMENT (
+			MBR_ID, EFF_DT, GROSS_BENEFIT, PAY_OPTION,
+			NET_BENEFIT, DRO_FLG, DRO_DEDUCT_AMT,
+			IPR_AMT, DEATH_BEN_AMT, CALC_DT, CALC_USER,
+			CREATE_DT, STATUS_CD
+		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+		ON CONFLICT (MBR_ID, EFF_DT) DO UPDATE SET
+			GROSS_BENEFIT = EXCLUDED.GROSS_BENEFIT,
+			PAY_OPTION = EXCLUDED.PAY_OPTION,
+			NET_BENEFIT = EXCLUDED.NET_BENEFIT,
+			DRO_FLG = EXCLUDED.DRO_FLG,
+			DRO_DEDUCT_AMT = EXCLUDED.DRO_DEDUCT_AMT,
+			IPR_AMT = EXCLUDED.IPR_AMT,
+			DEATH_BEN_AMT = EXCLUDED.DEATH_BEN_AMT,
+			CALC_DT = EXCLUDED.CALC_DT,
+			STATUS_CD = EXCLUDED.STATUS_CD
+	`,
+		e.MemberID, retDate, e.GrossBenefit, e.PaymentOption,
+		e.MonthlyBenefit, droFlg, e.DRODeduction,
+		e.IPRAmount, e.DeathBenefit, now, "NOUI_SYSTEM",
+		now, "A",
+	)
+	if err != nil {
+		return 0, fmt.Errorf("insert benefit_payment: %w", err)
+	}
+	log.Printf("AUDIT: SaveRetirementElection member=%s date=%s option=%s gross=%.2f net=%.2f",
+		e.MemberID, e.RetirementDate, e.PaymentOption, e.GrossBenefit, e.MonthlyBenefit)
+
+	// Insert into CASE_HIST
+	var caseID int
+	err = q.db.QueryRow(`
+		INSERT INTO CASE_HIST (
+			CASE_ID, MBR_ID, CASE_TYPE, CASE_STATUS,
+			OPEN_DT, ASSIGNED_TO, PRIORITY, NOTES,
+			CREATE_DT, CREATE_USER
+		) VALUES (
+			(SELECT COALESCE(MAX(CASE_ID),0)+1 FROM CASE_HIST),
+			$1, $2, $3, $4, $5, $6, $7, $8, $9
+		) RETURNING CASE_ID
+	`,
+		e.MemberID, "SVC_RET", "IN_REVIEW",
+		retDate, "NOUI_SYSTEM", 1,
+		fmt.Sprintf("Retirement application submitted via NoUI. Retirement date: %s. Payment option: %s. Monthly benefit: $%.2f.",
+			e.RetirementDate, e.PaymentOption, e.MonthlyBenefit),
+		now, "NOUI_SYSTEM",
+	).Scan(&caseID)
+	if err != nil {
+		return 0, fmt.Errorf("insert case_hist: %w", err)
+	}
+	log.Printf("AUDIT: Created retirement case #%d for member %s", caseID, e.MemberID)
+
+	return caseID, nil
 }

@@ -150,6 +150,15 @@ export interface DROResult {
   audit_trail: AuditEntry[]
 }
 
+export interface RetirementElectionResult {
+  member_id: string
+  case_id: number
+  status: string
+  message: string
+  retirement_date: string
+  payment_option: string
+}
+
 export interface AuditEntry {
   rule_id: string
   rule_name: string
