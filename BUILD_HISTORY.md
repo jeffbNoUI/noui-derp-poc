@@ -1551,6 +1551,62 @@ All 9 stage components, LearningModule, ProgressBar, CaseStatusBar, guided-signa
 
 ---
 
+## February 22, 2026 — Frontend-Backend Integration
+
+### Session: Response Mapping Layer + Docker Compose
+
+**Problem:** The frontend had a dual-mode API client (`client.ts`) with `demoApi` (default) and `liveApi` (opt-in via `?live`). The `liveApi` methods existed but the Go service JSON response shapes didn't match the TypeScript types — field names differ, response structures are wrapped differently, and some fields expected by TS don't exist in Go. `?live` mode would crash.
+
+**Solution:** Created a response mapping layer (`mappers.ts`) with 9 pure functions that transform Go JSON → TypeScript types, plus a `docker-compose.yml` for local full-stack development.
+
+**Gap Analysis Resolved:**
+
+| Endpoint | Go→TS Mapping Issue | Resolution |
+|----------|-------------------|------------|
+| `getMember` | `status_code` vs `status`, RFC3339 dates | `mapMember` — rename + date format |
+| `getServiceCredit` | `{records, summary}` wrapper, `earned_years` | `mapServiceCredit` — extract `.summary`, rename, compute total |
+| `getDROs` | `{dros: [...]}` wrapper, int `dro_id`, `status_code` | `mapDRORecords` — extract, coerce to string, rename |
+| `getBeneficiaries` | `{beneficiaries: [...]}` wrapper, `allocation_percentage`, separate first/last | `mapBeneficiaries` — extract, combine name, rename |
+| `evaluateEligibility` | Bool flags, no `conditions_met[]`/`audit_trail[]` | `mapEligibility` — derive from flags, build arrays |
+| `calculateBenefit` | `ams_calculation` nested, `maximum_monthly_benefit` | `mapBenefit` — extract AMS number, compute gross, build audit |
+| `calculatePaymentOptions` | Named options (`maximum`, `joint_survivor_*`) | `mapPaymentOptions` — restructure to `PaymentOption[]` |
+| `calculateScenarios` | Nested `{eligibility, benefit}` per scenario | `mapScenarios` — flatten to `ScenarioResult[]` |
+| `calculateDRO` | `{dro_calculation: ...}` wrapper + **missing `retirement_date` param** | `mapDROResult` — extract + rename; **fixed liveApi to send param** |
+| `getApplicationIntake` | No Go endpoint (process state, not legacy data) | `buildSyntheticIntake` — sensible defaults |
+
+**Bug Fixed:** `calculateDRO` in liveApi was not sending `retirement_date` to the Go endpoint, which requires it. Updated the hook signature `useDROCalculation(memberId, retirementDate, enabled)` and all 3 call sites (GuidedWorkspace, BenefitWorkspace, MemberWorkspace).
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| `services/frontend/src/api/mappers.ts` | 9 pure Go→TS response mapping functions | Complete |
+| `services/frontend/src/api/mappers.test.ts` | 14 tests for all mappers with sample Go payloads | Complete |
+| `docker-compose.yml` | PostgreSQL + connector + intelligence local stack | Complete |
+
+### Files Modified:
+
+| File | Change |
+|------|--------|
+| `services/frontend/src/api/client.ts` | liveApi methods pipe through mappers; `calculateDRO` accepts `retirementDate` |
+| `services/frontend/src/api/demo-data.ts` | `calculateDRO` signature updated for compatibility |
+| `services/frontend/src/hooks/useCalculations.ts` | `useDROCalculation` takes `retirementDate` param |
+| `services/frontend/src/pages/staff/GuidedWorkspace.tsx` | Pass `retirementDate` to `useDROCalculation` |
+| `services/frontend/src/pages/BenefitWorkspace.tsx` | Pass `retirementDate` to `useDROCalculation` |
+| `services/frontend/src/pages/MemberWorkspace.tsx` | Pass `retirementDate` to `useDROCalculation` |
+
+### Verification:
+
+- `tsc -b --noEmit` — zero TypeScript errors
+- `vitest run` — 118 tests pass (104 existing + 14 new mapper tests)
+- `vite build` — production build succeeds
+
+### Commits:
+- `e378415` — Add frontend-backend integration layer with response mappers
+- `50edebc` — Remove SYNC_MANIFEST.md
+
+---
+
 ## Current State — Post-Build
 
 **Test Count by Service (current):**
@@ -1559,13 +1615,14 @@ All 9 stage components, LearningModule, ProgressBar, CaseStatusBar, guided-signa
 |---------|-------|-----------|
 | Connector | 17 | AMS calculation (8), API handlers (9) |
 | Intelligence | 54 | Eligibility (15), Benefit (13), DRO (4), Rules (8), Data Quality (18), Change Mgmt (1) |
-| Frontend | 104 | Composition (5+9), Demo Verification (24), Constants (10), Wizard (19), Portal Data (12), Theme (7), Signals (18) |
-| **Total** | **175** | |
+| Frontend | 118 | Composition (5+9), Demo Verification (24), Constants (10), Wizard (19), Portal Data (12), Theme (7), Signals (18), **Mappers (14)** |
+| **Total** | **189** | |
 
 **Open Items:**
 
 | Item | Description | Priority | Next Step |
 |------|-------------|----------|-----------|
-| Frontend-backend integration | Wire frontend to Go services (currently demo fixtures only) | High | Connect API client to connector/intelligence endpoints |
+| ~~Frontend-backend integration~~ | ~~Wire frontend to Go services~~ | ~~High~~ | **Done** — mappers + docker-compose in place |
+| End-to-end live mode test | Verify `?live` mode renders all 4 demo cases from real backend | High | `docker compose up`, then `localhost:5175/?live` |
 | Proficiency model integration | Wire proficiency model into expert mode / learning module defaults | Medium | Design integration points with guided-types.ts |
 | BUILD_HISTORY documentation | Kept current | Ongoing | Update after each session |
