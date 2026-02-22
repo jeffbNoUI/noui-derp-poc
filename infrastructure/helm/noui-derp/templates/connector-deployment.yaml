@@ -1,0 +1,55 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: connector
+  labels:
+    app: connector
+    part-of: noui-derp
+spec:
+  replicas: {{ .Values.connector.replicas }}
+  selector:
+    matchLabels:
+      app: connector
+  template:
+    metadata:
+      labels:
+        app: connector
+    spec:
+      containers:
+        - name: connector
+          image: "{{ .Values.connector.image.repository }}:{{ .Values.connector.image.tag }}"
+          imagePullPolicy: {{ .Values.connector.image.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.connector.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "{{ .Values.connector.port }}"
+            - name: DB_HOST
+              value: {{ .Values.postgresql.host }}
+            - name: DB_PORT
+              value: "{{ .Values.postgresql.port }}"
+            - name: DB_NAME
+              value: {{ .Values.postgresql.database }}
+            - name: DB_USER
+              value: {{ .Values.postgresql.user }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: derp-db-credentials
+                  key: password
+                  optional: true
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.connector.port }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: {{ .Values.connector.port }}
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.connector.resources | nindent 12 }}

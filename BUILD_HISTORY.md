@@ -580,3 +580,79 @@ Two test fixture files contain unreduced benefit amounts that do not match the f
 
 ### Backtrack Points:
 - **BT-008:** Day 3 complete. All 4 demo case hand calculations verified against test fixtures. Return here to restart from Day 4 (Go backend services) with complete calculation documentation.
+
+---
+
+## Build Day 4 — February 22, 2026
+
+### Session 10: Data Connector Service (Steps 4.1-4.7)
+
+**Decision Log:**
+
+48. **Go Module Path:** `github.com/noui-derp-poc/connector` — follows Go convention even though we're not publishing.
+
+49. **Minimal Dependencies:** Only external dependency is `github.com/lib/pq` v1.11.2 for PostgreSQL. UUID generation uses crypto/rand (standard library) instead of external uuid package.
+
+50. **AMS Calculator in Connector:** Placed the AMS sliding window calculator in `internal/ams/` within the connector service. This is a data transformation (biweekly → monthly → AMS), not a business rule. The intelligence service will use the AMS value for benefit calculations — it won't recalculate it.
+
+51. **Banker's Rounding (Q-CALC-01):** Using `math.RoundToEven` for final AMS rounding. Full precision carried through intermediate calculations. All 3 demo case AMS values match fixtures.
+
+52. **Dockerfile:** Multi-stage build with golang:1.22-alpine builder and gcr.io/distroless/static:nonroot runtime. Minimal attack surface.
+
+53. **Helm Chart:** Standard K8s Deployment + ClusterIP Service. Health/readiness probes on /healthz. DB credentials via optional Secret.
+
+54. **Integration Tests:** Gated behind `//go:build integration` tag. Will run against seeded PostgreSQL when available. Unit tests run without database.
+
+### Verification:
+
+**Build:**
+- ✅ `go build ./...` — compiles cleanly
+- ✅ `go test ./...` — 17 tests pass (8 AMS + 9 API)
+
+**AMS Calculation Tests (from calculator_test.go):**
+- ✅ Case 1 Martinez: AMS = $10,639.45 (fixture: $10,639.45) — with $52K leave payout
+- ✅ Case 2 Kim: AMS = $7,347.62 (fixture: $7,347.62) — no leave payout
+- ✅ Case 3 Washington: AMS = $6,684.52 (fixture: $6,684.52) — 60-month window
+
+**Service Credit Separation Tests:**
+- ✅ Case 2 purchased service: total_for_benefit=21.17, total_for_elig=18.17, total_for_ipr=18.17
+- ✅ Case 1 all earned: all totals = 28.75
+- ✅ Military + leave: correct inclusion/exclusion flags honored
+
+**API Tests:**
+- ✅ Health endpoint returns correct envelope
+- ✅ Method not allowed returns 405
+- ✅ Unknown resource returns 404
+- ✅ Response envelope has request_id and timestamp
+- ✅ Error envelope has code and request_id
+
+**Integration Tests (pending database):**
+- Created integration_test.go with tests for all 4 demo cases
+- Tagged with `//go:build integration` — won't run without `-tags integration`
+- Tests verify AMS values against fixtures, service credit separation, DRO presence
+
+### Files Created:
+
+| File | Purpose | Status |
+|------|---------|--------|
+| services/connector/go.mod | Go module definition | Active |
+| services/connector/go.sum | Dependency checksums | Active |
+| services/connector/main.go | Service entry point, graceful shutdown | Active |
+| services/connector/Dockerfile | Multi-stage distroless build | Active |
+| services/connector/internal/models/models.go | Domain model types | Active |
+| services/connector/internal/db/postgres.go | Database connection | Active |
+| services/connector/internal/db/queries.go | SQL query methods (7 queries) | Active |
+| services/connector/internal/ams/calculator.go | AMS sliding window calculation | Active |
+| services/connector/internal/ams/calculator_test.go | AMS unit tests (8 tests) | Active |
+| services/connector/internal/api/response.go | JSON response envelope | Active |
+| services/connector/internal/api/handlers.go | HTTP handlers (8 endpoints) | Active |
+| services/connector/internal/api/router.go | HTTP routing + logging middleware | Active |
+| services/connector/internal/api/handlers_test.go | Handler unit tests (9 tests) | Active |
+| services/connector/internal/api/integration_test.go | Integration tests (gated, 7 tests) | Active |
+| infrastructure/helm/noui-derp/Chart.yaml | Helm chart metadata | Active |
+| infrastructure/helm/noui-derp/values.yaml | Helm default values | Active |
+| infrastructure/helm/noui-derp/templates/connector-deployment.yaml | K8s Deployment | Active |
+| infrastructure/helm/noui-derp/templates/connector-service.yaml | K8s ClusterIP Service | Active |
+
+### Backtrack Points:
+- **BT-009:** Day 4 complete. Connector service fully implemented with 17 passing tests. All AMS calculations verified against demo case fixtures. Return here to restart from Day 5 (Intelligence Service).

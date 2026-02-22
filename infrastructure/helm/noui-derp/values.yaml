@@ -1,0 +1,25 @@
+# Default values for noui-derp POC
+
+# PostgreSQL (legacy database)
+postgresql:
+  host: postgres
+  port: 5432
+  database: derp_legacy
+  user: derp_app
+  password: derp_app_pwd
+
+# Data Connector Service
+connector:
+  replicas: 1
+  image:
+    repository: noui-derp/connector
+    tag: "0.1.0"
+    pullPolicy: IfNotPresent
+  port: 8081
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 256Mi
