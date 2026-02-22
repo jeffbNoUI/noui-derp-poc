@@ -42,13 +42,13 @@ export function LearningModule({
   return (
     <div style={{
       width: '280px', borderLeft: `1px solid ${C.border}`, flexShrink: 0,
-      background: C.surface, display: 'flex', flexDirection: 'column' as const,
+      background: C.elevated, display: 'flex', flexDirection: 'column' as const,
       overflow: 'hidden',
     }}>
       {/* Header with layer toggles */}
       <div style={{ padding: '10px 12px', borderBottom: `1px solid ${C.borderSubtle}` }}>
         <div style={{
-          color: C.textDim, fontSize: '9px', textTransform: 'uppercase' as const,
+          color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
           letterSpacing: '1.5px', fontWeight: 600, marginBottom: '8px',
         }}>Learning Module</div>
         <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' as const }}>
@@ -64,7 +64,7 @@ export function LearningModule({
                 cursor: 'pointer', transition: 'all 0.2s',
                 border: `1px solid ${layers[key] ? C.accentSolid : C.border}`,
                 background: layers[key] ? C.accentMuted : 'transparent',
-                color: layers[key] ? C.accent : C.textMuted,
+                color: layers[key] ? C.accent : C.textSecondary,
               }}
             >{label}</button>
           ))}
@@ -78,10 +78,10 @@ export function LearningModule({
         {layers.onboarding && (
           <div style={{ marginBottom: '14px' }}>
             <div style={{
-              color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Why This Matters</div>
-            <div style={{ color: C.textSecondary, fontSize: '11px', lineHeight: '1.55' }}>
+            <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.55' }}>
               {stage.onboarding}
             </div>
           </div>
@@ -91,7 +91,7 @@ export function LearningModule({
         {layers.rules && (
           <div style={{ marginBottom: '14px' }}>
             <div style={{
-              color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Rules Reference</div>
             {stage.rules.map((rule, i) => (
@@ -101,7 +101,7 @@ export function LearningModule({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Badge text={rule.citation} bg={C.accentMuted} color={C.accent} />
                 </div>
-                <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>
+                <div style={{ color: C.text, fontSize: '10px', marginTop: '2px' }}>
                   {rule.desc}
                 </div>
               </div>
@@ -113,7 +113,7 @@ export function LearningModule({
         {layers.checklist && (
           <div style={{ marginBottom: '14px' }}>
             <div style={{
-              color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Verify</div>
             {stage.checklist.map((item, i) => {
@@ -130,18 +130,18 @@ export function LearningModule({
                     borderRadius: '3px',
                   }}>
                   <span style={{
-                    color: isChecked ? C.success : C.textDim,
+                    color: isChecked ? C.success : C.textMuted,
                     fontSize: '12px', flexShrink: 0, lineHeight: '1.3',
                   }}>
                     {isChecked ? '\u2611' : '\u2610'}
                   </span>
                   <span style={{
-                    color: isChecked ? C.text : C.textSecondary,
+                    color: isChecked ? C.text : C.text,
                     fontSize: '10.5px', lineHeight: '1.4',
                   }}>
                     {item}
                     {isAuto && (
-                      <span style={{ color: C.textDim, fontSize: '9px', marginLeft: '4px' }}>(auto)</span>
+                      <span style={{ color: C.textMuted, fontSize: '9px', marginLeft: '4px' }}>(auto)</span>
                     )}
                   </span>
                 </div>
@@ -155,7 +155,7 @@ export function LearningModule({
               textAlign: 'center' as const,
             }}>
               <span style={{
-                color: checkCount >= checkTotal ? C.success : C.textMuted,
+                color: checkCount >= checkTotal ? C.success : C.textSecondary,
                 fontSize: '10px', fontWeight: 600,
               }}>
                 {checkCount} of {checkTotal} verified
@@ -168,7 +168,7 @@ export function LearningModule({
         {isConfirmed && (
           <div style={{ marginBottom: '12px' }}>
             <div style={{
-              color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Up Next</div>
             <div style={{ color: C.accent, fontSize: '10.5px' }}>
@@ -223,7 +223,7 @@ export function LearningModule({
               style={{
                 padding: '8px 12px', borderRadius: '6px',
                 border: `1px solid ${C.border}`, background: 'transparent',
-                color: C.textMuted, cursor: 'pointer', fontSize: '10.5px',
+                color: C.textSecondary, cursor: 'pointer', fontSize: '10.5px',
               }}
             >
               Edit
@@ -264,7 +264,7 @@ export function LearningModule({
               style={{
                 padding: '8px 12px', borderRadius: '6px',
                 border: `1px solid ${C.border}`, background: 'transparent',
-                color: C.textMuted, cursor: 'pointer', fontSize: '10.5px',
+                color: C.textSecondary, cursor: 'pointer', fontSize: '10.5px',
               }}
             >
               Edit
