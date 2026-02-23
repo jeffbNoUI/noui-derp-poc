@@ -156,10 +156,10 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
     dispatch({ type: 'BACK' })
   }, [])
 
-  // Confirm handler for expert mode (by stageId)
+  // Confirm handler for expert mode (by stageId) — collapses confirmed, routes to next
   const handleConfirmStage = useCallback((stageId: string) => {
-    dispatch({ type: 'CONFIRM', stageId, stageCount: stages.length })
-  }, [stages.length])
+    dispatch({ type: 'CONFIRM', stageId, stageCount: stages.length, allStageIds: stages.map(s => s.id) })
+  }, [stages])
 
   const handleSave = useCallback(() => {
     if (!ben || !elig) return

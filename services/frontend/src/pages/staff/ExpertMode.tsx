@@ -66,7 +66,7 @@ export function ExpertMode({
           <div key={stage.id} style={{
             marginBottom: '4px', borderRadius: '6px',
             border: `1px solid ${isExpanded ? C.accent : isConfirmed ? C.successBorder : C.border}`,
-            background: isExpanded ? C.elevated : C.surface,
+            background: isExpanded ? C.elevated : isConfirmed && !isExpanded ? C.successMuted : C.surface,
             transition: 'all 0.15s',
           }}>
             {/* Collapsed header row */}
@@ -78,14 +78,17 @@ export function ExpertMode({
                 borderRadius: isExpanded ? '6px 6px 0 0' : '6px',
               }}
             >
-              <span style={{ fontSize: '13px', flexShrink: 0 }}>{stage.icon}</span>
+              {/* Confirmed stages show checkmark icon, others show stage icon */}
+              <span style={{ fontSize: '13px', flexShrink: 0 }}>
+                {isConfirmed && !isExpanded ? '\u2713' : stage.icon}
+              </span>
               <span style={{
                 color: isConfirmed ? C.success : C.text,
                 fontWeight: 600, fontSize: '12px', flex: 1,
               }}>{stage.title}</span>
 
-              {/* Signal dot + reason */}
-              {signal && (
+              {/* Signal dot + reason — hide on collapsed confirmed (already complete) */}
+              {signal && !(isConfirmed && !isExpanded) && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <div style={{
                     width: '7px', height: '7px', borderRadius: '50%',
@@ -100,7 +103,7 @@ export function ExpertMode({
 
               {/* Confirmed badge */}
               {isConfirmed && (
-                <Badge text="Confirmed" bg={C.successMuted} color={C.success} />
+                <Badge text={isExpanded ? 'Confirmed' : 'Complete'} bg={C.successMuted} color={C.success} />
               )}
 
               {/* Expand/collapse chevron */}

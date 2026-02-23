@@ -50,7 +50,7 @@ export type GuidedAction =
   | { type: 'NEXT'; stageCount: number }
   | { type: 'BACK' }
   | { type: 'GO_TO'; index: number }
-  | { type: 'CONFIRM'; stageId: string; stageCount: number }
+  | { type: 'CONFIRM'; stageId: string; stageCount: number; allStageIds?: string[] }
   | { type: 'UNCONFIRM'; stageId: string }
   | { type: 'ELECT_OPTION'; option: string }
   | { type: 'SAVE_START' }
@@ -101,9 +101,18 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
     case 'CONFIRM': {
       const next = new Set(state.confirmed)
       next.add(action.stageId)
+      // Expert mode: collapse confirmed stage, expand next unconfirmed
+      let expandedStages = state.expandedStages
+      if (state.viewMode === 'expert' && action.allStageIds) {
+        expandedStages = new Set(expandedStages)
+        expandedStages.delete(action.stageId)
+        const nextUnconfirmed = action.allStageIds.find(id => !next.has(id))
+        if (nextUnconfirmed) expandedStages.add(nextUnconfirmed)
+      }
       return {
         ...state,
         confirmed: next,
+        expandedStages,
         currentIndex: Math.min(state.currentIndex + 1, action.stageCount - 1),
       }
     }
