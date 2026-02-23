@@ -10,6 +10,8 @@ import type { StageHelp } from './guided-help'
 import type { LayerState } from './guided-types'
 
 export interface LearningModuleProps {
+  /** When true, expand to fill available flex space instead of fixed 320px */
+  wide?: boolean
   stage: StageHelp
   confirmed: Set<string>
   /** Merged set: auto-checked + manually-checked items */
@@ -30,7 +32,7 @@ export interface LearningModuleProps {
 }
 
 export function LearningModule({
-  stage, confirmed, checkedItems, autoCheckedItems, layers, canConfirm,
+  wide, stage, confirmed, checkedItems, autoCheckedItems, layers, canConfirm,
   isLastStage, allConfirmed, saveStatus,
   onToggleCheck, onToggleLayer, onConfirm, onNext, onUnconfirm, onSave,
 }: LearningModuleProps) {
@@ -41,7 +43,10 @@ export function LearningModule({
 
   return (
     <div style={{
-      width: '320px', borderLeft: `1px solid ${C.border}`, flexShrink: 0,
+      ...(wide
+        ? { flex: 4, minWidth: '320px' }
+        : { width: '320px', flexShrink: 0 }),
+      borderLeft: `1px solid ${C.border}`,
       background: C.elevated, display: 'flex', flexDirection: 'column' as const,
       overflow: 'hidden',
     }}>

@@ -373,29 +373,32 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
             )}
           </div>
         ) : (
-          /* EXPERT MODE — all stages as collapsible cards */
-          <ExpertMode
-            stages={stages}
-            stageComponents={STAGE_COMPONENTS}
-            stageProps={stageProps}
-            signals={signals}
-            depths={depths}
-            confirmed={state.confirmed}
-            expandedStages={state.expandedStages}
-            checkedItems={mergedChecks}
-            autoCheckedItems={autoChecks}
-            layers={state.layers}
-            onToggleExpand={(id) => dispatch({ type: 'TOGGLE_EXPAND', stageId: id })}
-            onExpandStage={(id) => dispatch({ type: 'EXPAND_STAGE', stageId: id })}
-            onConfirm={handleConfirmStage}
-            onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
-            onToggleCheck={(stageId, index) => dispatch({ type: 'TOGGLE_CHECK', stageId, index })}
-          />
+          /* EXPERT MODE — constrained width so cards aren't too wide; extra space goes to Learning Module */
+          <div style={{ flex: 5, minWidth: 0, display: 'flex' }}>
+            <ExpertMode
+              stages={stages}
+              stageComponents={STAGE_COMPONENTS}
+              stageProps={stageProps}
+              signals={signals}
+              depths={depths}
+              confirmed={state.confirmed}
+              expandedStages={state.expandedStages}
+              checkedItems={mergedChecks}
+              autoCheckedItems={autoChecks}
+              layers={state.layers}
+              onToggleExpand={(id) => dispatch({ type: 'TOGGLE_EXPAND', stageId: id })}
+              onExpandStage={(id) => dispatch({ type: 'EXPAND_STAGE', stageId: id })}
+              onConfirm={handleConfirmStage}
+              onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
+              onToggleCheck={(stageId, index) => dispatch({ type: 'TOGGLE_CHECK', stageId, index })}
+            />
+          </div>
         )}
 
-        {/* LEARNING MODULE — syncs to current/focused stage */}
+        {/* LEARNING MODULE — syncs to current/focused stage; wider in expert mode */}
         {focusedStage && (
           <LearningModule
+            wide={state.viewMode === 'expert'}
             stage={focusedStage}
             confirmed={state.confirmed}
             checkedItems={mergedChecks[focusedStage.id] ?? new Set<number>()}
