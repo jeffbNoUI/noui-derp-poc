@@ -53,6 +53,18 @@ const AMS_NO_LEAVE: Record<string, number> = {
   '10001': 9194.45, '10004': 9194.45,
 }
 
+// ─── Panel metadata for confirmed chips ─────────────────────────
+const PANEL_META: Record<string, { icon: string; chipLabel: string }> = {
+  confirm: { icon: '📋', chipLabel: 'Retirement' },
+  elig:    { icon: '✓',  chipLabel: 'Eligibility' },
+  purch:   { icon: '📎', chipLabel: 'Purchased Svc' },
+  salary:  { icon: '💰', chipLabel: 'Salary & AMS' },
+  benefit: { icon: '🔢', chipLabel: 'Benefit' },
+  dro:     { icon: '⚖️', chipLabel: 'DRO' },
+  payment: { icon: '💳', chipLabel: 'Payment' },
+  ipr:     { icon: '🏥', chipLabel: 'IPR' },
+}
+
 // ─── Micro Components ───────────────────────────────────────────
 
 
@@ -98,6 +110,28 @@ function Callout({ type = 'info', title, children }: {
       {title && <div style={{ color: s.c, fontSize: '10.5px', fontWeight: 600, marginBottom: '2px' }}>{title}</div>}
       <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>{children}</div>
     </div>
+  )
+}
+
+// ─── Confirmed Chip ─────────────────────────────────────────────
+
+function ConfirmedChip({ id, onClick }: { id: string; onClick: (id: string) => void }) {
+  const meta = PANEL_META[id] || { icon: '✓', chipLabel: id }
+  return (
+    <button onClick={() => onClick(id)} style={{
+      display: 'inline-flex', alignItems: 'center', gap: '4px',
+      padding: '3px 10px', borderRadius: '14px', border: `1px solid ${C.successBorder}`,
+      background: C.successMuted, cursor: 'pointer', fontSize: '11px',
+      fontWeight: 600, color: C.success, whiteSpace: 'nowrap' as const,
+      transition: 'all 0.15s',
+    }}
+    onMouseEnter={e => { e.currentTarget.style.background = C.success; e.currentTarget.style.color = '#fff' }}
+    onMouseLeave={e => { e.currentTarget.style.background = C.successMuted; e.currentTarget.style.color = C.success }}
+    >
+      <span style={{ fontSize: '12px' }}>{meta.icon}</span>
+      {meta.chipLabel}
+      <span style={{ fontSize: '10px', opacity: 0.8 }}>✓</span>
+    </button>
   )
 }
 
@@ -151,15 +185,15 @@ function Panel({ id, title, icon, isConfirmed, isFocused, alert, onFocus, onConf
               <span style={{ color: C.success, fontSize: '11px', fontWeight: 600 }}>✓ Confirmed</span>
               <button onClick={e => { e.stopPropagation(); onConfirm(id, true) }} style={{
                 padding: '4px 12px', borderRadius: '5px', border: `1px solid ${C.border}`,
-                background: 'transparent', color: C.textMuted, cursor: 'pointer', fontSize: '10.5px',
+                background: 'transparent', color: C.textSecondary, cursor: 'pointer', fontSize: '10.5px',
               }}>Edit</button>
             </div>
           )}
         </div>
       )}
       {!isFocused && (
-        <div style={{ padding: '6px 12px 8px', fontSize: '11px', color: C.textMuted }}>
-          {isConfirmed ? <span style={{ color: C.success }}>✓ Data confirmed</span> : 'Click to review and confirm'}
+        <div style={{ padding: '6px 12px 8px', fontSize: '11px', color: C.textSecondary }}>
+          {isConfirmed ? <span style={{ color: C.success }}>{'\u2713'} Data confirmed</span> : 'Click to review and confirm'}
         </div>
       )}
     </div>
@@ -228,10 +262,11 @@ function SumRow({ label, value, done, color }: {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', padding: '4px 0',
-      opacity: done ? 1 : 0.45, transition: 'opacity 0.3s',
     }}>
-      <span style={{ color: C.textSecondary, fontSize: '11px' }}>{label}</span>
-      <span style={{ color: color || C.text, fontFamily: 'monospace', fontSize: '11px', fontWeight: 600 }}>{value}</span>
+      <span style={{ color: C.text, fontSize: '11px' }}>{label}</span>
+      <span style={{
+        color: color || C.text, fontFamily: 'monospace', fontSize: '11px', fontWeight: 600,
+      }}>{value}{done && <span style={{ color: C.success, marginLeft: '4px' }}>{'\u2713'}</span>}</span>
     </div>
   )
 }
@@ -260,7 +295,7 @@ function LiveSummary({
     <div style={{ display: 'flex', flexDirection: 'column' as const, height: '100%' }}>
       <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.borderSubtle}` }}>
         <div style={{
-          color: C.textDim, fontSize: '9px', textTransform: 'uppercase' as const,
+          color: C.text, fontSize: '9px', textTransform: 'uppercase' as const,
           letterSpacing: '1.5px', fontWeight: 600,
         }}>Live Calculation</div>
       </div>
@@ -271,19 +306,18 @@ function LiveSummary({
           textAlign: 'center' as const, padding: '14px 8px', background: C.accentMuted,
           borderRadius: '8px', border: `1px solid ${C.accentSolid}`, marginBottom: '10px',
         }}>
-          <div style={{ color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1px' }}>
+          <div style={{ color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1px' }}>
             {dro ? 'Monthly (after DRO)' : 'Monthly Benefit'}
           </div>
           <div style={{
-            color: confirmed.has('benefit') ? C.accent : C.textMuted,
+            color: confirmed.has('benefit') ? C.accent : C.text,
             fontSize: '26px', fontWeight: 700, fontFamily: 'monospace', marginTop: '4px',
             textShadow: confirmed.has('benefit') ? `0 0 25px ${C.accentGlow}` : 'none',
-            opacity: confirmed.has('benefit') ? 1 : 0.5,
           }}>
             {fmt(monthlyBenefit)}
           </div>
           {ben && (
-            <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '2px' }}>
+            <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>
               {ben.formula_display?.split('=')[0]?.trim()}
             </div>
           )}
@@ -322,8 +356,8 @@ function LiveSummary({
       {/* Progress + actions */}
       <div style={{ padding: '10px 12px', borderTop: `1px solid ${C.borderSubtle}` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-          <span style={{ color: C.textMuted, fontSize: '10px', textTransform: 'uppercase' as const, letterSpacing: '0.5px' }}>Progress</span>
-          <span style={{ color: allDone ? C.success : C.textMuted, fontSize: '10px', fontWeight: 600 }}>
+          <span style={{ color: C.text, fontSize: '10px', textTransform: 'uppercase' as const, letterSpacing: '0.5px', fontWeight: 600 }}>Progress</span>
+          <span style={{ color: allDone ? C.success : C.text, fontSize: '10px', fontWeight: 600 }}>
             {confirmed.size} / {panelCount}
           </span>
         </div>
@@ -399,14 +433,34 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
   const opts = paymentOptions.data
   const dro = hasDRO ? droCalc.data : undefined
 
+  // Build panel list (composition engine) — needed by handleConfirm for auto-advance
+  const panelIds: string[] = ['confirm', 'elig']
+  if (sc && sc.purchased_service_years > 0) panelIds.push('purch')
+  panelIds.push('salary', 'benefit')
+  if (hasDRO) panelIds.push('dro')
+  panelIds.push('payment', 'ipr')
+
   const handleConfirm = useCallback((id: string, toggle?: boolean) => {
-    setConfirmed(prev => {
-      const next = new Set(prev)
-      if (toggle && next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }, [])
+    if (toggle) {
+      // Unconfirm (Edit button) — toggle confirmed set, keep focus
+      setConfirmed(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
+    } else {
+      // Confirm — add to set and auto-advance focus to next unconfirmed panel
+      setConfirmed(prev => {
+        const next = new Set(prev)
+        next.add(id)
+        return next
+      })
+      const idx = panelIds.indexOf(id)
+      const remaining = [...panelIds.slice(idx + 1), ...panelIds.slice(0, idx)]
+      const nextUnconfirmed = remaining.find(pid => !confirmed.has(pid))
+      if (nextUnconfirmed) setFocused(nextUnconfirmed)
+    }
+  }, [panelIds, confirmed])
 
   const handleSave = useCallback(() => {
     if (!ben || !elig) return
@@ -456,13 +510,6 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
   const reductionPct = elig ? Math.round((1 - elig.reduction_factor) * 100) : 0
   const yrsUnder65 = elig ? Math.max(0, 65 - elig.age_at_retirement) : 0
   const reductionRate = m.tier === 3 ? 6 : 3
-
-  // Build panel list (composition engine)
-  const panelIds: string[] = ['confirm', 'elig']
-  if (sc && sc.purchased_service_years > 0) panelIds.push('purch')
-  panelIds.push('salary', 'benefit')
-  if (hasDRO) panelIds.push('dro')
-  panelIds.push('payment', 'ipr')
 
   // Elected option
   const elOpt = electedOption || (hasDRO ? 'j&s_75' : 'maximum')
@@ -528,7 +575,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           ))}
         </div>
         <span style={{
-          color: confirmed.size === panelIds.length ? C.success : C.textMuted,
+          color: confirmed.size === panelIds.length ? C.success : C.text,
           fontSize: '10px', fontWeight: 600, flexShrink: 0,
         }}>
           {confirmed.size}/{panelIds.length}
@@ -556,8 +603,20 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
         {/* PANELS (scrollable) */}
         <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '10px 14px 60px' }}>
 
+          {/* ─── Confirmed chips row ─── */}
+          {panelIds.some(id => confirmed.has(id) && id !== focused) && (
+            <div style={{
+              display: 'flex', flexWrap: 'wrap' as const, gap: '5px',
+              marginBottom: '10px', padding: '6px 0',
+            }}>
+              {panelIds.filter(id => confirmed.has(id) && id !== focused).map(id => (
+                <ConfirmedChip key={id} id={id} onClick={setFocused} />
+              ))}
+            </div>
+          )}
+
           {/* ─── Panel: Confirm Retirement ─── */}
-          <Panel id="confirm" title="Confirm Retirement" icon="📋"
+          {(!confirmed.has('confirm') || focused === 'confirm') && <Panel id="confirm" title="Confirm Retirement" icon="📋"
             isConfirmed={confirmed.has('confirm')} isFocused={focused === 'confirm'}
             alert={reductionPct > 0 ? `${reductionPct}% reduction` : null}
             onFocus={setFocused} onConfirm={handleConfirm}>
@@ -588,10 +647,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 : <Callout type="danger" title="Early Retirement Reduction">{yrsUnder65} years × {reductionRate}%/yr = {reductionPct}% reduction. Member receives {100 - reductionPct}% of benefit.</Callout>
               }
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading eligibility...</div>}
-          </Panel>
+          </Panel>}
 
           {/* ─── Panel: Eligibility ─── */}
-          <Panel id="elig" title="Eligibility Determination" icon="✓"
+          {(!confirmed.has('elig') || focused === 'elig') && <Panel id="elig" title="Eligibility Determination" icon="✓"
             isConfirmed={confirmed.has('elig')} isFocused={focused === 'elig'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {elig && sc ? (<>
@@ -619,10 +678,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 </Callout>
               )}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
-          </Panel>
+          </Panel>}
 
           {/* ─── Panel: Purchased Service (conditional) ─── */}
-          {sc && sc.purchased_service_years > 0 && ben && elig && (
+          {sc && sc.purchased_service_years > 0 && ben && elig && (!confirmed.has('purch') || focused === 'purch') && (
             <Panel id="purch" title="Purchased Service Impact" icon="📎"
               isConfirmed={confirmed.has('purch')} isFocused={focused === 'purch'}
               onFocus={setFocused} onConfirm={handleConfirm}>
@@ -660,7 +719,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           )}
 
           {/* ─── Panel: Salary & AMS ─── */}
-          <Panel id="salary" title={`Salary & AMS (${ben?.ams_window_months ?? '—'}-month window)`} icon="💰"
+          {(!confirmed.has('salary') || focused === 'salary') && <Panel id="salary" title={`Salary & AMS (${ben?.ams_window_months ?? '—'}-month window)`} icon="💰"
             isConfirmed={confirmed.has('salary')} isFocused={focused === 'salary'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {ben ? (<>
@@ -675,10 +734,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 </Callout>
               )}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
-          </Panel>
+          </Panel>}
 
           {/* ─── Panel: Benefit Calculation ─── */}
-          <Panel id="benefit" title="Benefit Calculation" icon="🔢"
+          {(!confirmed.has('benefit') || focused === 'benefit') && <Panel id="benefit" title="Benefit Calculation" icon="🔢"
             isConfirmed={confirmed.has('benefit')} isFocused={focused === 'benefit'}
             alert={reductionPct > 0 ? `${reductionPct}% reduced` : null}
             onFocus={setFocused} onConfirm={handleConfirm}>
@@ -730,10 +789,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               <Field label="Annual Benefit" value={fmt(ben.net_monthly_benefit * 12)} />
               {ben.death_benefit && <Field label="Death Benefit" value={fmt(ben.death_benefit.amount)} sub={`Lump sum — ${ben.retirement_type}`} />}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
-          </Panel>
+          </Panel>}
 
           {/* ─── Panel: DRO Impact (conditional) ─── */}
-          {hasDRO && dro && (
+          {hasDRO && dro && (!confirmed.has('dro') || focused === 'dro') && (
             <Panel id="dro" title="DRO Impact" icon="⚖️"
               isConfirmed={confirmed.has('dro')} isFocused={focused === 'dro'}
               onFocus={setFocused} onConfirm={handleConfirm}>
@@ -790,7 +849,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           )}
 
           {/* ─── Panel: Payment Option ─── */}
-          <Panel id="payment" title="Payment Option" icon="💳"
+          {(!confirmed.has('payment') || focused === 'payment') && <Panel id="payment" title="Payment Option" icon="💳"
             isConfirmed={confirmed.has('payment')} isFocused={focused === 'payment'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {opts ? (<>
@@ -835,10 +894,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 })}
               </div>
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
-          </Panel>
+          </Panel>}
 
           {/* ─── Panel: IPR ─── */}
-          <Panel id="ipr" title="IPR" icon="🏥"
+          {(!confirmed.has('ipr') || focused === 'ipr') && <Panel id="ipr" title="IPR" icon="🏥"
             isConfirmed={confirmed.has('ipr')} isFocused={focused === 'ipr'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {ben?.ipr ? (<>
@@ -851,7 +910,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 IPR offsets health insurance premiums. Rate changes at Medicare eligibility (age 65). RMC §18-412.
               </Callout>
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
-          </Panel>
+          </Panel>}
 
         </div>
 
