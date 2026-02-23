@@ -41,7 +41,7 @@ export function LearningModule({
 
   return (
     <div style={{
-      width: '280px', borderLeft: `1px solid ${C.border}`, flexShrink: 0,
+      width: '320px', borderLeft: `1px solid ${C.border}`, flexShrink: 0,
       background: C.elevated, display: 'flex', flexDirection: 'column' as const,
       overflow: 'hidden',
     }}>
@@ -81,7 +81,7 @@ export function LearningModule({
               color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
               letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
             }}>Why This Matters</div>
-            <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.55' }}>
+            <div style={{ color: C.text, fontSize: '12px', lineHeight: '1.55' }}>
               {stage.onboarding}
             </div>
           </div>
@@ -101,7 +101,7 @@ export function LearningModule({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                   <Badge text={rule.citation} bg={C.accentMuted} color={C.accent} />
                 </div>
-                <div style={{ color: C.text, fontSize: '10px', marginTop: '2px' }}>
+                <div style={{ color: C.text, fontSize: '11px', marginTop: '2px' }}>
                   {rule.desc}
                 </div>
               </div>
@@ -125,7 +125,7 @@ export function LearningModule({
                 <div key={i}
                   onClick={() => canToggle && onToggleCheck(i)}
                   style={{
-                    display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '4px 0',
+                    display: 'flex', alignItems: 'flex-start', gap: '6px', padding: '5px 0',
                     cursor: canToggle ? 'pointer' : 'default',
                     borderRadius: '3px',
                   }}>
@@ -137,7 +137,7 @@ export function LearningModule({
                   </span>
                   <span style={{
                     color: isChecked ? C.text : C.text,
-                    fontSize: '10.5px', lineHeight: '1.4',
+                    fontSize: '11.5px', lineHeight: '1.4',
                   }}>
                     {item}
                     {isAuto && (

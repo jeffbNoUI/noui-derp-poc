@@ -46,7 +46,7 @@ export function ExpertMode({
   onConfirm, onUnconfirm, onToggleCheck,
 }: ExpertModeProps) {
   return (
-    <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 80px' }}>
+    <div style={{ flex: 1, overflow: 'auto', padding: '8px 12px 24px' }}>
       {stages.map(stage => {
         const isExpanded = expandedStages.has(stage.id)
         const isConfirmed = confirmed.has(stage.id)
@@ -64,7 +64,7 @@ export function ExpertMode({
 
         return (
           <div key={stage.id} style={{
-            marginBottom: '4px', borderRadius: '6px',
+            marginBottom: '6px', borderRadius: '6px',
             border: `1px solid ${isExpanded ? C.accent : isConfirmed ? C.successBorder : C.border}`,
             background: isExpanded ? C.elevated : isConfirmed && !isExpanded ? C.successMuted : C.surface,
             transition: 'all 0.15s',
@@ -134,19 +134,19 @@ export function ExpertMode({
                 display: 'flex',
               }}>
                 {/* Stage component */}
-                <div style={{ flex: 1, padding: '12px', overflow: 'auto' }}>
+                <div style={{ flex: 1, padding: '14px', overflow: 'auto' }}>
                   {StageComponent && <StageComponent {...stageProps} />}
                 </div>
 
                 {/* Mini-checklist sidebar + confirm button */}
                 <div style={{
-                  width: '180px', borderLeft: `1px solid ${C.borderSubtle}`,
+                  width: '210px', borderLeft: `1px solid ${C.borderSubtle}`,
                   padding: '10px', flexShrink: 0, display: 'flex', flexDirection: 'column' as const,
                 }}>
                   {layers.checklist && (
                     <div style={{ flex: 1 }}>
                       <div style={{
-                        color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
+                        color: C.textSecondary, fontSize: '10px', textTransform: 'uppercase' as const,
                         letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
                       }}>Verify</div>
                       {stage.checklist.map((item, i) => {
@@ -157,28 +157,28 @@ export function ExpertMode({
                           <div key={i}
                             onClick={() => canToggle && onToggleCheck(stage.id, i)}
                             style={{
-                              display: 'flex', alignItems: 'flex-start', gap: '4px', padding: '2px 0',
+                              display: 'flex', alignItems: 'flex-start', gap: '4px', padding: '4px 0',
                               cursor: canToggle ? 'pointer' : 'default',
                             }}>
                             <span style={{
-                              color: isItemChecked ? C.success : C.textDim,
+                              color: isItemChecked ? C.success : C.textMuted,
                               fontSize: '11px', flexShrink: 0, lineHeight: '1.3',
                             }}>
                               {isItemChecked ? '\u2611' : '\u2610'}
                             </span>
                             <span style={{
-                              color: isItemChecked ? C.text : C.textSecondary,
-                              fontSize: '9.5px', lineHeight: '1.4',
+                              color: C.text,
+                              fontSize: '11px', lineHeight: '1.4',
                             }}>
                               {item}
-                              {isAuto && <span style={{ color: C.textDim, fontSize: '8px', marginLeft: '3px' }}>(auto)</span>}
+                              {isAuto && <span style={{ color: C.textMuted, fontSize: '8px', marginLeft: '3px' }}>(auto)</span>}
                             </span>
                           </div>
                         )
                       })}
                       <div style={{
                         marginTop: '4px', fontSize: '9px', fontWeight: 600, textAlign: 'center' as const,
-                        color: checklistComplete ? C.success : C.textMuted,
+                        color: checklistComplete ? C.success : C.textSecondary,
                       }}>
                         {checked.size}/{checkTotal}
                       </div>
@@ -192,11 +192,12 @@ export function ExpertMode({
                         onClick={(e) => { e.stopPropagation(); canConfirm && onConfirm(stage.id) }}
                         disabled={!canConfirm}
                         style={{
-                          width: '100%', padding: '6px 0', borderRadius: '5px', border: 'none',
+                          width: '100%', padding: '6px 0', borderRadius: '5px',
+                          border: canConfirm ? 'none' : `1px solid ${C.accentSolid}`,
                           background: canConfirm
                             ? `linear-gradient(135deg,${C.accent},#00695c)`
-                            : C.border,
-                          color: canConfirm ? '#ffffff' : C.textDim,
+                            : C.accentMuted,
+                          color: canConfirm ? '#ffffff' : C.accent,
                           fontWeight: 700, fontSize: '10px',
                           cursor: canConfirm ? 'pointer' : 'default',
                           transition: 'all 0.2s',
@@ -210,7 +211,7 @@ export function ExpertMode({
                         style={{
                           width: '100%', padding: '6px 0', borderRadius: '5px',
                           border: `1px solid ${C.border}`, background: 'transparent',
-                          color: C.textMuted, cursor: 'pointer', fontSize: '10px',
+                          color: C.textSecondary, cursor: 'pointer', fontSize: '10px',
                         }}
                       >
                         Edit

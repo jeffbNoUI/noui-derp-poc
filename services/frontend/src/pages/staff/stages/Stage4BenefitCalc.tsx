@@ -6,7 +6,7 @@
  */
 import type { StageProps } from './StageProps'
 import { C, tierMeta, fmt } from '@/theme'
-import { Badge } from '@/components/shared/Badge'
+import { Field } from '@/components/shared/Field'
 
 // Salary period data matching BenefitWorkspace (duplicated — stable demo fixtures)
 const SALARY_ROWS: Record<string, { period: string; months: number; monthly: number }[]> = {
@@ -46,31 +46,6 @@ const AMS_NO_LEAVE: Record<string, number> = {
   '10001': 9194.45, '10004': 9194.45,
 }
 
-function Field({ label, value, sub, highlight, badge }: {
-  label: string; value: string; sub?: string | null; highlight?: boolean
-  badge?: { text: string; bg: string; color: string } | null
-}) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '6px 0', borderBottom: `1px solid ${C.borderSubtle}`,
-    }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <span style={{ color: C.textSecondary, fontSize: '12px' }}>{label}</span>
-        {sub && <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>{sub}</div>}
-      </div>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        {badge && <Badge {...badge} />}
-        <span style={{
-          color: highlight ? C.accent : C.text, fontWeight: 600,
-          fontFamily: "'SF Mono',monospace", fontSize: '12px',
-          textShadow: highlight ? `0 0 14px ${C.accentGlow}` : 'none',
-        }}>{value}</span>
-      </span>
-    </div>
-  )
-}
-
 export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibility: elig }: StageProps) {
   const tc = tierMeta[m.tier] || tierMeta[1]
   const leavePayout = LEAVE_PAYOUTS[memberId] || 0
@@ -95,7 +70,7 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
         <div style={{ margin: '6px 0', borderRadius: '6px', overflow: 'hidden', border: `1px solid ${C.borderSubtle}` }}>
           <div style={{
             display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
-            padding: '5px 8px', background: C.elevated, fontSize: '9px',
+            padding: '6px 10px', background: C.elevated, fontSize: '10.5px',
             textTransform: 'uppercase' as const, letterSpacing: '0.8px', color: C.textMuted, fontWeight: 600,
           }}>
             <span>Period</span><span style={{ textAlign: 'right' }}>Mo</span>
@@ -104,7 +79,7 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
           {rows.map((r, i) => (
             <div key={i} style={{
               display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
-              padding: '4px 8px', fontSize: '10.5px', borderTop: `1px solid ${C.borderSubtle}`,
+              padding: '5px 10px', fontSize: '12px', borderTop: `1px solid ${C.borderSubtle}`,
               background: i === rows.length - 1 && leavePayout > 0 ? C.warmMuted : 'transparent',
             }}>
               <span style={{ color: C.text }}>{r.period}</span>
@@ -116,7 +91,7 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
           {leavePayout > 0 && (
             <div style={{
               display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
-              padding: '4px 8px', fontSize: '10.5px', borderTop: `1px solid ${C.warmBorder}`, background: C.warmMuted,
+              padding: '5px 10px', fontSize: '12px', borderTop: `1px solid ${C.warmBorder}`, background: C.warmMuted,
             }}>
               <span style={{ color: C.warm, fontWeight: 600 }}>+ Leave Payout</span><span /><span />
               <span style={{ textAlign: 'right', color: C.warm, fontFamily: 'monospace', fontWeight: 600 }}>+{fmt(leavePayout)}</span>
@@ -124,7 +99,7 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
           )}
           <div style={{
             display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
-            padding: '5px 8px', fontSize: '10.5px', background: C.elevated,
+            padding: '6px 10px', fontSize: '12px', background: C.elevated,
             borderTop: `1px solid ${C.border}`, fontWeight: 600,
           }}>
             <span style={{ color: C.text }}>Total</span>

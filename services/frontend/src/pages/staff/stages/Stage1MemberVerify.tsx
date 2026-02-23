@@ -6,28 +6,7 @@
  */
 import type { StageProps } from './StageProps'
 import { C, tierMeta } from '@/theme'
-import { Badge } from '@/components/shared/Badge'
-
-function Field({ label, value, sub, badge }: {
-  label: string; value: string; sub?: string | null
-  badge?: { text: string; bg: string; color: string } | null
-}) {
-  return (
-    <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      padding: '6px 0', borderBottom: `1px solid ${C.borderSubtle}`,
-    }}>
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <span style={{ color: C.textSecondary, fontSize: '12px' }}>{label}</span>
-        {sub && <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>{sub}</div>}
-      </div>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '5px', flexShrink: 0 }}>
-        {badge && <Badge {...badge} />}
-        <span style={{ color: C.text, fontWeight: 600, fontFamily: "'SF Mono',monospace", fontSize: '12px' }}>{value}</span>
-      </span>
-    </div>
-  )
-}
+import { Field } from '@/components/shared/Field'
 
 export function Stage1MemberVerify({ member: m, serviceCredit: sc }: StageProps) {
   const tc = tierMeta[m.tier] || tierMeta[1]

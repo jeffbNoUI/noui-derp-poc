@@ -97,6 +97,14 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   const isLastStage = state.currentIndex === stages.length - 1
   const allConfirmed = stages.every(s => state.confirmed.has(s.id))
 
+  // Auto-expand first unconfirmed stage when entering expert mode
+  useEffect(() => {
+    if (state.viewMode === 'expert' && state.expandedStages.size === 0 && stages.length > 0) {
+      const first = stages.find(s => !state.confirmed.has(s.id)) ?? stages[0]
+      dispatch({ type: 'TOGGLE_EXPAND', stageId: first.id })
+    }
+  }, [state.viewMode, stages.length])
+
   // Compute confidence signals for all stages (F-5)
   const signals = computeAllSignals(
     stages.map(s => s.id),
@@ -156,10 +164,18 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
     dispatch({ type: 'BACK' })
   }, [])
 
-  // Confirm handler for expert mode (by stageId) — collapses confirmed, routes to next
+  // Confirm handler for expert mode — atomic collapse + route to next unconfirmed
   const handleConfirmStage = useCallback((stageId: string) => {
-    dispatch({ type: 'CONFIRM', stageId, stageCount: stages.length, allStageIds: stages.map(s => s.id) })
-  }, [stages])
+    if (state.viewMode === 'expert') {
+      dispatch({
+        type: 'CONFIRM_AND_ROUTE', stageId,
+        stageCount: stages.length,
+        allStageIds: stages.map(s => s.id),
+      })
+    } else {
+      dispatch({ type: 'CONFIRM', stageId, stageCount: stages.length })
+    }
+  }, [stages, state.viewMode])
 
   const handleSave = useCallback(() => {
     if (!ben || !elig) return
@@ -344,7 +360,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
 
         {state.viewMode === 'guided' ? (
           /* GUIDED MODE — single stage content, summary or full based on depth (F-1) */
-          <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 80px' }}>
+          <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
             {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
               <StageSummary
                 summaryFields={currentStage.summaryFields}
