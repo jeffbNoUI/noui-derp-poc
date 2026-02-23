@@ -50,7 +50,8 @@ export type GuidedAction =
   | { type: 'NEXT'; stageCount: number }
   | { type: 'BACK' }
   | { type: 'GO_TO'; index: number }
-  | { type: 'CONFIRM'; stageId: string; stageCount: number; allStageIds?: string[] }
+  | { type: 'CONFIRM'; stageId: string; stageCount: number }
+  | { type: 'CONFIRM_AND_ROUTE'; stageId: string; stageCount: number; allStageIds: string[] }
   | { type: 'UNCONFIRM'; stageId: string }
   | { type: 'ELECT_OPTION'; option: string }
   | { type: 'SAVE_START' }
@@ -59,31 +60,35 @@ export type GuidedAction =
   | { type: 'TOGGLE_CHECK'; stageId: string; index: number }
   | { type: 'TOGGLE_LAYER'; layer: keyof LayerState }
   | { type: 'UPDATE_ANALYST_INPUT'; field: keyof AnalystInputs; value: string | number | boolean }
-  | { type: 'TOGGLE_VIEW_MODE' }
   | { type: 'TOGGLE_EXPAND'; stageId: string }
   | { type: 'EXPAND_STAGE'; stageId: string }
-  | { type: 'RESET' }
+  | { type: 'RESET'; viewMode?: 'guided' | 'expert' }
 
-// ─── Initial state ────────────────────────────────────────────
+// ─── Initial state factory ────────────────────────────────────
 
-export const initialState: GuidedState = {
-  currentIndex: 0,
-  confirmed: new Set(),
-  electedOption: '',
-  saveStatus: 'idle',
-  saveError: '',
-  savedCaseId: null,
-  checkedItems: {},
-  layers: { onboarding: true, rules: false, checklist: true },
-  analystInputs: {
-    beneficiaryName: '',
-    deathBenefitInstallments: 50,
-    spousalConsentObtained: false,
-  },
-  viewMode: 'guided',
-  expandedStages: new Set(),
-  manuallyExpanded: new Set(),
+export function createInitialState(viewMode: 'guided' | 'expert' = 'guided'): GuidedState {
+  return {
+    currentIndex: 0,
+    confirmed: new Set(),
+    electedOption: '',
+    saveStatus: 'idle',
+    saveError: '',
+    savedCaseId: null,
+    checkedItems: {},
+    layers: { onboarding: true, rules: false, checklist: true },
+    analystInputs: {
+      beneficiaryName: '',
+      deathBenefitInstallments: 50,
+      spousalConsentObtained: false,
+    },
+    viewMode,
+    expandedStages: new Set(),
+    manuallyExpanded: new Set(),
+  }
 }
+
+/** Backward-compatible default initial state */
+export const initialState: GuidedState = createInitialState()
 
 // ─── Reducer ──────────────────────────────────────────────────
 
@@ -101,18 +106,24 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
     case 'CONFIRM': {
       const next = new Set(state.confirmed)
       next.add(action.stageId)
-      // Expert mode: collapse confirmed stage, expand next unconfirmed
-      let expandedStages = state.expandedStages
-      if (state.viewMode === 'expert' && action.allStageIds) {
-        expandedStages = new Set(expandedStages)
-        expandedStages.delete(action.stageId)
-        const nextUnconfirmed = action.allStageIds.find(id => !next.has(id))
-        if (nextUnconfirmed) expandedStages.add(nextUnconfirmed)
-      }
       return {
         ...state,
         confirmed: next,
-        expandedStages,
+        currentIndex: Math.min(state.currentIndex + 1, action.stageCount - 1),
+      }
+    }
+    case 'CONFIRM_AND_ROUTE': {
+      // Atomic: confirm stage, collapse it, expand next unconfirmed
+      const confirmed = new Set(state.confirmed)
+      confirmed.add(action.stageId)
+      const expanded = new Set(state.expandedStages)
+      expanded.delete(action.stageId)
+      const nextUnconfirmed = action.allStageIds.find(id => !confirmed.has(id))
+      if (nextUnconfirmed) expanded.add(nextUnconfirmed)
+      return {
+        ...state,
+        confirmed,
+        expandedStages: expanded,
         currentIndex: Math.min(state.currentIndex + 1, action.stageCount - 1),
       }
     }
@@ -143,8 +154,6 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
         ...state,
         analystInputs: { ...state.analystInputs, [action.field]: action.value },
       }
-    case 'TOGGLE_VIEW_MODE':
-      return { ...state, viewMode: state.viewMode === 'guided' ? 'expert' : 'guided' }
     case 'TOGGLE_EXPAND': {
       const next = new Set(state.expandedStages)
       if (next.has(action.stageId)) next.delete(action.stageId)
@@ -158,6 +167,6 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
       return { ...state, manuallyExpanded: next }
     }
     case 'RESET':
-      return initialState
+      return createInitialState(action.viewMode)
   }
 }

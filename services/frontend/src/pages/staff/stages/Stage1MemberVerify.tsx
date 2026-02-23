@@ -14,25 +14,6 @@ export function Stage1MemberVerify({ member: m, serviceCredit: sc }: StageProps)
 
   return (
     <div>
-      {/* Member identity card */}
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '12px',
-        padding: '12px', background: C.elevated, borderRadius: '8px',
-        border: `1px solid ${tc.color}22`, marginBottom: '10px',
-      }}>
-        <div style={{
-          width: '42px', height: '42px', borderRadius: '8px', background: tc.muted,
-          border: `2px solid ${tc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontWeight: 700, color: tc.color, fontSize: '12px',
-        }}>T{m.tier}</div>
-        <div>
-          <div style={{ color: C.text, fontWeight: 700, fontSize: '15px' }}>{m.first_name} {m.last_name}</div>
-          <div style={{ color: C.textSecondary, fontSize: '11px' }}>
-            ID: {m.member_id} · {m.department} · {m.position}
-          </div>
-        </div>
-      </div>
-
       <Field label="Date of Birth" value={m.date_of_birth} sub={`Age ${age}`} />
       <Field label="Hire Date" value={m.hire_date} />
       <Field label="Tier" value={tc.label}

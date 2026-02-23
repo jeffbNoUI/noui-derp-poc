@@ -20,14 +20,12 @@ export interface ProgressBarProps {
   confirmed: Set<string>
   signals: Record<string, StageSignal>
   allConfirmed: boolean
-  mode: 'guided' | 'expert'
   onGoTo: (index: number) => void
-  onToggleMode: () => void
 }
 
 export function ProgressBar({
-  stages, currentIndex, confirmed, signals, allConfirmed, mode,
-  onGoTo, onToggleMode,
+  stages, currentIndex, confirmed, signals, allConfirmed,
+  onGoTo,
 }: ProgressBarProps) {
   return (
     <div style={{
@@ -76,21 +74,6 @@ export function ProgressBar({
       }}>
         Stage {currentIndex + 1} of {stages.length}
       </span>
-
-      {/* Mode toggle pill */}
-      <button
-        onClick={onToggleMode}
-        style={{
-          padding: '3px 10px', borderRadius: '12px', fontSize: '9px', fontWeight: 600,
-          cursor: 'pointer', transition: 'all 0.2s', flexShrink: 0,
-          border: `1px solid ${C.border}`,
-          background: mode === 'expert' ? C.accentMuted : 'transparent',
-          color: mode === 'expert' ? C.accent : C.textMuted,
-          letterSpacing: '0.5px', textTransform: 'uppercase' as const,
-        }}
-      >
-        {mode === 'guided' ? 'Expert' : 'Guided'}
-      </button>
     </div>
   )
 }

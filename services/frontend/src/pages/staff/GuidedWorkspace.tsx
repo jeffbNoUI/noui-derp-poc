@@ -21,7 +21,7 @@ import { composeStages } from './guided-composition'
 import { computeAllSignals } from './guided-signals'
 import { computeStageDepth } from './guided-depth'
 import { computeAllAutoChecks, mergeChecks } from './guided-autochecks'
-import { reducer, initialState } from './guided-types'
+import { reducer, createInitialState } from './guided-types'
 import type { StageProps } from './stages/StageProps'
 import { LearningModule } from './LearningModule'
 import { ProgressBar } from './ProgressBar'
@@ -54,9 +54,9 @@ const STAGE_COMPONENTS: Record<string, React.ComponentType<StageProps>> = {
 
 // ─── Main Component ──────────────────────────────────────────
 
-export function GuidedWorkspace({ memberId }: { memberId: string }) {
+export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId: string; defaultMode?: 'guided' | 'expert' }) {
   const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
-  const [state, dispatch] = useReducer(reducer, initialState)
+  const [state, dispatch] = useReducer(reducer, createInitialState(defaultMode))
 
   // Data hooks (same as BenefitWorkspace)
   const member = useMember(memberId)
@@ -73,8 +73,8 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
   // Reset when member changes
   useEffect(() => {
     setRetirementDate(DEFAULT_RETIREMENT_DATES[memberId] || '')
-    dispatch({ type: 'RESET' })
-  }, [memberId])
+    dispatch({ type: 'RESET', viewMode: defaultMode })
+  }, [memberId, defaultMode])
 
   // Default elected option
   useEffect(() => {
@@ -316,9 +316,7 @@ export function GuidedWorkspace({ memberId }: { memberId: string }) {
         confirmed={state.confirmed}
         signals={signals}
         allConfirmed={allConfirmed}
-        mode={state.viewMode}
         onGoTo={(i) => dispatch({ type: 'GO_TO', index: i })}
-        onToggleMode={() => dispatch({ type: 'TOGGLE_VIEW_MODE' })}
       />
 
       {/* Stage title bar — guided mode only */}
