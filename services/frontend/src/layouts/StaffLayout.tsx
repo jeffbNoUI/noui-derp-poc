@@ -81,11 +81,27 @@ export function StaffLayout() {
               >Guided</button>
             </div>
           )}
+          {/* Productivity tool links */}
+          {[
+            { label: 'Knowledge', path: '/demos/knowledge-assistant' },
+            { label: 'Compose', path: '/demos/correspondence' },
+            { label: 'Validate', path: '/demos/data-validator' },
+          ].map(tool => (
+            <button key={tool.label} onClick={() => navigate(tool.path)} style={{
+              fontSize: '8px', color: C.textDim, textTransform: 'uppercase' as const,
+              letterSpacing: '0.5px', background: 'none', border: `1px solid ${C.borderSubtle}`,
+              padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
+              transition: 'all 0.15s',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent }}
+              onMouseLeave={e => { e.currentTarget.style.color = C.textDim; e.currentTarget.style.borderColor = C.borderSubtle }}
+            >{tool.label}</button>
+          ))}
           <button onClick={() => navigate('/')} style={{
             fontSize: '9px', color: C.textMuted, textTransform: 'uppercase' as const,
             letterSpacing: '1px', background: 'none', border: `1px solid ${C.border}`,
             padding: '2px 8px', borderRadius: '4px', cursor: 'pointer',
-          }}>Switch Portal</button>
+          }}>Platform</button>
           <Badge text="Phase 1 · Transparent" bg={C.accentMuted} color={C.accent} />
         </div>
       </div>
