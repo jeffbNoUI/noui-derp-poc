@@ -1,4 +1,6 @@
 // Package db provides PostgreSQL database access for the DERP connector service.
+// Consumed by: api.Handlers (via db.Queries)
+// Depends on: database/sql, lib/pq (PostgreSQL driver)
 package db
 
 import (

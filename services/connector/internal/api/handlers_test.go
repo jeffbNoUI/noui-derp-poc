@@ -1,3 +1,9 @@
+// Unit tests for connector HTTP handlers and business logic.
+// Consumed by: go test
+// Depends on: api package (handlers, response), db.Queries, models
+//
+// Tests routing, response envelope, service credit separation, tier computation,
+// and status code mapping. Database-dependent handlers are tested via integration tests.
 package api
 
 import (
@@ -12,19 +18,13 @@ import (
 	"github.com/noui-derp-poc/connector/internal/models"
 )
 
-// mockDB implements a test double for db.Queries using an embedded Queries
-// with overridable functions. Since db.Queries methods use a *sql.DB,
-// we test via the HTTP layer using the router and a mock data source.
-
-// For these handler tests, we use the testQueries helper which creates
-// a Handlers with a real db.Queries pointed at a mock *sql.DB.
-// However, since we can't create a real sql.DB without postgres,
-// we test the handlers at the HTTP level by directly calling them
-// with crafted requests and verifying the JSON response shape.
-
-// Since Handlers is tightly coupled to db.Queries (which needs a real *sql.DB),
-// these tests verify the routing, response envelope, and business logic
-// in buildServiceCreditSummary and extractMemberID.
+// assertFloat checks two floats are equal within a tolerance.
+func assertFloat(t *testing.T, name string, got, want, tolerance float64) {
+	t.Helper()
+	if math.Abs(got-want) > tolerance {
+		t.Errorf("%s: got %.2f, want %.2f (diff %.4f)", name, got, want, math.Abs(got-want))
+	}
+}
 
 func TestExtractMemberID(t *testing.T) {
 	tests := []struct {
@@ -44,6 +44,53 @@ func TestExtractMemberID(t *testing.T) {
 		got := extractMemberID(tt.path)
 		if got != tt.expected {
 			t.Errorf("extractMemberID(%q) = %q, want %q", tt.path, got, tt.expected)
+		}
+	}
+}
+
+func TestComputeTier(t *testing.T) {
+	tests := []struct {
+		name     string
+		hireDate time.Time
+		expected int
+	}{
+		// Tier 1: before Sept 1, 2004
+		{"Tier 1 — well before boundary", time.Date(1998, 3, 15, 0, 0, 0, 0, time.UTC), 1},
+		{"Tier 1 — day before boundary", time.Date(2004, 8, 31, 0, 0, 0, 0, time.UTC), 1},
+		// Tier 2: Sept 1, 2004 through June 30, 2011
+		{"Tier 2 — boundary start", time.Date(2004, 9, 1, 0, 0, 0, 0, time.UTC), 2},
+		{"Tier 2 — mid-range", time.Date(2007, 6, 15, 0, 0, 0, 0, time.UTC), 2},
+		{"Tier 2 — boundary end", time.Date(2011, 6, 30, 0, 0, 0, 0, time.UTC), 2},
+		// Tier 3: July 1, 2011 or later
+		{"Tier 3 — boundary start", time.Date(2011, 7, 1, 0, 0, 0, 0, time.UTC), 3},
+		{"Tier 3 — well after boundary", time.Date(2020, 1, 1, 0, 0, 0, 0, time.UTC), 3},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ComputeTier(tt.hireDate)
+			if got != tt.expected {
+				t.Errorf("ComputeTier(%s) = %d, want %d", tt.hireDate.Format("2006-01-02"), got, tt.expected)
+			}
+		})
+	}
+}
+
+func TestStatusToLowercase(t *testing.T) {
+	tests := []struct {
+		code     string
+		expected string
+	}{
+		{"A", "active"},
+		{"R", "retired"},
+		{"T", "terminated"},
+		{"D", "deferred"},
+		{"X", "deceased"},
+		{"ACTIVE", "active"},
+	}
+	for _, tt := range tests {
+		got := statusToLowercase(tt.code)
+		if got != tt.expected {
+			t.Errorf("statusToLowercase(%q) = %q, want %q", tt.code, got, tt.expected)
 		}
 	}
 }
@@ -80,7 +127,6 @@ func TestBuildServiceCreditSummaryCase1(t *testing.T) {
 }
 
 func TestBuildServiceCreditSummaryMilitary(t *testing.T) {
-	// Hypothetical: member with military and leave credit
 	credits := []models.ServiceCredit{
 		{ServiceType: "EMPL", YearsCredit: 20.00, InclBenefit: true, InclElig: true, InclIPR: true},
 		{ServiceType: "MILITARY", YearsCredit: 4.00, InclBenefit: true, InclElig: true, InclIPR: true},
@@ -94,11 +140,29 @@ func TestBuildServiceCreditSummaryMilitary(t *testing.T) {
 	assertFloat(t, "leave", summary.LeaveYears, 0.5, 0.01)
 	assertFloat(t, "total_benefit", summary.TotalForBenefit, 24.5, 0.01)
 	assertFloat(t, "total_elig", summary.TotalForElig, 24.5, 0.01)
-	assertFloat(t, "total_ipr", summary.TotalForIPR, 24.0, 0.01) // Leave excluded from IPR
+	assertFloat(t, "total_ipr", summary.TotalForIPR, 24.0, 0.01)
+}
+
+func TestFormatMoney(t *testing.T) {
+	tests := []struct {
+		input    float64
+		expected string
+	}{
+		{10639.45, "10639.45"},
+		{0, "0.00"},
+		{52000.0, "52000.00"},
+		{7347.62, "7347.62"},
+		{100.1, "100.10"},
+	}
+	for _, tt := range tests {
+		got := FormatMoney(tt.input)
+		if got != tt.expected {
+			t.Errorf("FormatMoney(%v) = %q, want %q", tt.input, got, tt.expected)
+		}
+	}
 }
 
 func TestHealthEndpoint(t *testing.T) {
-	// Health endpoint doesn't need db.Queries
 	h := &Handlers{q: &db.Queries{}}
 	router := NewRouter(h)
 
@@ -125,11 +189,104 @@ func TestHealthEndpoint(t *testing.T) {
 	if data["service"] != "connector" {
 		t.Errorf("service = %q, want %q", data["service"], "connector")
 	}
+
+	// Verify CRITICAL-002 envelope fields
 	if resp.Meta.RequestID == "" {
-		t.Error("request_id is empty")
+		t.Error("meta.requestId is empty")
 	}
 	if resp.Meta.Timestamp == "" {
-		t.Error("timestamp is empty")
+		t.Error("meta.timestamp is empty")
+	}
+	if resp.Meta.Service != "connector" {
+		t.Errorf("meta.service = %q, want %q", resp.Meta.Service, "connector")
+	}
+	if resp.Meta.Version != "v1" {
+		t.Errorf("meta.version = %q, want %q", resp.Meta.Version, "v1")
+	}
+	if resp.Meta.Source != "legacy-direct" {
+		t.Errorf("meta.source = %q, want %q", resp.Meta.Source, "legacy-direct")
+	}
+	if resp.DataQualityFlags == nil {
+		t.Error("dataQualityFlags is nil, expected empty array")
+	}
+}
+
+func TestResponseEnvelope(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	testData := map[string]string{"key": "value"}
+	WriteJSON(rr, req, http.StatusOK, testData)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	}
+	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
+		t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+	}
+
+	// Verify full CRITICAL-002 envelope
+	var raw map[string]json.RawMessage
+	if err := json.NewDecoder(rr.Body).Decode(&raw); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+
+	// Must have data, dataQualityFlags, meta
+	if _, ok := raw["data"]; !ok {
+		t.Error("response missing 'data' field")
+	}
+	if _, ok := raw["dataQualityFlags"]; !ok {
+		t.Error("response missing 'dataQualityFlags' field")
+	}
+	if _, ok := raw["meta"]; !ok {
+		t.Error("response missing 'meta' field")
+	}
+}
+
+func TestResponseEnvelopeWithDQFlags(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	testData := map[string]string{"key": "value"}
+	flags := DataQualityFlag{
+		Code:     "DQ-006",
+		Severity: "critical",
+		Entity:   "member",
+		Field:    "tier",
+		Message:  "Tier mismatch",
+	}
+	WriteJSON(rr, req, http.StatusOK, testData, flags)
+
+	var resp SuccessResponse
+	json.NewDecoder(rr.Body).Decode(&resp)
+
+	if len(resp.DataQualityFlags) != 1 {
+		t.Fatalf("expected 1 DQ flag, got %d", len(resp.DataQualityFlags))
+	}
+	if resp.DataQualityFlags[0].Code != "DQ-006" {
+		t.Errorf("DQ flag code = %q, want %q", resp.DataQualityFlags[0].Code, "DQ-006")
+	}
+}
+
+func TestErrorEnvelope(t *testing.T) {
+	rr := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/test", nil)
+	WriteError(rr, req, http.StatusNotFound, "MEMBER_NOT_FOUND", "No member found")
+
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want %d", rr.Code, http.StatusNotFound)
+	}
+
+	var resp ErrorResponse
+	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	if resp.Error.Code != "MEMBER_NOT_FOUND" {
+		t.Errorf("error code = %q, want %q", resp.Error.Code, "MEMBER_NOT_FOUND")
+	}
+	if resp.Meta.RequestID == "" {
+		t.Error("missing requestId in error")
+	}
+	if resp.Meta.Service != "connector" {
+		t.Errorf("meta.service = %q, want %q", resp.Meta.Service, "connector")
 	}
 }
 
@@ -159,54 +316,83 @@ func TestUnknownResource(t *testing.T) {
 	}
 }
 
-func TestResponseEnvelope(t *testing.T) {
-	// Verify the success response envelope structure
+func TestCORSHeaders(t *testing.T) {
+	h := &Handlers{q: &db.Queries{}}
+	router := NewRouter(h)
+
+	// Test preflight OPTIONS request
+	req := httptest.NewRequest("OPTIONS", "/api/v1/members/M-100001", nil)
 	rr := httptest.NewRecorder()
-	testData := map[string]string{"key": "value"}
-	WriteJSON(rr, http.StatusOK, testData)
+	router.ServeHTTP(rr, req)
 
-	if rr.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d", rr.Code, http.StatusOK)
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("OPTIONS status = %d, want %d", rr.Code, http.StatusNoContent)
 	}
-	if ct := rr.Header().Get("Content-Type"); ct != "application/json" {
-		t.Errorf("Content-Type = %q, want %q", ct, "application/json")
+	if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
+		t.Errorf("CORS origin = %q, want %q", origin, "*")
 	}
 
-	var resp SuccessResponse
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if resp.Meta.RequestID == "" {
-		t.Error("missing request_id")
+	// Test CORS on regular request
+	req2 := httptest.NewRequest("GET", "/healthz", nil)
+	rr2 := httptest.NewRecorder()
+	router.ServeHTTP(rr2, req2)
+
+	if origin := rr2.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
+		t.Errorf("CORS origin on GET = %q, want %q", origin, "*")
 	}
 }
 
-func TestErrorEnvelope(t *testing.T) {
-	rr := httptest.NewRecorder()
-	WriteError(rr, http.StatusNotFound, "MEMBER_NOT_FOUND", "No member found")
+func TestCheckMemberDQ(t *testing.T) {
+	t.Run("clean member — no flags", func(t *testing.T) {
+		m := &models.Member{
+			MemberID:   "M-100001",
+			StatusCode: "A",
+			Tier:       1,
+		}
+		flags := checkMemberDQ(m, 1)
+		if len(flags) != 0 {
+			t.Errorf("expected 0 DQ flags for clean member, got %d", len(flags))
+		}
+	})
 
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("status = %d, want %d", rr.Code, http.StatusNotFound)
-	}
+	t.Run("DQ-001 — active with termination date", func(t *testing.T) {
+		termDate := time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC)
+		m := &models.Member{
+			MemberID:   "M-999001",
+			StatusCode: "A",
+			Tier:       1,
+			TermDate:   &termDate,
+		}
+		flags := checkMemberDQ(m, 1)
+		found := false
+		for _, f := range flags {
+			if f.Code == "DQ-001" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("expected DQ-001 flag for active member with termination date")
+		}
+	})
 
-	var resp ErrorResponse
-	if err := json.NewDecoder(rr.Body).Decode(&resp); err != nil {
-		t.Fatalf("decode: %v", err)
-	}
-	if resp.Error.Code != "MEMBER_NOT_FOUND" {
-		t.Errorf("error code = %q, want %q", resp.Error.Code, "MEMBER_NOT_FOUND")
-	}
-	if resp.Error.RequestID == "" {
-		t.Error("missing request_id in error")
-	}
-}
-
-// assertFloat checks two floats are equal within a tolerance.
-func assertFloat(t *testing.T, name string, got, want, tolerance float64) {
-	t.Helper()
-	if math.Abs(got-want) > tolerance {
-		t.Errorf("%s: got %.2f, want %.2f (diff %.4f)", name, got, want, math.Abs(got-want))
-	}
+	t.Run("DQ-006 — tier mismatch", func(t *testing.T) {
+		m := &models.Member{
+			MemberID:   "M-999002",
+			StatusCode: "A",
+			Tier:       2, // stored as 2
+		}
+		// Computed tier = 1 (different from stored)
+		flags := checkMemberDQ(m, 1)
+		found := false
+		for _, f := range flags {
+			if f.Code == "DQ-006" {
+				found = true
+			}
+		}
+		if !found {
+			t.Error("expected DQ-006 flag for tier mismatch")
+		}
+	})
 }
 
 // Unused import guard

@@ -1,3 +1,6 @@
+// HTTP router and middleware for the DERP Data Connector service.
+// Consumed by: main.go
+// Depends on: handlers.go (endpoint implementations), response.go (request ID context)
 package api
 
 import (
@@ -11,12 +14,24 @@ import (
 func NewRouter(h *Handlers) http.Handler {
 	mux := http.NewServeMux()
 
-	// Health check
+	// Health/readiness checks
 	mux.HandleFunc("/healthz", h.Health)
+	mux.HandleFunc("/readyz", h.Ready)
+
+	// Member search
+	mux.HandleFunc("/api/v1/members/search", h.SearchMembers)
+
+	// Data quality endpoint (XS-13: lives in Connector)
+	mux.HandleFunc("/api/v1/data-quality/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetDataQuality(w, r)
+	})
 
 	// Member APIs
 	mux.HandleFunc("/api/v1/members/", func(w http.ResponseWriter, r *http.Request) {
-		// Route based on path suffix
 		path := strings.TrimPrefix(r.URL.Path, "/api/v1/members/")
 		parts := strings.Split(path, "/")
 
@@ -28,7 +43,7 @@ func NewRouter(h *Handlers) http.Handler {
 
 		// All other endpoints are GET only
 		if r.Method != http.MethodGet {
-			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported for this resource")
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported for this resource")
 			return
 		}
 
@@ -50,21 +65,64 @@ func NewRouter(h *Handlers) http.Handler {
 			case "service-credit":
 				h.GetServiceCredit(w, r)
 			default:
-				WriteError(w, http.StatusNotFound, "NOT_FOUND", "Unknown resource: "+parts[1])
+				WriteError(w, r, http.StatusNotFound, "NOT_FOUND", "Unknown resource: "+parts[1])
 			}
 		} else {
-			WriteError(w, http.StatusBadRequest, "INVALID_REQUEST", "Invalid path")
+			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid path")
 		}
 	})
 
-	return logMiddleware(mux)
+	// Apply middleware chain: CORS → Request ID → Logging
+	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
 }
 
-// logMiddleware logs request method, path, and duration.
+// requestIDMiddleware generates a UUID v4 request ID and attaches it to the context.
+// The ID is propagated in all responses via ResponseMeta.requestId.
+func requestIDMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		id := newRequestID()
+		ctx := ContextWithRequestID(r.Context(), id)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+// corsMiddleware adds CORS headers for frontend development.
+func corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
+		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
+
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+// logMiddleware logs request method, path, status, and duration in structured JSON format.
 func logMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
-		next.ServeHTTP(w, r)
-		log.Printf("%s %s %v", r.Method, r.URL.Path, time.Since(start))
+		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(sw, r)
+		reqID := RequestIDFromContext(r.Context())
+		log.Printf(`{"requestId":"%s","method":"%s","path":"%s","status":%d,"duration":"%v"}`,
+			reqID, r.Method, r.URL.Path, sw.status, time.Since(start))
 	})
 }
+
+// statusWriter wraps http.ResponseWriter to capture the status code.
+type statusWriter struct {
+	http.ResponseWriter
+	status int
+}
+
+func (sw *statusWriter) WriteHeader(code int) {
+	sw.status = code
+	sw.ResponseWriter.WriteHeader(code)
+}
+

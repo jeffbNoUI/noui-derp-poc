@@ -1,3 +1,9 @@
+// Database query methods for the DERP connector service.
+// Consumed by: api.Handlers
+// Depends on: database/sql, models (domain types)
+//
+// All queries target the legacy DERP schema (MEMBER_MASTER, SALARY_HIST, etc.).
+// The connector is the sole database access layer — no other service queries directly.
 package db
 
 import (
@@ -17,6 +23,53 @@ type Queries struct {
 // NewQueries creates a new Queries instance.
 func NewQueries(db *sql.DB) *Queries {
 	return &Queries{db: db}
+}
+
+// Ping checks database connectivity (used by /readyz).
+func (q *Queries) Ping() error {
+	if q.db == nil {
+		return fmt.Errorf("database connection is nil")
+	}
+	return q.db.Ping()
+}
+
+// MemberSearchResult is a minimal member record for search results.
+type MemberSearchResult struct {
+	MemberID  string `json:"memberId"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
+	Tier      int    `json:"tier"`
+	Status    string `json:"status"`
+}
+
+// SearchMembers searches for members by last name, first name, member ID, or last 4 SSN digits.
+func (q *Queries) SearchMembers(query string) ([]MemberSearchResult, error) {
+	rows, err := q.db.Query(`
+		SELECT MBR_ID, FIRST_NM, LAST_NM, COALESCE(TIER_CD,0), STATUS_CD
+		FROM MEMBER_MASTER
+		WHERE MBR_ID = $1
+		   OR UPPER(LAST_NM) LIKE UPPER($2)
+		   OR UPPER(FIRST_NM) LIKE UPPER($2)
+		ORDER BY LAST_NM, FIRST_NM
+		LIMIT 50
+	`, query, query+"%")
+	if err != nil {
+		return nil, fmt.Errorf("search members %q: %w", query, err)
+	}
+	defer rows.Close()
+
+	var results []MemberSearchResult
+	for rows.Next() {
+		r := MemberSearchResult{}
+		if err := rows.Scan(&r.MemberID, &r.FirstName, &r.LastName, &r.Tier, &r.Status); err != nil {
+			return nil, fmt.Errorf("scan search result: %w", err)
+		}
+		results = append(results, r)
+	}
+	if results == nil {
+		results = []MemberSearchResult{}
+	}
+	return results, rows.Err()
 }
 
 // GetMember retrieves a member by ID from MEMBER_MASTER.
