@@ -9,7 +9,9 @@
  *   LearningModule, ProgressBar, CaseStatusBar, ExpertMode, stage components
  */
 import { useState, useCallback, useEffect, useReducer } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useKioskRegister } from '@/kiosk'
+import { useContainerWidth } from '@/hooks/useContainerWidth'
 import { useMember, useServiceCredit, useDROs, useApplicationIntake } from '@/hooks/useMember'
 import {
   useEligibility, useBenefitCalculation, usePaymentOptions,
@@ -31,11 +33,14 @@ import { ProgressBar } from './ProgressBar'
 import { CaseStatusBar } from './CaseStatusBar'
 import { StageNav } from './StageNav'
 import { StageSummary } from './StageSummary'
+import { MemberProfileRail } from './MemberProfileRail'
+import { UtilityRail } from './UtilityRail'
 import {
   Stage0ApplicationIntake, Stage1MemberVerify, Stage2ServiceCredit, Stage3Eligibility,
   Stage4BenefitCalc, Stage5PaymentOptions, Stage6Supplemental,
   Stage7DRO, Stage8ReviewCertify,
 } from './stages'
+import { useNudges, NudgeToast } from '@/nudges'
 
 // ─── Leave payout constant (same as BenefitWorkspace) ────────
 const LEAVE_PAYOUTS: Record<string, number> = {
@@ -58,6 +63,10 @@ const STAGE_COMPONENTS: Record<string, React.ComponentType<StageProps>> = {
 // ─── Main Component ──────────────────────────────────────────
 
 export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId: string; defaultMode?: 'guided' | 'expert' }) {
+  const { ref: containerRef, tier } = useContainerWidth()
+  const location = useLocation()
+  const isKiosk = location.search.includes('kiosk')
+  const [compactOverlayOpen, setCompactOverlayOpen] = useState(false)
   const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
   const [state, dispatch] = useReducer(reducer, undefined, () => {
     const layerDefaults = computeLayerDefaults(readProficiency())
@@ -98,11 +107,42 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
   const dro = hasDRO ? droCalc.data : undefined
   const leavePayout = LEAVE_PAYOUTS[memberId] || 0
 
+  // Set adoption flag: tried-expert when entering expert mode
+  useEffect(() => {
+    if (state.viewMode === 'expert') {
+      localStorage.setItem('noui:adoption:tried-expert', 'true')
+    }
+  }, [state.viewMode])
+
   // Compose stages based on member data
   const stages = composeStages(sc, dros.data)
   const currentStage = stages[state.currentIndex]
   const isLastStage = state.currentIndex === stages.length - 1
   const allConfirmed = stages.every(s => state.confirmed.has(s.id))
+
+  // Track visited stages for smart nudges
+  useEffect(() => {
+    if (currentStage) {
+      dispatch({ type: 'VISIT_STAGE', stageId: currentStage.id })
+    }
+  }, [state.currentIndex])
+
+  // Set adoption flag when toggling layers
+  const originalToggleLayer = useCallback((layer: 'onboarding' | 'rules' | 'checklist') => {
+    localStorage.setItem('noui:adoption:toggled-layer', 'true')
+    dispatch({ type: 'TOGGLE_LAYER', layer })
+  }, [])
+
+  // Listen for command palette goto-stage events
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const stageId = (e as CustomEvent).detail
+      const idx = stages.findIndex(s => s.id === stageId)
+      if (idx >= 0) dispatch({ type: 'GO_TO', index: idx })
+    }
+    window.addEventListener('noui:goto-stage', handler)
+    return () => window.removeEventListener('noui:goto-stage', handler)
+  }, [stages])
 
   // Auto-select first unconfirmed stage when entering expert mode
   useEffect(() => {
@@ -206,6 +246,13 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     })
   }, [memberId, retirementDate, ben, elig, state.electedOption, hasDRO, opts, dro, saveElection])
 
+  // Smart nudges — behavior-based contextual hints (must be before early return)
+  const { activeNudge, dismiss: dismissNudge } = useNudges({
+    currentStageId: currentStage?.id ?? '',
+    confirmed: state.confirmed,
+    visitedStages: state.visitedStages,
+  })
+
   if (!m) {
     return (
       <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -263,8 +310,32 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     : currentStage?.id
   const focusedStage = stages.find(s => s.id === focusedStageId) ?? currentStage
 
+  // Show profile rail on wide+ tiers (unless kiosk mode)
+  const showProfileRail = !isKiosk && (tier === 'wide' || tier === 'ultra')
+  // Show utility rail on ultra tier (unless kiosk mode)
+  const showUtilityRail = !isKiosk && tier === 'ultra'
+  // Compact tier hides LearningModule / LiveSummary inline, shows overlay toggle
+  const isCompact = tier === 'compact'
+
+  // Content maxWidth scales with tier — wider layouts have more side-panel context
+  const contentMaxWidth = tier === 'compact' ? undefined
+    : tier === 'standard' ? '780px'
+    : tier === 'wide' ? '900px' : '1000px'
+
+  // Shared utility rail props
+  const utilityRailProps = {
+    currentStageId: currentStage?.id ?? '',
+    memberId,
+    member: m,
+    eligibility: elig,
+    benefit: ben,
+    serviceCredit: sc,
+    retirementDate,
+    electedOption: state.electedOption || (hasDRO ? 'j&s_75' : 'maximum'),
+  }
+
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' }}>
+    <div ref={containerRef} style={{ height: '100%', display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' }}>
       {/* Member banner with benefit amount */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -372,13 +443,25 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
         </div>
       )}
 
-      {/* Main content area */}
+      {/* Main content area — tier-adaptive flex layout */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+
+        {/* Member profile rail — wide and ultra tiers */}
+        {showProfileRail && (
+          <MemberProfileRail
+            member={m}
+            serviceCredit={sc}
+            eligibility={elig}
+            benefit={ben}
+            retirementDate={retirementDate}
+          />
+        )}
 
         {state.viewMode === 'guided' ? (
           /* ── GUIDED MODE — single stage content + Learning Module ── */
           <>
             <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
+              <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
               {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
                 <StageSummary
                   summaryFields={currentStage.summaryFields}
@@ -389,8 +472,10 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
               ) : (
                 StageComponent && <StageComponent {...stageProps} />
               )}
+              </div>
             </div>
-            {focusedStage && (
+            {/* LearningModule: inline for standard+, overlay for compact */}
+            {!isCompact && focusedStage && (
               <LearningModule
                 stage={focusedStage}
                 confirmed={state.confirmed}
@@ -403,8 +488,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
                 saveStatus={state.saveStatus}
                 onToggleCheck={(index) =>
                   dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
-                onToggleLayer={(layer) =>
-                  dispatch({ type: 'TOGGLE_LAYER', layer })}
+                onToggleLayer={originalToggleLayer}
                 onConfirm={handleConfirm}
                 onNext={() => dispatch({ type: 'NEXT', stageCount: stages.length })}
                 onUnconfirm={() => dispatch({ type: 'UNCONFIRM', stageId: focusedStage.id })}
@@ -424,37 +508,132 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
                 signals={signals}
                 stageProps={stageProps}
                 stageComponents={STAGE_COMPONENTS}
+                contentMaxWidth={contentMaxWidth}
                 onSelect={(id) => dispatch({ type: 'SELECT_EXPERT_STAGE', stageId: id })}
                 onConfirm={handleConfirmStage}
                 onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
               />
             </div>
 
-            {/* Live summary sidebar (~25%) */}
-            <div style={{
-              flex: 1, minWidth: 0, borderLeft: `1px solid ${C.border}`,
-              background: C.surface, display: 'flex', flexDirection: 'column' as const,
-            }}>
-              <LiveSummary
-                confirmed={state.confirmed}
-                panelCount={stages.length}
-                ben={ben}
-                opts={opts}
-                dro={dro}
-                sc={sc}
-                electedOption={state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')}
-                leavePayout={leavePayout}
-                tc={tc}
-                ruleType={ruleType}
-                ruleSum={ruleSum}
-                ruleMet={ruleMet}
-                reductionPct={reductionPct}
-                onSave={handleSave}
-              />
-            </div>
+            {/* Live summary sidebar (~25%) — hidden at compact, overlay instead */}
+            {!isCompact && (
+              <div style={{
+                flex: 1, minWidth: 0, borderLeft: `1px solid ${C.border}`,
+                background: C.surface, display: 'flex', flexDirection: 'column' as const,
+              }}>
+                <LiveSummary
+                  confirmed={state.confirmed}
+                  panelCount={stages.length}
+                  ben={ben}
+                  opts={opts}
+                  dro={dro}
+                  sc={sc}
+                  electedOption={state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')}
+                  leavePayout={leavePayout}
+                  tc={tc}
+                  ruleType={ruleType}
+                  ruleSum={ruleSum}
+                  ruleMet={ruleMet}
+                  reductionPct={reductionPct}
+                  onSave={handleSave}
+                />
+              </div>
+            )}
           </>
         )}
+
+        {/* Utility rail — ultra tier */}
+        {showUtilityRail && <UtilityRail {...utilityRailProps} />}
       </div>
+
+      {/* Compact overlay — slide-in LearningModule / LiveSummary at narrow widths */}
+      {isCompact && compactOverlayOpen && (
+        <>
+          <div
+            onClick={() => setCompactOverlayOpen(false)}
+            style={{
+              position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)',
+              zIndex: 90,
+            }}
+          />
+          <div style={{
+            position: 'fixed', top: 0, right: 0, bottom: 0, width: 'min(340px, 85vw)',
+            background: C.bg, zIndex: 91, boxShadow: '-4px 0 20px rgba(0,0,0,0.2)',
+            display: 'flex', flexDirection: 'column' as const, overflow: 'hidden',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              padding: '8px 12px', borderBottom: `1px solid ${C.border}`, flexShrink: 0,
+            }}>
+              <span style={{ fontSize: '11px', fontWeight: 700, color: C.text }}>
+                {state.viewMode === 'guided' ? 'Learning Module' : 'Live Summary'}
+              </span>
+              <button onClick={() => setCompactOverlayOpen(false)} style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: C.textMuted, fontSize: '14px',
+              }}>{'\u2715'}</button>
+            </div>
+            <div style={{ flex: 1, overflow: 'auto' }}>
+              {state.viewMode === 'guided' && focusedStage ? (
+                <LearningModule
+                  stage={focusedStage}
+                  confirmed={state.confirmed}
+                  checkedItems={mergedChecks[focusedStage.id] ?? new Set<number>()}
+                  autoCheckedItems={autoChecks[focusedStage.id] ?? new Set<number>()}
+                  layers={state.layers}
+                  canConfirm={canConfirm}
+                  isLastStage={isLastStage}
+                  allConfirmed={allConfirmed}
+                  saveStatus={state.saveStatus}
+                  onToggleCheck={(index) =>
+                    dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
+                  onToggleLayer={originalToggleLayer}
+                  onConfirm={handleConfirm}
+                  onNext={() => dispatch({ type: 'NEXT', stageCount: stages.length })}
+                  onUnconfirm={() => dispatch({ type: 'UNCONFIRM', stageId: focusedStage.id })}
+                  onSave={handleSave}
+                />
+              ) : state.viewMode === 'expert' ? (
+                <LiveSummary
+                  confirmed={state.confirmed}
+                  panelCount={stages.length}
+                  ben={ben}
+                  opts={opts}
+                  dro={dro}
+                  sc={sc}
+                  electedOption={state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')}
+                  leavePayout={leavePayout}
+                  tc={tc}
+                  ruleType={ruleType}
+                  ruleSum={ruleSum}
+                  ruleMet={ruleMet}
+                  reductionPct={reductionPct}
+                  onSave={handleSave}
+                />
+              ) : null}
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Compact tier floating toggle button */}
+      {isCompact && !compactOverlayOpen && (
+        <button
+          onClick={() => setCompactOverlayOpen(true)}
+          style={{
+            position: 'fixed', bottom: '70px', right: '12px', zIndex: 80,
+            width: '36px', height: '36px', borderRadius: '50%',
+            background: C.accent, border: 'none', cursor: 'pointer',
+            color: '#fff', fontSize: '14px', fontWeight: 700,
+            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          title={state.viewMode === 'guided' ? 'Open Learning Module' : 'Open Live Summary'}
+        >{'\u2630'}</button>
+      )}
+
+      {/* Smart nudge toast */}
+      {activeNudge && <NudgeToast nudge={activeNudge} onDismiss={dismissNudge} />}
 
       {/* Bottom navigation — guided mode only */}
       {state.viewMode === 'guided' && (
