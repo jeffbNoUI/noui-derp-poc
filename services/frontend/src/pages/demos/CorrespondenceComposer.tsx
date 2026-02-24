@@ -6,6 +6,8 @@
  */
 // @ts-nocheck
 import { useState, useEffect, useMemo, useCallback } from "react";
+// Shared templates available in @/lib/correspondence-templates — this standalone demo
+// uses its own inline block-generation engine but the mini-panel imports from there.
 
 // ============================================================
 // NoUI Correspondence Composer Prototype

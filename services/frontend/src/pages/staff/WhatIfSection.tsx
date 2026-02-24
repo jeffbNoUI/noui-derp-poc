@@ -20,7 +20,10 @@ export function WhatIfSection({ scenarios }: { scenarios: WhatIfScenario[] }) {
   return (
     <div style={{ marginTop: '8px' }}>
       <button
-        onClick={() => setOpen(v => !v)}
+        onClick={() => {
+          setOpen(v => !v)
+          localStorage.setItem('noui:adoption:used-whatif', 'true')
+        }}
         style={{
           display: 'flex', alignItems: 'center', gap: '4px', width: '100%',
           padding: '4px 0', background: 'none', border: 'none',

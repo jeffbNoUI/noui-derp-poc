@@ -1,15 +1,23 @@
 /**
- * Staff portal layout — dark theme wrapper with NoUI branding top bar and
- * bottom demo case bar. Renders <Outlet /> for nested staff routes.
+ * Staff portal layout — dark theme wrapper with NoUI branding top bar,
+ * announcement banner, keyboard shortcuts, command palette, onboarding checklist,
+ * walkthrough overlay, and bottom demo case bar. Renders <Outlet /> for nested routes.
  * Consumed by: router.tsx (wraps /staff/* routes)
- * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom
+ * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom,
+ *   AnnouncementBanner, ShortcutOverlay, CommandPalette, OnboardingPanel,
+ *   DiscoveryOverlay, WalkthroughOverlay, useWalkthrough
  */
-import { Component, type ReactNode } from 'react'
+import { Component, type ReactNode, useState, useEffect } from 'react'
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { useContainerWidth } from '@/hooks/useContainerWidth'
 import { DEMO_CASES } from '@/lib/constants'
-import { DiscoveryOverlay } from '@/discovery'
+import { DiscoveryOverlay, WalkthroughOverlay, useWalkthrough } from '@/discovery'
+import { AnnouncementBanner } from '@/components/AnnouncementBanner'
+import { ShortcutOverlay } from '@/components/KeyboardShortcuts'
+import { CommandPalette } from '@/components/CommandPalette'
+import { OnboardingPanel } from '@/adoption'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -31,9 +39,26 @@ export function StaffLayout() {
   const { memberId } = useParams()
   const location = useLocation()
   const isGuided = location.pathname.endsWith('/guided')
+  const [checklistOpen, setChecklistOpen] = useState(false)
+  const [toolMenuOpen, setToolMenuOpen] = useState(false)
+  const isKiosk = location.search.includes('kiosk')
+  const { ref: layoutRef, tier } = useContainerWidth()
+  const isCompactBar = tier === 'compact'
+
+  // Walkthrough system
+  const walkthrough = useWalkthrough()
+
+  // Listen for walkthrough start events (from StaffWelcomeScreen)
+  useEffect(() => {
+    const handler = (e: Event) => {
+      walkthrough.start((e as CustomEvent).detail)
+    }
+    window.addEventListener('noui:start-walkthrough', handler)
+    return () => window.removeEventListener('noui:start-walkthrough', handler)
+  }, [walkthrough.start])
 
   return (
-    <div style={{
+    <div ref={layoutRef} style={{
       height: '100vh', display: 'flex', flexDirection: 'column' as const,
       background: C.bg, color: C.text, overflow: 'hidden',
     }}>
@@ -82,30 +107,83 @@ export function StaffLayout() {
               >Guided</button>
             </div>
           )}
-          {/* Productivity tool links */}
-          {[
-            { label: 'Knowledge', path: '/demos/knowledge-assistant' },
-            { label: 'Compose', path: '/demos/correspondence' },
-            { label: 'Validate', path: '/demos/data-validator' },
-          ].map(tool => (
-            <button key={tool.label} onClick={() => navigate(tool.path)} style={{
-              fontSize: '8px', color: C.textDim, textTransform: 'uppercase' as const,
-              letterSpacing: '0.5px', background: 'none', border: `1px solid ${C.borderSubtle}`,
-              padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
-              transition: 'all 0.15s',
-            }}
-              onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent }}
-              onMouseLeave={e => { e.currentTarget.style.color = C.textDim; e.currentTarget.style.borderColor = C.borderSubtle }}
-            >{tool.label}</button>
-          ))}
+          {/* Productivity tool links — collapse into overflow menu at compact tier */}
+          {isCompactBar ? (
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setToolMenuOpen(v => !v)} style={{
+                fontSize: '10px', color: C.textDim, background: 'none',
+                border: `1px solid ${C.borderSubtle}`, padding: '2px 6px',
+                borderRadius: '3px', cursor: 'pointer', letterSpacing: '1px',
+              }}>{'\u22EF'}</button>
+              {toolMenuOpen && (
+                <>
+                  <div onClick={() => setToolMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+                  <div style={{
+                    position: 'absolute', top: '100%', right: 0, marginTop: '4px',
+                    background: C.surface, border: `1px solid ${C.border}`, borderRadius: '6px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 99, minWidth: '140px',
+                    overflow: 'hidden',
+                  }}>
+                    {[
+                      { label: 'Knowledge', path: '/demos/knowledge-assistant' },
+                      { label: 'Compose', path: '/demos/correspondence' },
+                      { label: 'Validate', path: '/demos/data-validator' },
+                    ].map(tool => (
+                      <button key={tool.label} onClick={() => { navigate(tool.path); setToolMenuOpen(false) }} style={{
+                        display: 'block', width: '100%', textAlign: 'left' as const,
+                        fontSize: '11px', color: C.text, background: 'none', border: 'none',
+                        padding: '8px 12px', cursor: 'pointer',
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.background = C.elevated }}
+                        onMouseLeave={e => { e.currentTarget.style.background = 'none' }}
+                      >{tool.label}</button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          ) : (
+            <>
+              {[
+                { label: 'Knowledge', path: '/demos/knowledge-assistant' },
+                { label: 'Compose', path: '/demos/correspondence' },
+                { label: 'Validate', path: '/demos/data-validator' },
+              ].map(tool => (
+                <button key={tool.label} onClick={() => navigate(tool.path)} style={{
+                  fontSize: '8px', color: C.textDim, textTransform: 'uppercase' as const,
+                  letterSpacing: '0.5px', background: 'none', border: `1px solid ${C.borderSubtle}`,
+                  padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
+                  transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { e.currentTarget.style.color = C.accent; e.currentTarget.style.borderColor = C.accent }}
+                  onMouseLeave={e => { e.currentTarget.style.color = C.textDim; e.currentTarget.style.borderColor = C.borderSubtle }}
+                >{tool.label}</button>
+              ))}
+            </>
+          )}
+          {/* Onboarding checklist icon */}
+          {!isKiosk && (
+            <button
+              onClick={() => setChecklistOpen(v => !v)}
+              title="Getting Started checklist"
+              style={{
+                fontSize: '13px', background: 'none', border: `1px solid ${C.borderSubtle}`,
+                borderRadius: '4px', padding: '1px 5px', cursor: 'pointer',
+                color: C.textDim, lineHeight: 1,
+              }}
+            >{'\u2611'}</button>
+          )}
           <button onClick={() => navigate('/')} style={{
             fontSize: '9px', color: C.textMuted, textTransform: 'uppercase' as const,
             letterSpacing: '1px', background: 'none', border: `1px solid ${C.border}`,
             padding: '2px 8px', borderRadius: '4px', cursor: 'pointer',
           }}>Platform</button>
-          <Badge text="Phase 1 · Transparent" bg={C.accentMuted} color={C.accent} />
+          {!isCompactBar && <Badge text="Phase 1 · Transparent" bg={C.accentMuted} color={C.accent} />}
         </div>
       </div>
+
+      {/* Announcement banner */}
+      <AnnouncementBanner />
 
       {/* Main content */}
       <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' as const }}>
@@ -113,7 +191,30 @@ export function StaffLayout() {
           <Outlet />
         </ErrorBoundary>
       </div>
-      <DiscoveryOverlay />
+
+      {/* Discovery spotlight — suppressed when walkthrough is active */}
+      {!walkthrough.active && <DiscoveryOverlay />}
+
+      {/* Walkthrough overlay */}
+      <WalkthroughOverlay
+        active={walkthrough.active}
+        currentStep={walkthrough.currentStep}
+        stepIndex={walkthrough.stepIndex}
+        totalSteps={walkthrough.totalSteps}
+        targetRect={walkthrough.targetRect}
+        onBack={walkthrough.back}
+        onNext={walkthrough.next}
+        onSkipAll={walkthrough.skipAll}
+      />
+
+      {/* Keyboard shortcut overlay (Shift+?) */}
+      <ShortcutOverlay />
+
+      {/* Command palette (Ctrl+K) */}
+      <CommandPalette />
+
+      {/* Onboarding checklist panel */}
+      <OnboardingPanel open={checklistOpen} onClose={() => setChecklistOpen(false)} />
 
       {/* Case selector bottom bar */}
       <div style={{

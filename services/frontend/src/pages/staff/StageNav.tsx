@@ -1,12 +1,11 @@
 /**
- * Stage carousel — horizontal 3D carousel with rotating peek cards, full-content active
- * card, and labeled pill navigation. Previous card rotates away to the left (rotateY),
- * next card rotates away to the right, creating a cylinder/drum effect.
+ * Stage carousel — horizontal carousel with flat peek cards, full-content active card,
+ * chevron arrow buttons, keyboard navigation, and labeled pill navigation.
  * Consumed by: GuidedWorkspace (expert mode main content, ~75% width)
  * Depends on: guided-help.ts (StageHelp), guided-signals.ts (StageSignal),
  *   stages/StageProps, theme (C), Badge
  */
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { C } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import type { StageHelp } from './guided-help'
@@ -30,7 +29,37 @@ const SHORT_LABELS: Record<string, string> = {
   'review-certify': 'Review',
 }
 
-// ─── Peek Card (3D rotated, fading) ────────────────────────────
+// ─── Chevron Arrow Button ─────────────────────────────────────
+
+function ChevronButton({ direction, onClick, visible }: {
+  direction: 'prev' | 'next'; onClick: () => void; visible: boolean
+}) {
+  const [hovered, setHovered] = useState(false)
+  if (!visible) return <div style={{ width: '32px', flexShrink: 0 }} />
+
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      aria-label={direction === 'prev' ? 'Previous stage' : 'Next stage'}
+      style={{
+        width: '32px', flexShrink: 0, display: 'flex',
+        alignItems: 'center', justifyContent: 'center',
+        background: hovered ? C.accentMuted : 'transparent',
+        border: `1px solid ${hovered ? C.accent : C.border}`,
+        borderRadius: '8px', cursor: 'pointer',
+        color: hovered ? C.accent : C.textMuted,
+        fontSize: '16px', fontWeight: 600,
+        transition: 'all 0.2s ease',
+      }}
+    >
+      {direction === 'prev' ? '\u2039' : '\u203A'}
+    </button>
+  )
+}
+
+// ─── Peek Card (flat, always readable) ────────────────────────
 
 function PeekCard({ stage, isDone, signal, side, onClick }: {
   stage: StageHelp; isDone: boolean; signal?: StageSignal
@@ -38,37 +67,30 @@ function PeekCard({ stage, isDone, signal, side, onClick }: {
 }) {
   const [hovered, setHovered] = useState(false)
 
-  // 3D convex rotation — larger circumference (subtle angle), tucked toward active card
-  const rotateY = side === 'prev' ? '-18deg' : '18deg'
-  const transformOrigin = side === 'prev' ? 'left center' : 'right center'
-  const fadeDir = side === 'prev' ? 'to right' : 'to left'
-
   return (
     <div
       onClick={onClick}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       style={{
-        position: 'relative' as const, overflow: 'hidden',
-        width: '160px', flexShrink: 0,
+        position: 'relative' as const,
+        width: 'clamp(140px, 15%, 200px)', flexShrink: 0,
+        alignSelf: 'center' as const, maxHeight: '180px',
         borderRadius: '12px', cursor: 'pointer',
         background: isDone
           ? `linear-gradient(135deg, rgba(46,125,50,0.03), rgba(46,125,50,0.06))`
           : `linear-gradient(180deg, ${C.surface}, ${C.elevated})`,
-        border: `1px solid ${isDone ? C.successBorder : C.borderSubtle}`,
+        border: `1px solid ${isDone ? C.successBorder : hovered ? C.accent : '#6a7070'}`,
         display: 'flex', flexDirection: 'column' as const,
         alignItems: 'center', justifyContent: 'center',
-        padding: '20px 12px', gap: '8px',
-        // 3D convex rotation — tucked closer with negative margin
-        transform: `perspective(1200px) rotateY(${hovered ? (side === 'prev' ? '-10deg' : '10deg') : rotateY}) scale(${hovered ? 0.94 : 0.9})`,
-        transformOrigin,
-        marginRight: side === 'prev' ? '-20px' : undefined,
-        marginLeft: side === 'next' ? '-20px' : undefined,
-        zIndex: 0,
-        transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-        opacity: hovered ? 0.9 : 0.75,
+        padding: '20px 14px', gap: '8px',
+        // Flat depth — scale only, no 3D rotation
+        transform: `scale(${hovered ? 1 : 0.95})`,
+        zIndex: hovered ? 1 : 0,
+        transition: 'all 0.25s ease',
+        opacity: hovered ? 1 : 0.85,
         boxShadow: hovered
-          ? '0 8px 24px rgba(0,0,0,0.08)'
+          ? `0 8px 28px rgba(0,0,0,0.12), 0 0 12px ${C.accentGlow}`
           : '0 2px 8px rgba(0,0,0,0.04)',
       }}
     >
@@ -102,27 +124,33 @@ function PeekCard({ stage, isDone, signal, side, onClick }: {
         }} />
       )}
 
-      {/* Directional fade — lighter on hover to reveal more content */}
+      {/* Hover arrow hint */}
       <div style={{
-        position: 'absolute' as const, inset: 0, pointerEvents: 'none' as const,
-        background: `linear-gradient(${fadeDir}, ${C.surface} 0%, transparent 20%)`,
-        opacity: hovered ? 0.3 : 0.85,
-        transition: 'opacity 0.3s ease',
-      }} />
+        position: 'absolute' as const,
+        top: '50%', [side === 'prev' ? 'left' : 'right']: '6px',
+        transform: 'translateY(-50%)',
+        color: C.accent, fontSize: '14px', fontWeight: 700,
+        opacity: hovered ? 1 : 0,
+        transition: 'opacity 0.2s ease',
+        pointerEvents: 'none' as const,
+      }}>
+        {side === 'prev' ? '\u2039' : '\u203A'}
+      </div>
     </div>
   )
 }
 
 // ─── Active Card (full stage content, gradient border) ──────────
 
-function ActiveCard({ stage, isDone, signal, StageComponent, stageProps, onConfirm, onUnconfirm }: {
-  stage: StageHelp; isDone: boolean; signal?: StageSignal
+function ActiveCard({ stage, isDone, signal, stageId, StageComponent, stageProps, contentMaxWidth, onConfirm, onUnconfirm }: {
+  stage: StageHelp; isDone: boolean; signal?: StageSignal; stageId: string
   StageComponent: React.ComponentType<StageProps>; stageProps: StageProps
+  contentMaxWidth?: string
   onConfirm: () => void; onUnconfirm: () => void
 }) {
   return (
-    /* Gradient border wrapper */
-    <div data-discovery="carousel-card" style={{
+    /* Gradient border wrapper — keyed by stageId for transition */
+    <div key={stageId} data-discovery="carousel-card" style={{
       flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' as const,
       position: 'relative' as const, zIndex: 1,
       background: isDone
@@ -133,8 +161,8 @@ function ActiveCard({ stage, isDone, signal, StageComponent, stageProps, onConfi
         ? `0 4px 24px rgba(46,125,50,0.1), 0 0 16px rgba(46,125,50,0.06)`
         : `0 4px 24px rgba(0,0,0,0.06), 0 0 20px ${C.accentGlow}, 0 0 40px rgba(0,121,107,0.03)`,
       transition: 'all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-      // Active card faces forward — no 3D rotation for full usability
       transform: 'translateZ(0)',
+      animation: 'card-slide-in 0.25s ease-out',
     }}>
       <div style={{
         flex: 1, display: 'flex', flexDirection: 'column' as const,
@@ -183,7 +211,9 @@ function ActiveCard({ stage, isDone, signal, StageComponent, stageProps, onConfi
 
         {/* Stage content (scrollable) */}
         <div style={{ flex: 1, overflow: 'auto', padding: '16px 20px 24px' }}>
-          <StageComponent {...stageProps} />
+          <div style={{ maxWidth: contentMaxWidth ?? '780px', margin: '0 auto' }}>
+            <StageComponent {...stageProps} />
+          </div>
         </div>
 
         {/* Action footer */}
@@ -290,6 +320,7 @@ export interface StageNavProps {
   signals: Record<string, StageSignal>
   stageProps: StageProps
   stageComponents: Record<string, React.ComponentType<StageProps>>
+  contentMaxWidth?: string
   onSelect: (stageId: string) => void
   onConfirm: (stageId: string) => void
   onUnconfirm: (stageId: string) => void
@@ -297,13 +328,32 @@ export interface StageNavProps {
 
 export function StageNav({
   stages, activeStageId, confirmed, signals, stageProps,
-  stageComponents, onSelect, onConfirm, onUnconfirm,
+  stageComponents, contentMaxWidth, onSelect, onConfirm, onUnconfirm,
 }: StageNavProps) {
   const activeIndex = stages.findIndex(s => s.id === activeStageId)
   const prevStage = activeIndex > 0 ? stages[activeIndex - 1] : null
   const nextStage = activeIndex < stages.length - 1 ? stages[activeIndex + 1] : null
   const activeStage = stages[activeIndex]
   const ActiveComponent = activeStage ? stageComponents[activeStage.id] : null
+
+  // Keyboard navigation: Left/Right arrow keys
+  const goPrev = useCallback(() => {
+    if (prevStage) onSelect(prevStage.id)
+  }, [prevStage, onSelect])
+  const goNext = useCallback(() => {
+    if (nextStage) onSelect(nextStage.id)
+  }, [nextStage, onSelect])
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key === 'ArrowLeft') { e.preventDefault(); goPrev() }
+      if (e.key === 'ArrowRight') { e.preventDefault(); goNext() }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [goPrev, goNext])
 
   if (!activeStage || !ActiveComponent) return null
 
@@ -312,6 +362,14 @@ export function StageNav({
       display: 'flex', flexDirection: 'column' as const, height: '100%',
       overflow: 'hidden',
     }}>
+      {/* Keyframe for active card slide-in */}
+      <style>{`
+        @keyframes card-slide-in {
+          from { opacity: 0.7; transform: translateX(8px); }
+          to { opacity: 1; transform: translateX(0); }
+        }
+      `}</style>
+
       {/* Header strip */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
@@ -325,19 +383,29 @@ export function StageNav({
         }}>Stage {activeIndex + 1} of {stages.length}</span>
         <span style={{
           color: C.textMuted, fontSize: '9px', fontWeight: 500,
-        }}>{stages.filter(s => confirmed.has(s.id)).length} confirmed</span>
+        }}>
+          {stages.filter(s => confirmed.has(s.id)).length} confirmed
+          {' \u00B7 '}
+          <span style={{ color: C.textDim }}>
+            {'\u2190\u2192'} arrow keys
+          </span>
+        </span>
       </div>
 
-      {/* Horizontal 3D carousel */}
+      {/* Horizontal carousel */}
       <div style={{
         flex: 1, display: 'flex', alignItems: 'stretch',
-        gap: '8px', padding: '8px 8px 0',
+        gap: '6px', padding: '8px 6px 0',
         overflow: 'hidden', minHeight: 0,
-        // 3D context for child perspective transforms
-        perspective: '1500px',
-        perspectiveOrigin: 'center center',
       }}>
-        {/* Previous peek card (rotates away to the left) */}
+        {/* Left chevron */}
+        <ChevronButton
+          direction="prev"
+          onClick={goPrev}
+          visible={!!prevStage}
+        />
+
+        {/* Previous peek card */}
         {prevStage ? (
           <PeekCard
             stage={prevStage}
@@ -347,21 +415,23 @@ export function StageNav({
             onClick={() => onSelect(prevStage.id)}
           />
         ) : (
-          <div style={{ width: '20px', flexShrink: 0 }} />
+          <div style={{ width: '12px', flexShrink: 0 }} />
         )}
 
         {/* Active card (faces forward, full content) */}
         <ActiveCard
           stage={activeStage}
+          stageId={activeStage.id}
           isDone={confirmed.has(activeStage.id)}
           signal={signals[activeStage.id]}
           StageComponent={ActiveComponent}
           stageProps={stageProps}
+          contentMaxWidth={contentMaxWidth}
           onConfirm={() => onConfirm(activeStage.id)}
           onUnconfirm={() => onUnconfirm(activeStage.id)}
         />
 
-        {/* Next peek card (rotates away to the right) */}
+        {/* Next peek card */}
         {nextStage ? (
           <PeekCard
             stage={nextStage}
@@ -371,8 +441,15 @@ export function StageNav({
             onClick={() => onSelect(nextStage.id)}
           />
         ) : (
-          <div style={{ width: '20px', flexShrink: 0 }} />
+          <div style={{ width: '12px', flexShrink: 0 }} />
         )}
+
+        {/* Right chevron */}
+        <ChevronButton
+          direction="next"
+          onClick={goNext}
+          visible={!!nextStage}
+        />
       </div>
 
       {/* Labeled pill navigation */}

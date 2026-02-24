@@ -6,7 +6,7 @@ export const memberTheme: PortalTheme = {
   name: 'Member Portal',
   subtitle: 'MyDERP · Your Retirement Journey',
   surface: { bg: '#f6f9f9', card: '#ffffff', cardAlt: '#f0f6f6', elevated: '#ffffff' },
-  text: { primary: '#1a2e2e', secondary: '#4a6363', muted: '#728f8f', dim: '#9bb0b0' },
+  text: { primary: '#1a2e2e', secondary: '#4a6363', muted: '#5a7878', dim: '#9bb0b0' },
   border: { base: '#d4e0e0', subtle: '#e8efef', active: '#00796b', focus: '#00796b' },
   accent: { primary: '#00796b', primaryHover: '#00695c', light: '#b2dfdb', surface: '#e0f2f1', on: '#fff' },
   status: {

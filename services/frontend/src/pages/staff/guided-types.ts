@@ -42,6 +42,8 @@ export interface GuidedState {
   expandedStages: Set<string>
   /** Stages manually expanded from summary to full by the user (F-1) */
   manuallyExpanded: Set<string>
+  /** Stages the analyst has visited/viewed — used by smart nudges (F-nudges) */
+  visitedStages: Set<string>
 }
 
 // ─── Actions ──────────────────────────────────────────────────
@@ -63,6 +65,7 @@ export type GuidedAction =
   | { type: 'TOGGLE_EXPAND'; stageId: string }
   | { type: 'SELECT_EXPERT_STAGE'; stageId: string }
   | { type: 'EXPAND_STAGE'; stageId: string }
+  | { type: 'VISIT_STAGE'; stageId: string }
   | { type: 'RESET'; viewMode?: 'guided' | 'expert' }
 
 // ─── Initial state factory ────────────────────────────────────
@@ -88,6 +91,7 @@ export function createInitialState(
     viewMode,
     expandedStages: new Set(),
     manuallyExpanded: new Set(),
+    visitedStages: new Set(),
   }
 }
 
@@ -173,6 +177,11 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
       const next = new Set(state.manuallyExpanded)
       next.add(action.stageId)
       return { ...state, manuallyExpanded: next }
+    }
+    case 'VISIT_STAGE': {
+      const next = new Set(state.visitedStages)
+      next.add(action.stageId)
+      return { ...state, visitedStages: next }
     }
     case 'RESET':
       return createInitialState(action.viewMode)

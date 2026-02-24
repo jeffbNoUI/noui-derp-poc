@@ -10,6 +10,7 @@ import { MemberLayout } from '@/layouts/MemberLayout'
 import { DemoLayout } from '@/layouts/DemoLayout'
 import { PortalSwitcher } from '@/pages/PortalSwitcher'
 import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
+import { ComparisonView } from '@/pages/staff/ComparisonView'
 import { StaffCaseView } from '@/pages/StaffCaseView'
 import { StaffGuidedView } from '@/pages/StaffGuidedView'
 import { MemberDashboard } from '@/pages/portal/MemberDashboard'
@@ -37,6 +38,7 @@ export const router = createBrowserRouter([
       { index: true, element: <StaffWelcomeScreen /> },
       { path: 'case/:memberId', element: <StaffCaseView /> },
       { path: 'case/:memberId/guided', element: <StaffGuidedView /> },
+      { path: 'compare', element: <ComparisonView /> },
     ],
   },
   {

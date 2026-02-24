@@ -20,7 +20,7 @@ export const C = {
   successBorder: 'rgba(46,125,50,0.20)',
   text: '#1a2e2e',
   textSecondary: '#4a6363',
-  textMuted: '#728f8f',
+  textMuted: '#5a7878',
   textDim: '#9bb0b0',
   tier1: '#1565c0',
   tier1Muted: 'rgba(21,101,192,0.08)',

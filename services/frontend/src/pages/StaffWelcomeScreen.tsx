@@ -88,6 +88,26 @@ export function StaffWelcomeScreen() {
           )
         })}
       </div>
+      {/* Quick actions */}
+      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+        <button onClick={() => navigate('/staff/compare')} style={{
+          padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
+          border: `1px solid ${C.border}`, background: 'transparent',
+          color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
+          transition: 'all 0.15s',
+        }}
+          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
+          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSecondary }}
+        >{'\u2194\uFE0F'} Compare Cases</button>
+        <button onClick={() => {
+          window.dispatchEvent(new CustomEvent('noui:start-walkthrough', { detail: 'full-case-processing' }))
+        }} style={{
+          padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
+          border: `1px solid ${C.accent}`, background: C.accentMuted,
+          color: C.accent, cursor: 'pointer', fontWeight: 600,
+          transition: 'all 0.15s',
+        }}>{'\uD83C\uDF93'} Start Guided Tour</button>
+      </div>
       <div style={{
         color: C.textDim, fontSize: '10px', maxWidth: '350px',
         textAlign: 'center' as const, marginTop: '8px',

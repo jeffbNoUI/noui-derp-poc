@@ -45,8 +45,8 @@ export function LearningModule({
   return (
     <div style={{
       ...(wide
-        ? { flex: 4, minWidth: '320px' }
-        : { width: '320px', flexShrink: 0 }),
+        ? { flex: 4, minWidth: '280px', maxWidth: '400px' }
+        : { width: 'clamp(280px, 25%, 400px)', flexShrink: 0 }),
       borderLeft: `1px solid ${C.border}`,
       background: C.elevated, display: 'flex', flexDirection: 'column' as const,
       overflow: 'hidden',

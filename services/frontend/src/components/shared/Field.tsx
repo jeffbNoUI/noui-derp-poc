@@ -17,7 +17,7 @@ export function Field({ label, value, sub, highlight, badge }: {
       display: 'flex', alignItems: 'center',
       padding: '7px 0', borderBottom: `1px solid ${C.borderSubtle}`,
     }}>
-      <div style={{ width: '50%', minWidth: 0 }}>
+      <div style={{ width: '40%', minWidth: 0 }}>
         <span style={{ color: C.textSecondary, fontSize: '12.5px' }}>{label}</span>
         {sub && <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>{sub}</div>}
       </div>

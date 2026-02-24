@@ -6,7 +6,7 @@ export const staffTheme: PortalTheme = {
   name: 'Staff Portal',
   subtitle: 'Service Retirement Workspace',
   surface: { bg: '#f6f9f9', card: '#ffffff', cardAlt: '#f0f6f6', elevated: '#f0f6f6' },
-  text: { primary: '#1a2e2e', secondary: '#4a6363', muted: '#728f8f', dim: '#9bb0b0' },
+  text: { primary: '#1a2e2e', secondary: '#4a6363', muted: '#5a7878', dim: '#9bb0b0' },
   border: { base: '#d4e0e0', subtle: '#e8efef', active: '#00796b', focus: '#00796b' },
   accent: { primary: '#00796b', primaryHover: '#00695c', light: 'rgba(0,121,107,0.15)', surface: 'rgba(0,121,107,0.08)', on: '#ffffff' },
   status: {
