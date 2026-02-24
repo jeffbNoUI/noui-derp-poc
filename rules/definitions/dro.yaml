@@ -1,131 +1,161 @@
-# ============================================================================
-# Category 6: Domestic Relations Orders (DRO)
-# ============================================================================
-# DRO rules govern the division of pension benefits pursuant to court orders
-# from divorce proceedings. Critical principle: DRO split happens FIRST,
-# before payment option selection.
-#
-# Source: derp-business-rules-inventory.docx, Category 6
-# Rules: 6
-# ============================================================================
+# ===========================================================================
+# NoUI DERP POC — Domestic Relations Orders (DRO) Rules
+# ===========================================================================
+# Category 6: Division of pension benefits pursuant to court orders.
+# Critical principle: DRO split happens FIRST, before payment option.
+# Evaluation order: 6
+# ===========================================================================
+
+file_metadata:
+  category: dro
+  description: "DRO marital share calculation, sequencing, division methods, and exclusions."
+  evaluation_order: 6
+  rule_count: 6
+  governing_authority: "RMC §18-391 through §18-430.7"
+  schema_version: "1.0"
 
 rules:
 
-  # --------------------------------------------------------------------------
-  # RULE-DRO-MARITAL-SHARE: DRO Marital Share Calculation
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-MARITAL-SHARE
+  # =========================================================================
   - rule_id: RULE-DRO-MARITAL-SHARE
-    rule_name: DRO Marital Share Calculation
+    rule_name: "DRO Marital Share Calculation"
     category: dro
     description: >
-      Marital fraction = service credit during marriage / total service credit
-      at retirement. Marital share = maximum benefit x marital fraction.
+      Marital fraction = service credit during marriage / total service at
+      retirement. Marital share = maximum benefit × marital fraction.
       Alternate payee receives their awarded percentage of the marital share.
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: dro.exists
+        operator: eq
+        value: true
     formula:
-      expression: "marital_share = maximum_benefit * (service_during_marriage / total_service) * dro_percentage"
+      expression: >
+        maritalServiceYears = overlapMonths(marriageDate, divorceDate, hireDate, retirementDate) / 12;
+        maritalFraction = maritalServiceYears / totalServiceForBenefit;
+        maritalShare = maximumBenefit * maritalFraction;
+        alternatePayeeAmount = maritalShare * droAwardPercentage
       variables:
-        - name: service_during_marriage
-          source: "Overlap of marriage period with employment period"
-          description: >
-            Service credit accumulated between marriage date and divorce date,
-            limited to employment period. If marriage predates employment,
-            marital service starts at hire date.
-        - name: total_service
-          source: "RULE-SVC-EARNED output"
-          description: "Total service credit at retirement"
-        - name: maximum_benefit
-          source: "RULE-PAY-MAXIMUM output"
-          description: "Maximum single life benefit before DRO split"
-        - name: dro_percentage
-          source: "DRO_MASTER.DIV_PCT"
-          description: "Court-ordered percentage awarded to alternate payee"
-
+        - name: marriageDate
+          source: "input.dro.marriageDate"
+          description: "Date of marriage"
+        - name: divorceDate
+          source: "input.dro.divorceDate"
+          description: "Date of divorce"
+        - name: hireDate
+          source: "input.hireDate"
+          description: "Employment start (caps marital service start)"
+        - name: droAwardPercentage
+          source: "input.dro.awardPercentage"
+          description: "Percentage of marital share awarded to alternate payee"
     result:
       type: calculation
-      output: dro_amounts
-      details:
-        marital_fraction: "service_during_marriage / total_service"
-        marital_share: "maximum_benefit * marital_fraction"
-        alternate_payee_share: "marital_share * dro_percentage"
-        member_remaining: "maximum_benefit - alternate_payee_share"
-
+      output_fields:
+        - name: maritalServiceYears
+          type: decimal
+          format: years
+        - name: maritalFraction
+          type: decimal
+          format: percentage
+        - name: maritalShare
+          type: decimal
+          format: monetary
+        - name: alternatePayeeMonthly
+          type: decimal
+          format: monetary
+        - name: memberRemainder
+          type: decimal
+          format: monetary
+          description: "Maximum benefit minus alternate payee amount"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-418(b)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-PAY-MAXIMUM, RULE-SVC-EARNED]
+    assumptions:
+      - id: DRO-OVERLAP-01
+        description: >
+          Service during marriage = overlap of [marriageDate, divorceDate]
+          and [hireDate, retirementDate]. If marriage predates employment,
+          marital service starts at hire date.
+        impact: "Changes marital fraction numerator"
+        status: ACCEPTED
     test_cases:
-      - description: "Case 4 — Martinez DRO calculation"
+      - id: TC-DRO-MS-01
+        description: "Case 4 — Martinez DRO: 40% of marital share"
+        type: happy_path
         inputs:
-          maximum_benefit: 6117.68
-          total_service: 28.75
-          marriage_date: "1999-08-15"
-          divorce_date: "2017-11-03"
-          hire_date: "1997-06-15"
-          service_during_marriage: 18.25
-          dro_percentage: 0.40
+          marriageDate: "1999-08-15"
+          divorceDate: "2017-11-03"
+          hireDate: "1997-06-15"
+          retirementDate: "2026-04-01"
+          totalServiceForBenefit: 28.75
+          maximumBenefit: "6117.68"
+          droAwardPercentage: "0.40"
         expected:
-          marital_fraction: 0.6348
-          marital_share: 3883.10
-          alternate_payee_share: 1553.24
-          member_remaining: 4564.44
-        demo_case_ref: case4-robert-dro
-      - description: "Marriage predates employment — service starts at hire"
+          maritalServiceYears: 18.25
+          maritalFraction: "0.6348"
+          maritalShare: "3883.10"
+          alternatePayeeMonthly: "1553.24"
+          memberRemainder: "4564.44"
+        notes: "Marriage Aug 1999 to Nov 2017 = 18.25 yrs. 18.25/28.75 = 0.63478. Share: 6117.68 × 0.63478 = 3883.10. Patricia: 3883.10 × 0.40 = 1553.24. Robert: 6117.68 - 1553.24 = 4564.44"
+
+      - id: TC-DRO-MS-02
+        description: "Marriage predates employment — marital service starts at hire"
+        type: edge_case
         inputs:
-          maximum_benefit: 5000.00
-          total_service: 20.00
-          marriage_date: "1990-01-01"
-          divorce_date: "2010-01-01"
-          hire_date: "1995-01-01"
-          service_during_marriage: 15.00
-          dro_percentage: 0.50
+          marriageDate: "1990-01-01"
+          divorceDate: "2015-06-01"
+          hireDate: "1997-06-15"
+          retirementDate: "2026-04-01"
+          totalServiceForBenefit: 28.75
+          maximumBenefit: "5000.00"
+          droAwardPercentage: "0.50"
         expected:
-          marital_fraction: 0.75
-          marital_share: 3750.00
-          alternate_payee_share: 1875.00
-          member_remaining: 3125.00
-      - description: "Marriage entirely within employment"
+          maritalServiceYears: 17.92
+        notes: "Marital service starts at hireDate (1997-06-15), not marriageDate (1990)"
+
+      - id: TC-DRO-MS-03
+        description: "Boundary — 50% award of 100% marital fraction"
+        type: boundary
         inputs:
-          maximum_benefit: 4000.00
-          total_service: 25.00
-          service_during_marriage: 10.00
-          dro_percentage: 0.50
+          marriageDate: "1997-06-15"
+          divorceDate: "2026-04-01"
+          hireDate: "1997-06-15"
+          retirementDate: "2026-04-01"
+          totalServiceForBenefit: 28.75
+          maximumBenefit: "6000.00"
+          droAwardPercentage: "0.50"
         expected:
-          marital_fraction: 0.40
-          marital_share: 1600.00
-          alternate_payee_share: 800.00
-      - description: "Negative — no DRO on file"
-        inputs:
-          has_dro: false
-        expected:
-          dro_applies: false
-          member_receives: "full benefit"
+          maritalFraction: "1.0000"
+          alternatePayeeMonthly: "3000.00"
+
+      - id: TC-DRO-MS-04
+        description: "Negative — no DRO on file"
+        type: negative
+        inputs: { dro: { exists: false } }
+        expected: { ruleApplies: false }
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.1"
+      inventory_ref: "Section 6.1"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-    assumptions:
-      - id: DRO-MARRIAGE-OVERLAP
-        description: >
-          Service during marriage is calculated from marriage date to divorce
-          date, overlapping with employment period only. If marriage predates
-          employment, marital service starts at hire date.
-        risk: MEDIUM
-        resolution: "Confirm overlap calculation with DERP legal"
-
-  # --------------------------------------------------------------------------
-  # RULE-DRO-SEQUENCE: DRO Split Before Payment Option
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-SEQUENCE
+  # =========================================================================
   - rule_id: RULE-DRO-SEQUENCE
-    rule_name: DRO Split Before Payment Option
+    rule_name: "DRO Split Before Payment Option"
     category: dro
     description: >
       DRO split is calculated on the Maximum (single life) benefit FIRST.
@@ -133,278 +163,343 @@ rules:
       option selection. The alternate payee's amount is NOT affected by the
       member's payment option election.
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: dro.exists
+        operator: eq
+        value: true
     result:
       type: routing
-      output: calculation_sequence
-      details:
-        step_1: "Calculate maximum benefit (RULE-PAY-MAXIMUM)"
-        step_2: "Apply DRO split (RULE-DRO-MARITAL-SHARE)"
-        step_3: "Member remainder = maximum - alternate_payee_share"
-        step_4: "Apply J&S option to member remainder only"
-        critical: >
-          Alternate payee's $1,553.24 is UNAFFECTED by Robert's J&S election.
-          This is the single most important sequencing rule for DRO cases.
-
+      output_fields:
+        - name: calculationOrder
+          type: list
+          description: "1: Calculate maximum. 2: Apply DRO split. 3: Apply J&S to remainder."
+        - name: alternatePayeeAffectedByJS
+          type: boolean
+          description: "Always false"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-418(b)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+      notes: "Confirmed in doc07 Section 6. This is the single most important DRO sequencing rule."
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DRO-MARITAL-SHARE]
+    assumptions: []
     test_cases:
-      - description: "Case 4 — DRO split THEN 75% J&S"
+      - id: TC-DRO-SEQ-01
+        description: "Case 4 — DRO split then J&S on remainder"
+        type: happy_path
         inputs:
-          maximum_benefit: 6117.68
-          dro_alternate_payee_share: 1553.24
-          member_remainder: 4564.44
-          js_option: "75_js"
-          js_factor: 0.9150
+          maximumBenefit: "6117.68"
+          alternatePayeeAmount: "1553.24"
+          memberRemainder: "4564.44"
+          paymentOption: "75_js"
+          jsFactor: "0.9150"
         expected:
-          member_benefit: 4176.46
-          alternate_payee_benefit: 1553.24
-          patricia_unaffected_by_js: true
-        demo_case_ref: case4-robert-dro
-      - description: "Wrong sequence — J&S before DRO = INCORRECT"
+          memberAfterJS: "4176.46"
+          survivorBenefit: "3132.35"
+          patriciaBenefit: "1553.24"
+        notes: "Patricia's $1,553.24 is unaffected by Robert's 75% J&S election"
+
+      - id: TC-DRO-SEQ-02
+        description: "Verify alternate payee unaffected by J&S change"
+        type: boundary
         inputs:
-          maximum_benefit: 6117.68
-          js_factor: 0.9150
-          wrong_js_first: 5597.68
-          then_dro_split: "WRONG — do not calculate this way"
+          maximumBenefit: "6117.68"
+          alternatePayeeAmount: "1553.24"
+          paymentOption_A: "maximum"
+          paymentOption_B: "100_js"
         expected:
-          error: "DRO split must precede J&S option selection"
-      - description: "Member elects Maximum with DRO"
+          alternatePayee_A: "1553.24"
+          alternatePayee_B: "1553.24"
+        notes: "Same amount regardless of member's J&S election"
+
+      - id: TC-DRO-SEQ-03
+        description: "Wrong order — J&S then DRO = incorrect"
+        type: negative
         inputs:
-          maximum_benefit: 6117.68
-          dro_alternate_payee_share: 1553.24
-          member_remainder: 4564.44
-          js_option: "maximum"
+          order: "js_then_dro"
         expected:
-          member_benefit: 4564.44
-          alternate_payee_benefit: 1553.24
-      - description: "Negative — no DRO, J&S applies to full benefit"
-        inputs:
-          maximum_benefit: 6117.68
-          has_dro: false
-          js_option: "75_js"
-          js_factor: 0.9150
-        expected:
-          member_benefit: 5597.68
-          note: "J&S applied to full maximum"
-        demo_case_ref: case1-robert-martinez
+          error: "DRO must be applied before J&S option"
+
+      - id: TC-DRO-SEQ-04
+        description: "No DRO — skip to J&S directly"
+        type: negative
+        inputs: { dro: { exists: false } }
+        expected: { ruleApplies: false }
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.2"
+      inventory_ref: "Section 6.2"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DRO-METHODS: DRO Division Methods
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-METHODS
+  # =========================================================================
   - rule_id: RULE-DRO-METHODS
-    rule_name: DRO Division Methods
+    rule_name: "DRO Division Methods"
     category: dro
     description: >
       DROs may divide benefits by: (a) percentage of marital share (most
       common), (b) fixed dollar amount, or (c) present value offset (no
       ongoing plan involvement).
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: dro.divisionMethod
+        operator: in
+        value: ["percentage", "fixed_dollar", "present_value_offset"]
     result:
-      type: determination
-      output: division_method
-      details:
-        methods:
-          - id: PERCENTAGE
-            description: "Percentage of marital share"
-            most_common: true
-          - id: FIXED_AMOUNT
-            description: "Fixed dollar amount per month"
-          - id: PRESENT_VALUE_OFFSET
-            description: "Present value offset — no ongoing plan involvement"
-
+      type: routing
+      output_fields:
+        - name: divisionMethod
+          type: enum
+          description: "percentage, fixed_dollar, or present_value_offset"
+        - name: requiresOngoingPayment
+          type: boolean
+          description: "False for present_value_offset"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-418(b)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+      notes: "Also confirmed in doc07 Section 4"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DRO-MARITAL-SHARE]
+    assumptions:
+      - id: DRO-METHOD-01
+        description: "POC implements percentage method only (Case 4). Fixed dollar is simpler."
+        impact: "Fixed dollar method not demonstrated in POC"
+        status: ACCEPTED
     test_cases:
-      - description: "Case 4 — percentage method (40% of marital share)"
-        inputs: { method: "PERCENTAGE", value: 0.40 }
-        expected: { method: "PERCENTAGE", alternate_share: "marital_share * 0.40" }
-        demo_case_ref: case4-robert-dro
-      - description: "Fixed dollar method"
-        inputs: { method: "FIXED_AMOUNT", value: 1500.00 }
-        expected: { alternate_payee_monthly: 1500.00 }
-      - description: "Present value offset — no plan involvement"
-        inputs: { method: "PRESENT_VALUE_OFFSET" }
-        expected: { plan_involvement: "none", alternate_payee_monthly: 0 }
-      - description: "Negative — invalid method"
-        inputs: { method: "INVALID" }
-        expected: { error: "unknown_division_method" }
-
+      - id: TC-DRO-METHOD-01
+        description: "Percentage method — Case 4"
+        type: happy_path
+        inputs: { divisionMethod: "percentage", awardPercentage: "0.40" }
+        expected: { requiresOngoingPayment: true }
+      - id: TC-DRO-METHOD-02
+        description: "Fixed dollar method"
+        type: edge_case
+        inputs: { divisionMethod: "fixed_dollar", fixedAmount: "1000.00" }
+        expected: { alternatePayeeMonthly: "1000.00", requiresOngoingPayment: true }
+      - id: TC-DRO-METHOD-03
+        description: "Present value offset — no plan involvement"
+        type: boundary
+        inputs: { divisionMethod: "present_value_offset" }
+        expected: { requiresOngoingPayment: false }
+      - id: TC-DRO-METHOD-04
+        description: "Negative — invalid method"
+        type: negative
+        inputs: { divisionMethod: "other" }
+        expected: { error: "Invalid DRO division method" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.3"
+      inventory_ref: "Section 6.3"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DRO-NO-IPR: DRO Alternate Payee IPR Exclusion
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-NO-IPR
+  # =========================================================================
   - rule_id: RULE-DRO-NO-IPR
-    rule_name: DRO Alternate Payee IPR Exclusion
+    rule_name: "DRO Alternate Payee IPR Exclusion"
     category: dro
     description: >
       Former spouse receiving DRO benefits is NOT eligible for IPR
-      (Insurance Premium Reduction).
+      (Insurance Premium Reduction). Member retains IPR eligibility
+      based on their own earned service.
     tier_applicability: [1, 2, 3]
-
     conditions:
-      - field: recipient_type
+      - field: dro.exists
         operator: eq
-        value: "alternate_payee"
-
+        value: true
     result:
-      type: determination
-      output: ipr_eligible
-      value: false
-
+      type: validation
+      output_fields:
+        - name: alternatePayeeIPREligible
+          type: boolean
+          description: "Always false"
+        - name: memberIPRUnaffected
+          type: boolean
+          description: "Member's IPR is not reduced by DRO"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-418(b)(8)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DRO-MARITAL-SHARE]
+    assumptions:
+      - id: DRO-IPR-01
+        description: "Case 4 originally included Patricia's IPR — must be excluded."
+        impact: "Alternate payee receives benefit only, no IPR"
+        status: ACCEPTED
     test_cases:
-      - description: "Case 4 — Patricia (alternate payee) NOT eligible for IPR"
-        inputs: { recipient: "Patricia Martinez", type: "alternate_payee" }
-        expected: { ipr_eligible: false }
-        demo_case_ref: case4-robert-dro
-      - description: "Case 4 — Robert (member) still eligible for IPR"
-        inputs: { recipient: "Robert Martinez", type: "member" }
-        expected: { ipr_eligible: true, service_for_ipr: 28.75 }
-        demo_case_ref: case4-robert-dro
-      - description: "Negative — regular retiree is eligible"
-        inputs: { recipient: "Regular retiree", type: "member" }
-        expected: { ipr_eligible: true }
-      - description: "Alternate payee with 20 years marital service — still no IPR"
-        inputs: { recipient: "Former spouse", type: "alternate_payee", marital_service: 20.0 }
-        expected: { ipr_eligible: false, reason: "alternate_payees_excluded" }
-
+      - id: TC-DRO-IPR-01
+        description: "Case 4 — Patricia gets no IPR"
+        type: happy_path
+        inputs: { alternatePayee: "Patricia", dro: { exists: true } }
+        expected: { alternatePayeeIPREligible: false }
+      - id: TC-DRO-IPR-02
+        description: "Member's IPR unaffected by DRO"
+        type: boundary
+        inputs: { memberId: "Robert", earnedService: 28.75, dro: { exists: true } }
+        expected: { memberIPRUnaffected: true, memberIPR: "359.38" }
+      - id: TC-DRO-IPR-03
+        description: "No DRO — IPR rules normal"
+        type: negative
+        inputs: { dro: { exists: false } }
+        expected: { ruleApplies: false }
+      - id: TC-DRO-IPR-04
+        description: "Negative — alternate payee requests IPR"
+        type: negative
+        inputs: { alternatePayeeRequestsIPR: true }
+        expected: { denied: true, reason: "§18-418(b)(8) excludes alternate payees" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.4"
+      inventory_ref: "Section 6.4"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DRO-NO-HEALTH: DRO Alternate Payee Health Insurance Exclusion
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-NO-HEALTH
+  # =========================================================================
   - rule_id: RULE-DRO-NO-HEALTH
-    rule_name: DRO Alternate Payee Health Insurance Exclusion
+    rule_name: "DRO Alternate Payee Health Insurance Exclusion"
     category: dro
     description: >
       Former spouse is NOT eligible for DERP health insurance benefits.
     tier_applicability: [1, 2, 3]
-
     conditions:
-      - field: recipient_type
+      - field: dro.exists
         operator: eq
-        value: "alternate_payee"
-
+        value: true
     result:
-      type: determination
-      output: health_insurance_eligible
-      value: false
-
+      type: validation
+      output_fields:
+        - name: alternatePayeeHealthEligible
+          type: boolean
+          description: "Always false"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-418(b)(8)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DRO-MARITAL-SHARE]
+    assumptions: []
     test_cases:
-      - description: "Alternate payee not eligible for health insurance"
-        inputs: { recipient_type: "alternate_payee" }
-        expected: { health_eligible: false }
-      - description: "Member still eligible"
-        inputs: { recipient_type: "member" }
-        expected: { health_eligible: true }
-      - description: "Workspace must not show health options for alternate payee"
-        inputs: { recipient_type: "alternate_payee", workspace_context: true }
-        expected: { show_health_component: false }
-      - description: "Negative — current spouse beneficiary IS eligible"
-        inputs: { recipient_type: "surviving_spouse" }
-        expected: { health_eligible: true, note: "Surviving spouse vs former spouse" }
-
+      - id: TC-DRO-HEALTH-01
+        description: "Alternate payee — no health insurance"
+        type: happy_path
+        inputs: { alternatePayee: true }
+        expected: { alternatePayeeHealthEligible: false }
+      - id: TC-DRO-HEALTH-02
+        description: "Member retains health eligibility"
+        type: boundary
+        inputs: { isMember: true, dro: { exists: true } }
+        expected: { memberHealthUnaffected: true }
+      - id: TC-DRO-HEALTH-03
+        description: "Negative — workspace should not show health options for alternate payee"
+        type: negative
+        inputs: { userRole: "alternate_payee" }
+        expected: { showHealthInsurancePanel: false }
+      - id: TC-DRO-HEALTH-04
+        description: "No DRO — not applicable"
+        type: negative
+        inputs: { dro: { exists: false } }
+        expected: { ruleApplies: false }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.5"
+      inventory_ref: "Section 6.5"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DRO-COLA: DRO and COLA Applicability
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DRO-COLA
+  # =========================================================================
   - rule_id: RULE-DRO-COLA
-    rule_name: DRO and COLA Applicability
+    rule_name: "DRO and COLA Applicability"
     category: dro
     description: >
       Whether the alternate payee's share participates in future COLAs
       depends on the specific DRO language. Each DRO must be reviewed
       individually.
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: dro.exists
+        operator: eq
+        value: true
     result:
       type: determination
-      output: cola_applicable
-      details:
-        determined_by: "DRO court order language"
-        default_when_silent: "UNKNOWN — requires DERP policy determination"
-
+      output_fields:
+        - name: alternatePayeeCOLAEligible
+          type: boolean
+          description: "Determined by DRO order language"
+        - name: colaSource
+          type: string
+          description: "'dro_language' — must review each order individually"
     source_reference:
-      document: RMC
-      section: "§18-418(b)"
+      document: "doc07"
+      section: "Section 4"
       verification: ASSUMED
-
-    effective_date: "1999-01-01"
+      notes: "COLA for alternate payees is per-DRO, not plan default"
+    effective_date: "2000-01-01"
     end_date: null
-
-    test_cases:
-      - description: "DRO explicitly includes COLA"
-        inputs: { dro_cola_clause: "included" }
-        expected: { cola_applicable: true }
-      - description: "DRO explicitly excludes COLA"
-        inputs: { dro_cola_clause: "excluded" }
-        expected: { cola_applicable: false }
-      - description: "DRO silent on COLA"
-        inputs: { dro_cola_clause: null }
-        expected: { cola_applicable: "requires_review", flag: "Q-DRO-03" }
-      - description: "Member's share always eligible for COLA regardless of DRO"
-        inputs: { recipient_type: "member", has_dro: true }
-        expected: { cola_applicable: true, note: "DRO does not affect member COLA" }
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 6.6"
-
+    depends_on: [RULE-DRO-MARITAL-SHARE, RULE-COLA]
     assumptions:
       - id: Q-DRO-03
-        description: >
-          DERP's default position on COLA for DRO alternate payees when
-          the court order is silent is unknown.
-        risk: MEDIUM
-        resolution: "Confirm with DERP staff"
+        description: "DERP's default position on COLA for alternate payees when order is silent is unknown."
+        impact: "Could affect alternate payee's long-term benefit"
+        status: OPEN
+    test_cases:
+      - id: TC-DRO-COLA-01
+        description: "DRO specifies COLA participation"
+        type: happy_path
+        inputs: { dro: { colaProvision: "participating" } }
+        expected: { alternatePayeeCOLAEligible: true }
+      - id: TC-DRO-COLA-02
+        description: "DRO excludes COLA"
+        type: happy_path
+        inputs: { dro: { colaProvision: "excluded" } }
+        expected: { alternatePayeeCOLAEligible: false }
+      - id: TC-DRO-COLA-03
+        description: "DRO silent on COLA — needs DERP default"
+        type: edge_case
+        inputs: { dro: { colaProvision: null } }
+        expected: { alternatePayeeCOLAEligible: null, requiresReview: true }
+      - id: TC-DRO-COLA-04
+        description: "No DRO"
+        type: negative
+        inputs: { dro: { exists: false } }
+        expected: { ruleApplies: false }
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 6.6"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"

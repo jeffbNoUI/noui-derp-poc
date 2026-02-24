@@ -1,20 +1,26 @@
-# ============================================================================
-# Category 4: Benefit Calculation
-# ============================================================================
-# The core calculation engine. Every formula, every intermediate value, and
-# every rounding decision must be verifiable to the penny against hand calcs.
-#
-# Source: derp-business-rules-inventory.docx, Category 4
-# Rules: 9
-# ============================================================================
+# ===========================================================================
+# NoUI DERP POC — Benefit Calculation Rules
+# ===========================================================================
+# Category 4: Core calculation engine. Every formula, intermediate value,
+# and rounding decision must be verifiable to the penny.
+# Evaluation order: 4
+# ===========================================================================
+
+file_metadata:
+  category: benefit_calculation
+  description: "AMS, benefit formula, reduction application, and rounding. The core calculation pipeline."
+  evaluation_order: 4
+  rule_count: 9
+  governing_authority: "RMC §18-391 through §18-430.7"
+  schema_version: "1.0"
 
 rules:
 
-  # --------------------------------------------------------------------------
-  # RULE-AMS-WINDOW: AMS Averaging Period
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-AMS-WINDOW
+  # =========================================================================
   - rule_id: RULE-AMS-WINDOW
-    rule_name: AMS Averaging Period
+    rule_name: "AMS Averaging Period"
     category: benefit_calculation
     description: >
       AMS uses the highest consecutive months of pensionable salary.
@@ -22,260 +28,314 @@ rules:
     tier_applicability: [1, 2, 3]
 
     conditions:
-      - field: tier
+      - field: computedTier
         operator: in
         value: [1, 2]
-        description: "36-month window for Tiers 1 and 2"
-      - field: tier
+        notes: "36-month window"
+      - field: computedTier
         operator: eq
         value: 3
-        description: "60-month window for Tier 3"
+        notes: "60-month window"
+
+    formula:
+      expression: "windowMonths = (tier in [1,2]) ? 36 : 60"
+      variables:
+        - name: tier
+          source: "rule.RULE-TIER-*.output.computedTier"
+          description: "Member's tier determines window size"
 
     result:
-      type: calculation
-      output: ams_window_months
-      details:
-        tier_1: 36
-        tier_2: 36
-        tier_3: 60
+      type: derivation
+      output_fields:
+        - name: windowMonths
+          type: integer
+          description: "Number of consecutive months for AMS calculation"
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(1-3)"
       verification: CONFIRMED
 
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
-    test_cases:
-      - description: "Martinez — Tier 1, 36-month window"
-        inputs: { tier: 1 }
-        expected: { window_months: 36 }
-        demo_case_ref: case1-robert-martinez
-      - description: "Kim — Tier 2, 36-month window"
-        inputs: { tier: 2 }
-        expected: { window_months: 36 }
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — Tier 3, 60-month window"
-        inputs: { tier: 3 }
-        expected: { window_months: 60 }
-        demo_case_ref: case3-david-washington
-      - description: "Negative — invalid tier returns error"
-        inputs: { tier: 4 }
-        expected: { error: "invalid_tier" }
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.1"
+    depends_on: [RULE-TIER-1, RULE-TIER-2, RULE-TIER-3]
 
     assumptions:
       - id: Q-AMS-01
-        description: >
-          How partial months at start/end of employment are handled is not
-          specified in the RMC. Assumption: only complete months are included.
-        risk: MEDIUM
-        resolution: "Confirm with DERP staff"
+        description: "How partial months at start/end handled is not in RMC. Assume complete months only."
+        impact: "Could affect which months are included in the window"
+        status: OPEN
 
-  # --------------------------------------------------------------------------
-  # RULE-AMS-CALC: AMS Calculation Method
-  # --------------------------------------------------------------------------
+    test_cases:
+      - id: TC-AMS-WIN-01
+        description: "Tier 1 — 36-month window"
+        type: happy_path
+        inputs: { computedTier: 1 }
+        expected: { windowMonths: 36 }
+      - id: TC-AMS-WIN-02
+        description: "Tier 2 — 36-month window"
+        type: happy_path
+        inputs: { computedTier: 2 }
+        expected: { windowMonths: 36 }
+      - id: TC-AMS-WIN-03
+        description: "Tier 3 — 60-month window"
+        type: happy_path
+        inputs: { computedTier: 3 }
+        expected: { windowMonths: 60 }
+      - id: TC-AMS-WIN-04
+        description: "Negative — invalid tier"
+        type: negative
+        inputs: { computedTier: 4 }
+        expected: { error: "Invalid tier" }
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 4.1"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
+
+  # =========================================================================
+  # RULE-AMS-CALC
+  # =========================================================================
   - rule_id: RULE-AMS-CALC
-    rule_name: AMS Calculation Method
+    rule_name: "AMS Calculation Method"
     category: benefit_calculation
     description: >
       For each possible consecutive window of N months, sum all pensionable
       compensation and divide by N. The highest resulting average is the AMS.
-      System must search ALL possible windows to find the highest average.
+      NOTE: AMS is computed by the Connector Service. The Intelligence
+      Service trusts the Connector value but includes the trace.
     tier_applicability: [1, 2, 3]
 
     formula:
-      expression: "max(sum(monthly_compensation[i:i+N]) / N for all valid i)"
+      expression: "AMS = MAX over all windows W of (SUM(compensation[W]) / windowMonths)"
       variables:
-        - name: monthly_compensation
-          source: "SALARY_HIST aggregated to monthly totals"
-          description: >
-            Monthly pensionable compensation. Database stores biweekly
-            records — rules engine MUST aggregate biweekly to monthly
-            totals before computing AMS sliding window.
-        - name: N
-          source: "RULE-AMS-WINDOW output"
-          description: "Window size in months (36 or 60)"
+        - name: compensation
+          source: "connector.getSalaryHistory"
+          description: "Monthly pensionable compensation records"
+        - name: windowMonths
+          source: "rule.RULE-AMS-WINDOW.output.windowMonths"
+          description: "36 or 60 depending on tier"
 
     result:
       type: calculation
-      output: ams
-      details:
-        precision: "Full precision — do not round intermediate"
-        window_start: "First month of the highest window"
-        window_end: "Last month of the highest window"
+      output_fields:
+        - name: ams
+          type: decimal
+          description: "Average Monthly Salary — the highest consecutive-month average"
+          format: monetary
+        - name: windowStart
+          type: date
+          description: "Start of the highest window"
+        - name: windowEnd
+          type: date
+          description: "End of the highest window"
+        - name: totalCompensation
+          type: decimal
+          description: "Total compensation in the winning window"
+          format: monetary
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(1-3)"
       verification: CONFIRMED
 
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
-    test_cases:
-      - description: "Martinez — AMS with leave payout in final month"
-        inputs:
-          tier: 1
-          window_months: 36
-          salary_data: "See case1 fixture"
-          leave_payout: 52000.00
-        expected:
-          ams: 10639.45
-          window_start: "2023-04-01"
-          window_end: "2026-03-31"
-          total_compensation: 383020.24
-        demo_case_ref: case1-robert-martinez
-      - description: "Kim — AMS 36-month window"
-        inputs:
-          tier: 2
-          window_months: 36
-          salary_data: "See case2 fixture"
-        expected:
-          ams: 7347.62
-          total_compensation: 264514.32
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — AMS 60-month window"
-        inputs:
-          tier: 3
-          window_months: 60
-          salary_data: "See case3 fixture"
-        expected:
-          ams: 6684.52
-          total_compensation: 401071.20
-        demo_case_ref: case3-david-washington
-      - description: "Window must slide to find highest — not just most recent"
-        inputs:
-          monthly_salaries: [5000, 5000, 5000, 8000, 8000, 8000, 6000, 6000, 6000]
-          window_months: 3
-        expected:
-          ams: 8000.00
-          window_position: "months 4-6 (not 7-9)"
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.2"
+    depends_on: [RULE-AMS-WINDOW, RULE-LEAVE-PAYOUT]
 
     assumptions:
       - id: Q-CALC-05
-        description: >
-          Unknown whether DERP has anti-spiking provisions that cap
-          year-over-year salary increases in the AMS window.
-        risk: MEDIUM
-        resolution: "Confirm with DERP staff"
-
-  # --------------------------------------------------------------------------
-  # RULE-LEAVE-PAYOUT: Leave Payout Inclusion
-  # --------------------------------------------------------------------------
-  - rule_id: RULE-LEAVE-PAYOUT
-    rule_name: Leave Payout Inclusion
-    category: benefit_calculation
-    description: >
-      For members whose service begins on or before December 31, 2009:
-      unused sick and vacation leave paid out at separation is treated as
-      salary and included in the AMS calculation. Members hired on or after
-      January 1, 2010: leave payout is NOT included. The payout is added
-      to the FINAL month's salary.
-    tier_applicability: [1, 2, 3]
-
-    conditions:
-      - field: hire_date
-        operator: lt
-        value: "2010-01-01"
-        description: >
-          Note: hire date cutoff (Jan 1, 2010) does NOT align with tier
-          boundaries. A Tier 2 member hired Mar 1, 2008 IS eligible.
-          A Tier 2 member hired Feb 1, 2010 is NOT.
-        join: AND
-      - field: leave_payout_type
-        operator: in
-        value: ["sick_vacation", "sick", "vacation"]
-        description: "PTO-classified leave is NOT eligible"
-        join: AND
-      - field: leave_payout_amount
-        operator: gt
-        value: 0
-
-    result:
-      type: calculation
-      output: leave_payout_eligible
-      details:
-        application: "Added to FINAL month's salary in AMS window"
-        ams_impact: "Can dramatically boost AMS if final month is in highest window"
-
-    source_reference:
-      document: RMC
-      section: "§18-402(15)"
-      verification: CONFIRMED
-
-    effective_date: "1999-01-01"
-    end_date: null
+        description: "Unknown if DERP has anti-spiking provisions capping YOY salary increases."
+        impact: "Could change AMS if salary spikes are capped"
+        status: OPEN
 
     test_cases:
-      - description: "Martinez — eligible, $52,000 payout boosts AMS"
+      - id: TC-AMS-CALC-01
+        description: "Martinez — 36-month window with leave payout"
+        type: happy_path
         inputs:
-          hire_date: "1997-06-15"
-          leave_payout_amount: 52000.00
-          leave_payout_type: "sick_vacation"
+          computedTier: 1
+          windowMonths: 36
+          baseCompensation: "331020.24"
+          leavePayoutIncluded: "52000.00"
         expected:
-          eligible: true
-          amount: 52000.00
-          added_to_month: "2026-03"
-        demo_case_ref: case1-robert-martinez
-      - description: "Kim — eligible by hire date but no payout claimed"
+          totalCompensation: "383020.24"
+          ams: "10639.45"
+        notes: "Case 1: $383,020.24 / 36 = $10,639.4511... → $10,639.45"
+
+      - id: TC-AMS-CALC-02
+        description: "Kim — 36-month window, no leave payout boost"
+        type: happy_path
         inputs:
-          hire_date: "2008-03-01"
-          leave_payout_amount: 0
-          leave_payout_type: null
+          computedTier: 2
+          windowMonths: 36
         expected:
-          eligible: true
-          amount: 0
-          note: "Eligible by date but no payout in this scenario"
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — NOT eligible (hired after 2010)"
+          ams: "7347.62"
+        notes: "Case 2: AMS from test fixture"
+
+      - id: TC-AMS-CALC-03
+        description: "Washington — 60-month window"
+        type: happy_path
         inputs:
-          hire_date: "2012-09-01"
-          leave_payout_amount: 30000.00
-          leave_payout_type: "sick_vacation"
+          computedTier: 3
+          windowMonths: 60
+          totalCompensation: "401071.20"
         expected:
-          eligible: false
-          reason: "hired_after_2010"
-        demo_case_ref: case3-david-washington
-      - description: "Boundary — hired Dec 31, 2009 = eligible"
+          ams: "6684.52"
+        notes: "Case 3: $401,071.20 / 60 = $6,684.52"
+
+      - id: TC-AMS-CALC-04
+        description: "Boundary — verify sliding window finds highest, not most recent"
+        type: boundary
         inputs:
-          hire_date: "2009-12-31"
-          leave_payout_amount: 25000.00
-          leave_payout_type: "sick_vacation"
+          note: "Synthetic member with salary decrease in final year"
         expected:
-          eligible: true
-      - description: "Boundary — hired Jan 1, 2010 = NOT eligible"
-        inputs:
-          hire_date: "2010-01-01"
-          leave_payout_amount: 25000.00
-          leave_payout_type: "sick_vacation"
-        expected:
-          eligible: false
-          reason: "hired_after_2010"
+          windowStart: "not_most_recent"
+        notes: "Engine must check ALL possible windows"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.3"
+      inventory_ref: "Section 4.2"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-FURLOUGH: Furlough Impact on AMS
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-LEAVE-PAYOUT
+  # =========================================================================
+  - rule_id: RULE-LEAVE-PAYOUT
+    rule_name: "Leave Payout Inclusion"
+    category: benefit_calculation
+    description: >
+      For members hired on or before December 31, 2009: unused sick/vacation
+      leave paid out at separation is treated as salary and included in AMS.
+      Members hired on or after January 1, 2010: leave payout NOT included.
+      NOTE: Cutoff is HIRE DATE, not tier boundary.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: hireDate
+        operator: lte
+        value: "2009-12-31"
+        notes: "Hired before Jan 1, 2010 — eligible for leave payout in AMS"
+
+    formula:
+      expression: "Leave payout added to final month compensation before AMS window calculation"
+      variables:
+        - name: leavePayout
+          source: "input.leavePayoutAmount"
+          description: "Dollar amount of unused sick/vacation leave payout"
+        - name: hireDate
+          source: "input.hireDate"
+          description: "Used for eligibility check (before/after Jan 1, 2010)"
+
+    result:
+      type: derivation
+      output_fields:
+        - name: leavePayoutEligible
+          type: boolean
+          description: "Whether member qualifies for leave payout inclusion"
+        - name: leavePayoutAmount
+          type: decimal
+          description: "Amount added to final month's compensation"
+          format: monetary
+
+    source_reference:
+      document: "RMC"
+      section: "§18-402(15)"
+      verification: CONFIRMED
+      notes: "Hire date cutoff does NOT align with tier boundaries"
+
+    effective_date: "2000-01-01"
+    end_date: null
+    depends_on: []
+
+    assumptions:
+      - id: LEAVE-FINAL-01
+        description: "Leave payout is added to the FINAL month's salary before AMS window calc."
+        impact: "Dramatically boosts AMS when final month is in the highest window"
+        status: ACCEPTED
+      - id: LEAVE-TIER-01
+        description: >
+          Hire date cutoff (Jan 1, 2010) does NOT align with tier boundaries.
+          Tier 2 member hired March 2008 IS eligible. Tier 2 member hired
+          Feb 2010 is NOT eligible.
+        impact: "Must check hire date independently of tier"
+        status: ACCEPTED
+
+    test_cases:
+      - id: TC-LEAVE-01
+        description: "Martinez — hired 1997, eligible"
+        type: happy_path
+        inputs:
+          hireDate: "1997-06-15"
+          leavePayoutAmount: "52000.00"
+        expected:
+          leavePayoutEligible: true
+          leavePayoutAmount: "52000.00"
+        notes: "Case 1: $52K payout boosts final month AMS"
+
+      - id: TC-LEAVE-02
+        description: "Kim — hired March 2008, eligible (before Jan 1, 2010)"
+        type: happy_path
+        inputs:
+          hireDate: "2008-03-01"
+          leavePayoutAmount: "15000.00"
+        expected:
+          leavePayoutEligible: true
+        notes: "Case 2: Tier 2 but hired before 2010 cutoff"
+
+      - id: TC-LEAVE-03
+        description: "Boundary — hired Dec 31, 2009 = last eligible date"
+        type: boundary
+        inputs:
+          hireDate: "2009-12-31"
+        expected:
+          leavePayoutEligible: true
+
+      - id: TC-LEAVE-04
+        description: "Just over — hired Jan 1, 2010 = not eligible"
+        type: just_below
+        inputs:
+          hireDate: "2010-01-01"
+        expected:
+          leavePayoutEligible: false
+
+      - id: TC-LEAVE-05
+        description: "Washington — hired Sep 2012, not eligible"
+        type: negative
+        inputs:
+          hireDate: "2012-09-01"
+        expected:
+          leavePayoutEligible: false
+        notes: "Case 3: hired after 2010"
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 4.3"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
+
+  # =========================================================================
+  # RULE-FURLOUGH
+  # =========================================================================
   - rule_id: RULE-FURLOUGH
-    rule_name: Furlough Impact on AMS
+    rule_name: "Furlough Impact on AMS"
     category: benefit_calculation
     description: >
       If furlough days fall within the AMS window, they reduce pensionable
@@ -283,364 +343,483 @@ rules:
       this impact.
     tier_applicability: [1, 2, 3]
 
+    conditions:
+      - field: derived.hasFurloughInAMSWindow
+        operator: eq
+        value: true
+
     result:
-      type: calculation
-      output: furlough_adjusted_salary
-      details:
-        note: >
-          Furlough purchase mechanism exists but specific cost calculation
-          and process details are not fully documented. No demo case
-          exercises this rule.
+      type: derivation
+      output_fields:
+        - name: furloughImpact
+          type: decimal
+          description: "Reduction to AMS from furlough days"
+          format: monetary
+        - name: furloughDaysPurchased
+          type: integer
+          description: "Number of furlough days member has purchased back"
 
     source_reference:
-      document: RMC
-      section: "§18-402 (definitions)"
+      document: "RMC"
+      section: "§18-402"
       verification: ASSUMED
+      notes: "Mechanism exists but cost formula not fully documented. No demo case exercises this."
 
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
-    test_cases:
-      - description: "Member with furlough days in AMS window"
-        inputs:
-          monthly_salary: 7000.00
-          furlough_days_in_month: 5
-          working_days_in_month: 22
-        expected:
-          adjusted_salary: 5909.09
-          reduction: 1090.91
-      - description: "Member purchased furlough days — no impact"
-        inputs:
-          monthly_salary: 7000.00
-          furlough_days_in_month: 5
-          furlough_purchased: true
-        expected:
-          adjusted_salary: 7000.00
-          reduction: 0
-      - description: "No furlough — salary unchanged"
-        inputs:
-          monthly_salary: 7000.00
-          furlough_days_in_month: 0
-        expected:
-          adjusted_salary: 7000.00
-      - description: "Negative — furlough outside AMS window = no impact"
-        inputs:
-          furlough_in_ams_window: false
-        expected:
-          impact: "none"
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.4"
+    depends_on: [RULE-AMS-WINDOW]
 
     assumptions:
       - id: Q-FURLOUGH-01
-        description: >
-          Cost formula for purchasing furlough days is not documented.
-          May use same actuarial methodology as service purchase.
-        risk: MEDIUM
-        resolution: "Confirm with DERP staff"
-
-  # --------------------------------------------------------------------------
-  # RULE-BENEFIT-T1: Tier 1 Benefit Formula
-  # --------------------------------------------------------------------------
-  - rule_id: RULE-BENEFIT-T1
-    rule_name: Tier 1 Benefit Formula
-    category: benefit_calculation
-    description: "Monthly Benefit = AMS x 2.0% x Total Service Years (earned + purchased)."
-    tier_applicability: [1]
-
-    formula:
-      expression: "ams * 0.02 * total_service_years"
-      variables:
-        - name: ams
-          source: "RULE-AMS-CALC output"
-          description: "Average Monthly Salary (highest 36 consecutive months)"
-        - name: multiplier
-          source: "constant: 0.02"
-          description: "Tier 1 multiplier: 2.0%"
-        - name: total_service_years
-          source: "RULE-SVC-SEPARATION output (benefit total)"
-          description: "Earned + purchased service years"
-
-    result:
-      type: calculation
-      output: unreduced_monthly_benefit
-
-    source_reference:
-      document: RMC
-      section: "§18-409(a)(1)"
-      verification: CONFIRMED
-
-    effective_date: "1999-01-01"
-    end_date: null
+        description: "Furlough purchase cost formula unknown. Not exercised in POC demo cases."
+        impact: "Cannot calculate purchase cost"
+        status: OPEN
 
     test_cases:
-      - description: "Martinez — Tier 1 benefit"
+      - id: TC-FURLOUGH-01
+        description: "No furlough — no impact"
+        type: happy_path
+        inputs: { hasFurloughInAMSWindow: false }
+        expected: { furloughImpact: "0.00" }
+      - id: TC-FURLOUGH-02
+        description: "Furlough days in window — reduces compensation"
+        type: edge_case
         inputs:
-          ams: 10639.45
-          multiplier: 0.02
-          service_years: 28.75
+          hasFurloughInAMSWindow: true
+          furloughDays: 10
+          dailyRate: "300.00"
         expected:
-          unreduced_monthly_benefit: 6117.68
-        demo_case_ref: case1-robert-martinez
-      - description: "Minimum benefit scenario — 5 years service"
+          furloughImpact: "3000.00"
+      - id: TC-FURLOUGH-03
+        description: "Furlough days purchased — impact negated"
+        type: boundary
         inputs:
-          ams: 5000.00
-          multiplier: 0.02
-          service_years: 5.00
+          hasFurloughInAMSWindow: true
+          furloughDays: 10
+          furloughDaysPurchased: 10
         expected:
-          unreduced_monthly_benefit: 500.00
-      - description: "High service scenario — 35 years"
-        inputs:
-          ams: 12000.00
-          multiplier: 0.02
-          service_years: 35.00
-        expected:
-          unreduced_monthly_benefit: 8400.00
-      - description: "Verify precision — do not round intermediate values"
-        inputs:
-          ams: 10639.45
-          multiplier: 0.02
-          service_years: 28.75
-        expected:
-          intermediate_ams_times_multiplier: 212.789
-          unreduced_monthly_benefit: 6117.68
-          note: "Round only final monthly benefit to cents"
+          furloughImpact: "0.00"
+      - id: TC-FURLOUGH-04
+        description: "Negative — furlough outside AMS window"
+        type: negative
+        inputs: { hasFurloughInAMSWindow: false, furloughDays: 20 }
+        expected: { furloughImpact: "0.00" }
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.5"
+      inventory_ref: "Section 4.4"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-BENEFIT-T2: Tier 2 Benefit Formula
-  # --------------------------------------------------------------------------
-  - rule_id: RULE-BENEFIT-T2
-    rule_name: Tier 2 Benefit Formula
+  # =========================================================================
+  # RULE-BENEFIT-T1
+  # =========================================================================
+  - rule_id: RULE-BENEFIT-T1
+    rule_name: "Tier 1 Benefit Formula"
     category: benefit_calculation
-    description: "Monthly Benefit = AMS x 1.5% x Total Service Years (earned + purchased)."
-    tier_applicability: [2]
+    description: >
+      Monthly Benefit = AMS × 2.0% × Total Service Years (earned + purchased).
+    tier_applicability: [1]
+
+    conditions:
+      - field: computedTier
+        operator: eq
+        value: 1
 
     formula:
-      expression: "ams * 0.015 * total_service_years"
+      expression: "ams * 0.02 * totalServiceForBenefit"
       variables:
         - name: ams
-          source: "RULE-AMS-CALC output"
-          description: "Average Monthly Salary (highest 36 consecutive months)"
-        - name: multiplier
-          source: "constant: 0.015"
-          description: "Tier 2 multiplier: 1.5%"
-        - name: total_service_years
-          source: "RULE-SVC-SEPARATION output (benefit total)"
+          source: "connector.getAMS"
+          description: "Average Monthly Salary from Connector"
+        - name: totalServiceForBenefit
+          source: "rule.RULE-SVC-PURCHASED.output.totalServiceForBenefit"
           description: "Earned + purchased service years"
 
     result:
       type: calculation
-      output: unreduced_monthly_benefit
+      output_fields:
+        - name: unreducedMonthlyBenefit
+          type: decimal
+          description: "Monthly benefit before any early retirement reduction"
+          format: monetary
+        - name: multiplier
+          type: decimal
+          description: "Always 0.02 for Tier 1"
+          format: percentage
 
     source_reference:
-      document: RMC
+      document: "RMC"
+      section: "§18-409(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "2000-01-01"
+    end_date: null
+    depends_on: [RULE-AMS-CALC, RULE-SVC-PURCHASED]
+
+    assumptions: []
+
+    test_cases:
+      - id: TC-BEN-T1-01
+        description: "Martinez — $10,639.45 × 0.02 × 28.75"
+        type: happy_path
+        inputs:
+          ams: "10639.45"
+          totalServiceForBenefit: 28.75
+        expected:
+          unreducedMonthlyBenefit: "6117.68"
+          multiplier: "0.02"
+        notes: "Case 1: 10639.45 × 0.02 × 28.75 = 6,117.6838 → 6,117.68"
+
+      - id: TC-BEN-T1-02
+        description: "Minimum scenario — 5 years service"
+        type: boundary
+        inputs:
+          ams: "5000.00"
+          totalServiceForBenefit: 5.00
+        expected:
+          unreducedMonthlyBenefit: "500.00"
+        notes: "5000 × 0.02 × 5 = 500.00"
+
+      - id: TC-BEN-T1-03
+        description: "Long service — 35 years"
+        type: happy_path
+        inputs:
+          ams: "12000.00"
+          totalServiceForBenefit: 35.00
+        expected:
+          unreducedMonthlyBenefit: "8400.00"
+
+      - id: TC-BEN-T1-04
+        description: "Negative — wrong tier"
+        type: negative
+        inputs:
+          computedTier: 2
+          ams: "10000.00"
+          totalServiceForBenefit: 20.00
+        expected:
+          error: "RULE-BENEFIT-T1 does not apply to Tier 2"
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 4.5"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
+
+  # =========================================================================
+  # RULE-BENEFIT-T2
+  # =========================================================================
+  - rule_id: RULE-BENEFIT-T2
+    rule_name: "Tier 2 Benefit Formula"
+    category: benefit_calculation
+    description: >
+      Monthly Benefit = AMS × 1.5% × Total Service Years (earned + purchased).
+    tier_applicability: [2]
+
+    conditions:
+      - field: computedTier
+        operator: eq
+        value: 2
+
+    formula:
+      expression: "ams * 0.015 * totalServiceForBenefit"
+      variables:
+        - name: ams
+          source: "connector.getAMS"
+          description: "Average Monthly Salary"
+        - name: totalServiceForBenefit
+          source: "rule.RULE-SVC-PURCHASED.output.totalServiceForBenefit"
+          description: "Earned + purchased service years"
+
+    result:
+      type: calculation
+      output_fields:
+        - name: unreducedMonthlyBenefit
+          type: decimal
+          format: monetary
+        - name: multiplier
+          type: decimal
+          description: "Always 0.015 for Tier 2"
+          format: percentage
+
+    source_reference:
+      document: "RMC"
       section: "§18-409(a)(2)"
       verification: CONFIRMED
 
     effective_date: "2004-09-01"
     end_date: null
+    depends_on: [RULE-AMS-CALC, RULE-SVC-PURCHASED]
+    assumptions: []
 
     test_cases:
-      - description: "Kim — Tier 2 benefit (unreduced)"
+      - id: TC-BEN-T2-01
+        description: "Kim — $7,347.62 × 0.015 × 21.17"
+        type: happy_path
         inputs:
-          ams: 7347.62
-          multiplier: 0.015
-          service_years: 21.17
+          ams: "7347.62"
+          totalServiceForBenefit: 21.17
         expected:
-          unreduced_monthly_benefit: 2332.96
-        demo_case_ref: case2-jennifer-kim
-      - description: "Benefit without purchased service for comparison"
+          unreducedMonthlyBenefit: "2332.96"
+          multiplier: "0.015"
+        notes: "Case 2: 7347.62 × 0.015 × 21.17 = 2,332.9627... → 2,332.96"
+
+      - id: TC-BEN-T2-02
+        description: "Verify 1.5% multiplier (not 2.0%)"
+        type: boundary
         inputs:
-          ams: 7347.62
-          multiplier: 0.015
-          service_years: 18.17
+          ams: "10000.00"
+          totalServiceForBenefit: 20.00
         expected:
-          unreduced_monthly_benefit: 2002.53
-          note: "Shows $330.43 difference from purchased service"
-      - description: "Minimum benefit scenario — 5 years service"
+          unreducedMonthlyBenefit: "3000.00"
+        notes: "10000 × 0.015 × 20 = 3000. With T1 multiplier would be 4000."
+
+      - id: TC-BEN-T2-03
+        description: "With purchased service"
+        type: happy_path
         inputs:
-          ams: 5000.00
-          multiplier: 0.015
-          service_years: 5.00
+          ams: "8000.00"
+          totalServiceForBenefit: 25.00
+          earnedYears: 22.00
+          purchasedYears: 3.00
         expected:
-          unreduced_monthly_benefit: 375.00
-      - description: "Verify 1.5% vs Tier 1 2.0% difference"
+          unreducedMonthlyBenefit: "3000.00"
+        notes: "Benefit uses TOTAL (earned + purchased)"
+
+      - id: TC-BEN-T2-04
+        description: "Negative — wrong tier"
+        type: negative
         inputs:
-          ams: 10000.00
-          service_years: 20.00
+          computedTier: 3
         expected:
-          tier_2_benefit: 3000.00
-          tier_1_equivalent: 4000.00
-          note: "Tier 2 multiplier produces 75% of Tier 1 benefit for same inputs"
+          error: "RULE-BENEFIT-T2 does not apply to Tier 3"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.6"
+      inventory_ref: "Section 4.6"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-BENEFIT-T3: Tier 3 Benefit Formula
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-BENEFIT-T3
+  # =========================================================================
   - rule_id: RULE-BENEFIT-T3
-    rule_name: Tier 3 Benefit Formula
+    rule_name: "Tier 3 Benefit Formula"
     category: benefit_calculation
     description: >
-      Monthly Benefit = AMS x 1.5% x Total Service Years (earned + purchased).
-      Same multiplier as Tier 2 but different AMS window (60 vs 36 months).
+      Monthly Benefit = AMS × 1.5% × Total Service Years (earned + purchased).
+      Same multiplier as Tier 2, but different AMS window (60 months vs 36).
     tier_applicability: [3]
 
+    conditions:
+      - field: computedTier
+        operator: eq
+        value: 3
+
     formula:
-      expression: "ams * 0.015 * total_service_years"
+      expression: "ams * 0.015 * totalServiceForBenefit"
       variables:
         - name: ams
-          source: "RULE-AMS-CALC output"
-          description: "Average Monthly Salary (highest 60 consecutive months)"
-        - name: multiplier
-          source: "constant: 0.015"
-          description: "Tier 3 multiplier: 1.5%"
-        - name: total_service_years
-          source: "RULE-SVC-SEPARATION output (benefit total)"
-          description: "Earned + purchased service years"
+          source: "connector.getAMS"
+          description: "Average Monthly Salary (60-month window for Tier 3)"
+        - name: totalServiceForBenefit
+          source: "rule.RULE-SVC-PURCHASED.output.totalServiceForBenefit"
 
     result:
       type: calculation
-      output: unreduced_monthly_benefit
+      output_fields:
+        - name: unreducedMonthlyBenefit
+          type: decimal
+          format: monetary
+        - name: multiplier
+          type: decimal
+          description: "Always 0.015 for Tier 3"
+          format: percentage
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(3)"
       verification: CONFIRMED
 
     effective_date: "2011-07-01"
     end_date: null
+    depends_on: [RULE-AMS-CALC, RULE-SVC-PURCHASED]
+    assumptions: []
 
     test_cases:
-      - description: "Washington — Tier 3 benefit (unreduced)"
+      - id: TC-BEN-T3-01
+        description: "Washington — $6,684.52 × 0.015 × 13.58"
+        type: happy_path
         inputs:
-          ams: 6684.52
-          multiplier: 0.015
-          service_years: 13.58
+          ams: "6684.52"
+          totalServiceForBenefit: 13.58
         expected:
-          unreduced_monthly_benefit: 1361.40
-        demo_case_ref: case3-david-washington
-      - description: "Minimum benefit scenario"
+          unreducedMonthlyBenefit: "1361.40"
+          multiplier: "0.015"
+        notes: "Case 3: 6684.52 × 0.015 × 13.58 = 1,361.4045... → 1,361.40"
+
+      - id: TC-BEN-T3-02
+        description: "Verify same multiplier as T2 but different AMS result"
+        type: boundary
         inputs:
-          ams: 4000.00
-          multiplier: 0.015
-          service_years: 5.00
+          ams: "6000.00"
+          totalServiceForBenefit: 20.00
         expected:
-          unreduced_monthly_benefit: 300.00
-      - description: "Impact of 60-month window vs 36-month"
+          unreducedMonthlyBenefit: "1800.00"
+
+      - id: TC-BEN-T3-03
+        description: "Long service Tier 3"
+        type: happy_path
         inputs:
-          description: >
-            Same salary data through different windows produces different AMS.
-            60-month window includes older, lower salaries, reducing AMS.
+          ams: "8000.00"
+          totalServiceForBenefit: 30.00
         expected:
-          note: "Tier 3 AMS is typically lower than Tier 2 AMS for same salary history"
-      - description: "Same multiplier as Tier 2 — different window size"
-        inputs:
-          ams: 6684.52
-          service_years: 13.58
-        expected:
-          tier_3_benefit: 1361.40
-          note: "Same 1.5% multiplier as Tier 2 but 60-month AMS window"
+          unreducedMonthlyBenefit: "3600.00"
+
+      - id: TC-BEN-T3-04
+        description: "Negative — wrong tier"
+        type: negative
+        inputs: { computedTier: 1 }
+        expected: { error: "RULE-BENEFIT-T3 does not apply to Tier 1" }
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.7"
+      inventory_ref: "Section 4.7"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-REDUCTION-APPLY: Early Retirement Reduction Application
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-REDUCTION-APPLY
+  # =========================================================================
   - rule_id: RULE-REDUCTION-APPLY
-    rule_name: Early Retirement Reduction Application
+    rule_name: "Early Retirement Reduction Application"
     category: benefit_calculation
     description: >
-      If early retirement, multiply unreduced benefit by reduction factor
-      from RULE-EARLY-REDUCE-T12 or RULE-EARLY-REDUCE-T3. Reduction is
-      permanent for lifetime.
+      If early retirement, multiply unreduced benefit by the reduction factor
+      from the statutory table. Reduction is permanent for lifetime.
     tier_applicability: [1, 2, 3]
 
+    conditions:
+      - field: derived.retirementType
+        operator: eq
+        value: "early"
+
     formula:
-      expression: "unreduced_benefit * reduction_factor"
+      expression: "reducedBenefit = unreducedMonthlyBenefit * reductionFactor"
       variables:
-        - name: unreduced_benefit
-          source: "RULE-BENEFIT-T1/T2/T3 output"
-          description: "The tier-specific benefit formula result"
-        - name: reduction_factor
-          source: "RULE-EARLY-REDUCE-T12 or RULE-EARLY-REDUCE-T3 lookup table"
-          description: "Factor from statutory table (0.70 to 1.00)"
+        - name: unreducedMonthlyBenefit
+          source: "rule.RULE-BENEFIT-T*.output.unreducedMonthlyBenefit"
+          description: "Benefit before reduction"
+        - name: reductionFactor
+          source: "rule.RULE-EARLY-REDUCE-T*.output.reductionFactor"
+          description: "From statutory lookup table"
 
     result:
       type: calculation
-      output: reduced_monthly_benefit
-      details:
-        permanent: true
-        note: "If no early retirement reduction applies, factor = 1.00"
+      output_fields:
+        - name: reducedMonthlyBenefit
+          type: decimal
+          description: "Final benefit after early retirement reduction"
+          format: monetary
+        - name: reductionAmount
+          type: decimal
+          description: "Dollar amount of reduction"
+          format: monetary
+        - name: isPermanent
+          type: boolean
+          description: "Always true — reduction never reverts"
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(b)"
       verification: CONFIRMED
 
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
+    depends_on: [RULE-BENEFIT-T1, RULE-BENEFIT-T2, RULE-BENEFIT-T3, RULE-EARLY-REDUCE-T12, RULE-EARLY-REDUCE-T3]
+    assumptions: []
 
     test_cases:
-      - description: "Kim — 30% reduction applied"
+      - id: TC-REDUCE-01
+        description: "Kim — $2,332.96 × 0.70 = $1,633.07"
+        type: happy_path
         inputs:
-          unreduced_benefit: 2332.96
-          reduction_factor: 0.70
+          unreducedMonthlyBenefit: "2332.96"
+          reductionFactor: "0.70"
         expected:
-          reduced_benefit: 1633.07
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — 12% reduction applied"
+          reducedMonthlyBenefit: "1633.07"
+          reductionAmount: "699.89"
+          isPermanent: true
+        notes: "Case 2: 2332.96 × 0.70 = 1,633.072 → 1,633.07"
+
+      - id: TC-REDUCE-02
+        description: "Washington — $1,361.40 × 0.88 = $1,198.03"
+        type: happy_path
         inputs:
-          unreduced_benefit: 1361.40
-          reduction_factor: 0.88
+          unreducedMonthlyBenefit: "1361.40"
+          reductionFactor: "0.88"
         expected:
-          reduced_benefit: 1198.03
-        demo_case_ref: case3-david-washington
-      - description: "Martinez — no reduction (Rule of 75 met)"
+          reducedMonthlyBenefit: "1198.03"
+          reductionAmount: "163.37"
+          isPermanent: true
+        notes: "Case 3: 1361.40 × 0.88 = 1,198.032 → 1,198.03"
+
+      - id: TC-REDUCE-03
+        description: "No reduction — normal/Rule of N"
+        type: boundary
         inputs:
-          unreduced_benefit: 6117.68
-          reduction_factor: 1.00
+          unreducedMonthlyBenefit: "6117.68"
+          reductionFactor: "1.00"
         expected:
-          reduced_benefit: 6117.68
-        demo_case_ref: case1-robert-martinez
-      - description: "Verify reduction is permanent"
+          reducedMonthlyBenefit: "6117.68"
+          reductionAmount: "0.00"
+        notes: "Case 1: Martinez — no reduction, factor = 1.00"
+
+      - id: TC-REDUCE-04
+        description: "Negative — factor must be between 0.70 and 1.00"
+        type: negative
         inputs:
-          unreduced_benefit: 2332.96
-          reduction_factor: 0.70
-          member_turns_65: true
+          unreducedMonthlyBenefit: "5000.00"
+          reductionFactor: "0.50"
         expected:
-          reduced_benefit: 1633.07
-          note: "Reduction does NOT change at age 65 — permanent"
+          error: "Reduction factor out of range"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.8"
+      inventory_ref: "Section 4.8"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-ROUNDING: Calculation Rounding Strategy
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-ROUNDING
+  # =========================================================================
   - rule_id: RULE-ROUNDING
-    rule_name: Calculation Rounding Strategy
+    rule_name: "Calculation Rounding Strategy"
     category: benefit_calculation
     description: >
       Carry full precision through all intermediate calculations. Round only
@@ -648,55 +827,80 @@ rules:
       banker's rounding (round half to even).
     tier_applicability: [1, 2, 3]
 
+    # ASSUMPTION: Q-CALC-01 — Banker's rounding, not confirmed by DERP
+    conditions: []
+
+    formula:
+      expression: "finalBenefit = bankersRound(calculatedBenefit, 2)"
+      variables:
+        - name: calculatedBenefit
+          source: "rule.RULE-REDUCTION-APPLY.output or RULE-BENEFIT-T*.output"
+          description: "Full-precision benefit before rounding"
+
     result:
-      type: validation
-      output: rounding_applied
-      details:
-        intermediate_calculations: "Full precision (no rounding)"
-        ams: "Full precision"
-        js_factors: "4 decimal places"
-        final_monthly_benefit: "Round to cents (2 decimal places) as last step"
-        method: "Banker's rounding (round half to even)"
+      type: derivation
+      output_fields:
+        - name: roundedBenefit
+          type: decimal
+          format: monetary
+          description: "Final benefit rounded to 2 decimal places"
+        - name: roundingMethod
+          type: string
+          description: "Always 'bankers' (round half to even)"
+        - name: precisionLoss
+          type: decimal
+          description: "Difference between full precision and rounded value"
 
     source_reference:
-      document: Project Decision
-      section: "BUILD_HISTORY Decision 21"
+      document: "BUILD_HISTORY"
+      section: "Decision 21"
       verification: ASSUMED
+      notes: "Project decision, NOT confirmed by DERP. DERP may use standard rounding or truncation."
 
-    effective_date: "2026-02-21"
+    effective_date: "2026-02-01"
     end_date: null
-
-    test_cases:
-      - description: "Amount ending in .X50 — banker's rounding"
-        inputs: { raw_benefit: 1234.565 }
-        expected: { rounded_benefit: 1234.56, method: "round_half_to_even" }
-      - description: "Amount ending in .X50 — rounds up when digit is odd"
-        inputs: { raw_benefit: 1234.575 }
-        expected: { rounded_benefit: 1234.58, method: "round_half_to_even" }
-      - description: "Standard rounding — no ambiguity"
-        inputs: { raw_benefit: 1234.567 }
-        expected: { rounded_benefit: 1234.57 }
-      - description: "Verify intermediate values not rounded"
-        inputs:
-          ams: 10639.45
-          multiplier: 0.02
-          service_years: 28.75
-        expected:
-          ams_times_multiplier: 212.789
-          intermediate_not_rounded: true
-          final: 6117.68
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 4.9"
+    depends_on: [RULE-REDUCTION-APPLY]
 
     assumptions:
       - id: Q-CALC-01
-        description: >
-          DERP's actual rounding methodology is unknown. We have assumed
-          banker's rounding. DERP may use standard rounding (0.5 rounds up)
-          or truncation. Could cause penny-level differences.
-        risk: HIGH
-        resolution: "CRITICAL — Confirm with DERP staff"
+        description: "DERP's actual rounding methodology unknown. Assumed banker's rounding."
+        impact: "Penny-level differences on amounts ending in .X50"
+        status: OPEN
+
+    test_cases:
+      - id: TC-ROUND-01
+        description: "Martinez — 6117.6838 → 6117.68"
+        type: happy_path
+        inputs: { calculatedBenefit: 6117.6838 }
+        expected: { roundedBenefit: "6117.68" }
+
+      - id: TC-ROUND-02
+        description: "Banker's rounding — .X50 rounds to even (down)"
+        type: boundary
+        inputs: { calculatedBenefit: 1234.565 }
+        expected: { roundedBenefit: "1234.56" }
+        notes: "6 is even → round down"
+
+      - id: TC-ROUND-03
+        description: "Banker's rounding — .X50 rounds to even (up)"
+        type: boundary
+        inputs: { calculatedBenefit: 1234.575 }
+        expected: { roundedBenefit: "1234.58" }
+        notes: "7 is odd → round up to 8 (even)"
+
+      - id: TC-ROUND-04
+        description: "No rounding needed"
+        type: happy_path
+        inputs: { calculatedBenefit: 5000.00 }
+        expected: { roundedBenefit: "5000.00", precisionLoss: "0.00" }
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 4.9"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"

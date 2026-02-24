@@ -1,0 +1,1129 @@
+openapi: 3.1.0
+info:
+  title: NoUI Intelligence Service
+  description: |
+    Layer 2 of the NoUI architecture. Deterministic rules engine, benefit
+    calculator, eligibility evaluator, and process orchestrator.
+    
+    CRITICAL AI BOUNDARY: This service executes all calculations via
+    deterministic Go code. No AI, LLM, or probabilistic system is in
+    any calculation path. Every result includes a full calculation trace
+    referencing governing document provisions.
+    
+    All monetary values are strings with exactly two decimal places.
+    All percentages are decimal numbers (0.03 = 3%).
+  version: 1.0.0
+  contact:
+    name: NoUI Technical Director
+
+servers:
+  - url: http://intelligence.noui.svc:8082
+    description: Kubernetes cluster internal
+
+tags:
+  - name: Eligibility
+    description: Retirement eligibility evaluation
+  - name: Benefits
+    description: Benefit calculation and payment options
+  - name: Scenarios
+    description: Retirement date comparison modeling
+  - name: DRO
+    description: Domestic Relations Order calculations
+  - name: Rules
+    description: Rule definitions and transparency
+  - name: Context
+    description: Member context aggregation
+  - name: Health
+    description: Service health and readiness
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      operationId: getLiveness
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: |
+        Checks rule loader status (all 52 rules loaded and validated),
+        Connector service reachability, and database health via Connector.
+      operationId: getReadiness
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service not ready
+
+  /api/v1/eligibility/evaluate:
+    post:
+      tags: [Eligibility]
+      summary: Evaluate retirement eligibility
+      description: |
+        Evaluates ALL retirement eligibility paths for a member at a
+        given retirement date. Returns each path's eligible/not-eligible
+        status, which conditions are met or unmet, and projected
+        eligibility dates for unmet paths.
+        
+        Retirement paths evaluated:
+        - Normal retirement (age 65 + 5 years service, all tiers)
+        - Rule of 75 (Tiers 1, 2 only)
+        - Rule of 85 (Tier 3 only)
+        - Early retirement Tiers 1/2 (age 55 + 5 years)
+        - Early retirement Tier 3 (age 60 + 5 years)
+        - Deferred retirement
+        - Disability retirement
+        
+        CRITICAL: Purchased service is EXCLUDED from Rule of 75/85
+        eligibility calculations. Only earned service counts.
+      operationId: evaluateEligibility
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EligibilityRequest"
+      responses:
+        "200":
+          description: Eligibility evaluation results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EligibilityResponse"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/benefit/calculate:
+    post:
+      tags: [Benefits]
+      summary: Calculate retirement benefit
+      description: |
+        Performs a complete benefit calculation including:
+        1. Tier determination from hire date
+        2. AMS calculation (fetched from Connector)
+        3. Service credit total (earned + purchased for formula)
+        4. Tier-specific formula application
+        5. Early retirement reduction if applicable
+        6. Rule of 75/85 exemption check
+        7. Leave payout inclusion for pre-2010 hires
+        
+        Returns a complete calculation trace with every input, formula,
+        intermediate result, and the governing document reference for
+        each step. This trace is the data source for the
+        BenefitCalculationPanel in the frontend.
+        
+        All monetary results are exact to the penny. No rounding until
+        the final result, which rounds to the nearest cent.
+      operationId: calculateBenefit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BenefitCalculationRequest"
+      responses:
+        "200":
+          description: Complete benefit calculation with trace
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenefitCalculationResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+        "422":
+          description: |
+            Calculation cannot be performed. Reasons include:
+            insufficient salary history, member not eligible,
+            or missing required data.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/benefit/options:
+    post:
+      tags: [Benefits]
+      summary: Calculate payment options
+      description: |
+        Calculates all four payment options with actuarial reduction
+        factors. Requires beneficiary DOB for Joint & Survivor
+        calculations. Handles spousal consent flag and DRO interaction.
+        
+        Payment options:
+        1. Maximum (single life) — no reduction
+        2. 100% Joint & Survivor — largest reduction
+        3. 75% Joint & Survivor — moderate reduction
+        4. 50% Joint & Survivor — smallest reduction
+        
+        If a DRO is present, the DRO split is applied BEFORE the
+        payment option reduction. The response shows both pre-DRO
+        and post-DRO amounts for each option.
+      operationId: calculatePaymentOptions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentOptionsRequest"
+      responses:
+        "200":
+          description: Payment option comparison
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PaymentOptionsResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/benefit/scenario:
+    post:
+      tags: [Scenarios]
+      summary: Compare retirement scenarios
+      description: |
+        Runs full benefit calculations for multiple retirement dates,
+        enabling side-by-side comparison. This powers the ScenarioModeler
+        component, which shows how waiting affects benefit amount and
+        eligibility status.
+        
+        The response highlights threshold crossings — dates where the
+        member becomes eligible for Rule of 75/85 or reaches a
+        significant reduction milestone.
+      operationId: calculateScenarios
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScenarioRequest"
+      responses:
+        "200":
+          description: Scenario comparison results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScenarioResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/dro/calculate:
+    post:
+      tags: [DRO]
+      summary: Calculate DRO impact
+      description: |
+        Calculates the marital share, marital fraction, and alternate
+        payee amount based on the DRO records for a member.
+        
+        Marital fraction = service during marriage / total service
+        Marital share = marital fraction × gross benefit
+        Alternate payee amount = marital share × division percentage
+      operationId: calculateDRO
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DROCalculationRequest"
+      responses:
+        "200":
+          description: DRO impact calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DROCalculationResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+        "422":
+          description: No DRO record exists for this member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/rules:
+    get:
+      tags: [Rules]
+      summary: List all loaded rules
+      description: |
+        Returns the complete rule inventory with source references.
+        This transparency endpoint enables the demo's "the system
+        knows our rules" proof point. Each rule includes its category,
+        tier applicability, and governing document citation.
+      operationId: listRules
+      parameters:
+        - name: category
+          in: query
+          description: Filter by rule category
+          schema:
+            type: string
+            enum: [membership, contribution, vesting, eligibility, benefit-calculation, payment-options, service-purchase, dro, refund, ipr, re-employment]
+        - name: tier
+          in: query
+          description: Filter by tier applicability
+          schema:
+            type: integer
+            enum: [1, 2, 3]
+      responses:
+        "200":
+          description: Rule inventory
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleListResponse"
+
+  /api/v1/rules/{ruleId}:
+    get:
+      tags: [Rules]
+      summary: Get rule detail
+      description: |
+        Returns complete rule definition including conditions, formula,
+        test cases, and certification metadata.
+      operationId: getRule
+      parameters:
+        - name: ruleId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "ELIGIBILITY-003"
+      responses:
+        "200":
+          description: Rule detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuleDetailResponse"
+        "404":
+          description: Rule not found
+
+  /api/v1/members/{id}/context:
+    get:
+      tags: [Context]
+      summary: Get aggregated member context
+      description: |
+        Aggregates data for the Member Context Hub: open work items,
+        recent transactions, active flags (DRO present, data quality
+        findings, approaching eligibility milestones). Drives hub
+        card ordering and badge content.
+      operationId: getMemberContext
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Member context
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberContextResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+components:
+  responses:
+    MemberNotFound:
+      description: Member not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp, service, version, degradationLevel]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+          enum: [intelligence]
+        version:
+          type: string
+        degradationLevel:
+          type: integer
+          minimum: 0
+          maximum: 5
+
+    ErrorResponse:
+      type: object
+      required: [error, meta]
+      properties:
+        error:
+          type: object
+          required: [code, message, source]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            source:
+              type: object
+              properties:
+                service:
+                  type: string
+                endpoint:
+                  type: string
+        meta:
+          type: object
+          properties:
+            requestId:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        service:
+          type: string
+        version:
+          type: string
+        uptime:
+          type: string
+        checks:
+          type: object
+          properties:
+            rules:
+              type: object
+              properties:
+                status:
+                  type: string
+                rulesLoaded:
+                  type: integer
+                  description: Number of rules loaded (expect 52)
+            downstream:
+              type: object
+              properties:
+                connector:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    latency:
+                      type: string
+
+    # === REQUEST SCHEMAS ===
+    EligibilityRequest:
+      type: object
+      required: [memberId]
+      properties:
+        memberId:
+          type: string
+        retirementDate:
+          type: string
+          format: date
+          description: |
+            Date to evaluate eligibility. If omitted, uses current date.
+            Can be a future date for projections.
+
+    BenefitCalculationRequest:
+      type: object
+      required: [memberId, retirementDate]
+      properties:
+        memberId:
+          type: string
+        retirementDate:
+          type: string
+          format: date
+        includeLeavePayoutBoost:
+          type: boolean
+          default: true
+          description: |
+            Whether to include leave payout in AMS calculation.
+            Only applicable for members hired before 2010-01-01.
+        leavePayout:
+          type: string
+          description: |
+            Override leave payout amount for scenario modeling.
+            If omitted, uses actual value from salary history.
+
+    PaymentOptionsRequest:
+      type: object
+      required: [memberId, retirementDate]
+      properties:
+        memberId:
+          type: string
+        retirementDate:
+          type: string
+          format: date
+        beneficiaryDob:
+          type: string
+          format: date
+          description: |
+            Beneficiary date of birth for J&S factor calculation.
+            Required for accurate J&S reduction factors.
+            If omitted, uses primary beneficiary DOB from records.
+        includeDRO:
+          type: boolean
+          default: true
+          description: Whether to apply DRO split to option amounts
+
+    ScenarioRequest:
+      type: object
+      required: [memberId, retirementDates]
+      properties:
+        memberId:
+          type: string
+        retirementDates:
+          type: array
+          items:
+            type: string
+            format: date
+          minItems: 1
+          maxItems: 12
+          description: |
+            Array of dates to calculate. Maximum 12 scenarios.
+
+    DROCalculationRequest:
+      type: object
+      required: [memberId]
+      properties:
+        memberId:
+          type: string
+        retirementDate:
+          type: string
+          format: date
+          description: If omitted, uses current date for service calculation
+
+    # === CALCULATION TRACE ===
+    CalculationTrace:
+      type: object
+      required: [traceId, calculationType, memberId, timestamp, steps, finalResult]
+      properties:
+        traceId:
+          type: string
+          format: uuid
+        calculationType:
+          type: string
+          enum: [benefit, eligibility, paymentOptions, dro]
+        memberId:
+          type: string
+        retirementDate:
+          type: string
+          format: date
+        timestamp:
+          type: string
+          format: date-time
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/CalculationStep"
+        finalResult:
+          type: object
+          description: Shape varies by calculationType
+
+    CalculationStep:
+      type: object
+      required: [stepNumber, label, ruleId, sourceReference, inputs, result]
+      properties:
+        stepNumber:
+          type: integer
+        label:
+          type: string
+          description: Human-readable step description
+        ruleId:
+          type: string
+          description: Rule ID from the rules inventory (e.g., MEMBERSHIP-001)
+        sourceReference:
+          type: string
+          description: Governing document citation (e.g., RMC 18-403.5(a))
+        inputs:
+          type: object
+          description: Key-value pairs of inputs used in this step
+        formula:
+          type: string
+          description: Human-readable formula representation
+        intermediateValues:
+          type: object
+          description: Named intermediate calculation results
+        result:
+          description: Step output (type varies by step)
+        notes:
+          type: string
+          description: Explanatory notes for this step
+
+    # === RESPONSE SCHEMAS ===
+    EligibilityResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, tier, evaluationDate, paths, trace]
+          properties:
+            memberId:
+              type: string
+            tier:
+              type: integer
+            evaluationDate:
+              type: string
+              format: date
+            ageAtDate:
+              type: integer
+            serviceAtDate:
+              type: object
+              properties:
+                earned:
+                  type: string
+                  description: Decimal years of earned service
+                total:
+                  type: string
+                  description: Decimal years including purchased
+            paths:
+              type: array
+              items:
+                $ref: "#/components/schemas/EligibilityPath"
+            trace:
+              $ref: "#/components/schemas/CalculationTrace"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    EligibilityPath:
+      type: object
+      required: [pathType, eligible, conditions]
+      properties:
+        pathType:
+          type: string
+          enum: [normal, rule75, rule85, earlyTier12, earlyTier3, deferred, disability]
+        displayName:
+          type: string
+          description: Human-readable name (e.g., "Rule of 75")
+        eligible:
+          type: boolean
+        applicableToTier:
+          type: boolean
+          description: Whether this path applies to the member's tier
+        conditions:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Condition name (e.g., "Minimum Age")
+              met:
+                type: boolean
+              required:
+                type: string
+                description: Required value (e.g., "55")
+              actual:
+                type: string
+                description: Actual value (e.g., "63")
+        projectedEligibilityDate:
+          type: string
+          format: date
+          nullable: true
+          description: |
+            Earliest date this path becomes eligible.
+            Null if already eligible or path not applicable to tier.
+        reductionIfUsed:
+          type: string
+          nullable: true
+          description: |
+            Early retirement reduction percentage if this path
+            is used (e.g., "0.30" for 30% reduction).
+            Null for unreduced paths.
+
+    BenefitCalculationResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, retirementDate, tier, retirementType, calculation, trace]
+          properties:
+            memberId:
+              type: string
+            retirementDate:
+              type: string
+              format: date
+            tier:
+              type: integer
+            retirementType:
+              type: string
+              enum: [Normal, Rule of 75, Rule of 85, Early Retirement]
+            calculation:
+              type: object
+              required: [ams, serviceYears, multiplier, formula, grossBenefit]
+              properties:
+                ams:
+                  type: object
+                  properties:
+                    amount:
+                      type: string
+                    windowMonths:
+                      type: integer
+                    leavePayoutIncluded:
+                      type: boolean
+                    leavePayoutAmount:
+                      type: string
+                serviceYears:
+                  type: object
+                  properties:
+                    forBenefit:
+                      type: string
+                      description: Total years for formula (earned + purchased)
+                    forEligibility:
+                      type: string
+                      description: Total years for Rule check (earned only)
+                    earned:
+                      type: string
+                    purchased:
+                      type: string
+                multiplier:
+                  type: string
+                  description: Tier multiplier (0.02 for Tier 1, 0.015 for Tiers 2/3)
+                formula:
+                  type: string
+                  description: |
+                    Human-readable formula (e.g., "$7,500.00 × 2.0% × 28.75 years")
+                grossBenefit:
+                  type: string
+                earlyRetirementReduction:
+                  type: object
+                  nullable: true
+                  properties:
+                    yearsUnder65:
+                      type: integer
+                    ratePerYear:
+                      type: string
+                      description: |
+                        0.03 for Tiers 1/2, 0.06 for Tier 3.
+                        CRITICAL-001 resolution.
+                    totalReduction:
+                      type: string
+                    reductionAmount:
+                      type: string
+                    exemptReason:
+                      type: string
+                      nullable: true
+                      description: |
+                        If reduction is not applied, why.
+                        E.g., "Rule of 75 met" or "Normal retirement age".
+                netBenefit:
+                  type: string
+                  description: After reduction (equals gross if no reduction)
+                lumpSumDeathBenefit:
+                  type: object
+                  properties:
+                    amount:
+                      type: string
+                    formula:
+                      type: string
+                      description: |
+                        Shows the death benefit calculation.
+                        Normal/Rule: $5,000. Early Tiers 1/2: $5,000 - $250×years.
+                        Early Tier 3: $5,000 - $500×years.
+                ipr:
+                  type: object
+                  properties:
+                    medicareEligible:
+                      type: string
+                      description: Monthly IPR if Medicare eligible
+                    nonMedicareEligible:
+                      type: string
+                      description: Monthly IPR if not Medicare eligible
+                    serviceYearsUsed:
+                      type: string
+                      description: Earned service only (purchased excluded)
+            trace:
+              $ref: "#/components/schemas/CalculationTrace"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    PaymentOptionsResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, options, spousalConsentRequired]
+          properties:
+            memberId:
+              type: string
+            grossBenefit:
+              type: string
+              description: Pre-option gross benefit amount
+            options:
+              type: array
+              items:
+                $ref: "#/components/schemas/PaymentOption"
+            spousalConsentRequired:
+              type: boolean
+              description: |
+                True if member is married. Spouse must be
+                beneficiary for at least 50% J&S unless
+                spouse consents in writing.
+            droApplied:
+              type: boolean
+            droImpact:
+              type: object
+              nullable: true
+              properties:
+                alternatePayeeAmount:
+                  type: string
+                memberRetainedAmount:
+                  type: string
+            trace:
+              $ref: "#/components/schemas/CalculationTrace"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    PaymentOption:
+      type: object
+      required: [optionType, displayName, monthlyAmount]
+      properties:
+        optionType:
+          type: string
+          enum: [maximum, js100, js75, js50]
+        displayName:
+          type: string
+          description: Human-readable (e.g., "100% Joint & Survivor")
+        monthlyAmount:
+          type: string
+          description: Monthly benefit under this option
+        reductionFactor:
+          type: string
+          description: |
+            Actuarial reduction factor applied (e.g., "0.87").
+            1.0 for maximum option. Based on member and
+            beneficiary ages.
+        reductionPercentage:
+          type: string
+          description: |
+            Percentage reduction from maximum (e.g., "0.13"
+            meaning 13% reduction).
+        survivorBenefit:
+          type: string
+          nullable: true
+          description: |
+            Monthly amount beneficiary receives after member death.
+            Null for maximum option.
+        preDROAmount:
+          type: string
+          nullable: true
+          description: Amount before DRO split (null if no DRO)
+
+    ScenarioResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, scenarios]
+          properties:
+            memberId:
+              type: string
+            tier:
+              type: integer
+            scenarios:
+              type: array
+              items:
+                $ref: "#/components/schemas/ScenarioResult"
+            thresholdCrossings:
+              type: array
+              description: |
+                Dates where significant eligibility changes occur
+                (e.g., Rule of 75 becomes eligible).
+              items:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                  event:
+                    type: string
+                    description: What changes at this date
+                  benefitImpact:
+                    type: string
+                    description: How this affects the benefit amount
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    ScenarioResult:
+      type: object
+      required: [retirementDate, eligible, retirementType, netBenefit]
+      properties:
+        retirementDate:
+          type: string
+          format: date
+        ageAtRetirement:
+          type: integer
+        serviceAtRetirement:
+          type: string
+          description: Decimal years
+        eligible:
+          type: boolean
+        retirementType:
+          type: string
+          enum: [Normal, Rule of 75, Rule of 85, Early Retirement, Not Eligible]
+        grossBenefit:
+          type: string
+        reductionPercentage:
+          type: string
+          nullable: true
+        netBenefit:
+          type: string
+        changeFromPrevious:
+          type: object
+          nullable: true
+          properties:
+            amount:
+              type: string
+            percentage:
+              type: string
+
+    DROCalculationResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, dro, maritalFraction, maritalShare, alternatePayeeAmount, trace]
+          properties:
+            memberId:
+              type: string
+            dro:
+              type: object
+              properties:
+                alternatePayeeFirstName:
+                  type: string
+                alternatePayeeLastName:
+                  type: string
+                marriageDate:
+                  type: string
+                  format: date
+                divorceDate:
+                  type: string
+                  format: date
+                divisionMethod:
+                  type: string
+                divisionValue:
+                  type: string
+            maritalFraction:
+              type: object
+              properties:
+                serviceDuringMarriage:
+                  type: string
+                  description: Years of service during marriage (decimal)
+                totalService:
+                  type: string
+                  description: Total years of service (decimal)
+                fraction:
+                  type: string
+                  description: Decimal fraction (e.g., "0.6348")
+                formula:
+                  type: string
+                  description: Human-readable (e.g., "18.25 / 28.75")
+            maritalShare:
+              type: object
+              properties:
+                grossBenefit:
+                  type: string
+                maritalShareAmount:
+                  type: string
+                formula:
+                  type: string
+            alternatePayeeAmount:
+              type: object
+              properties:
+                amount:
+                  type: string
+                formula:
+                  type: string
+            memberRetainedBenefit:
+              type: string
+              description: Gross benefit minus alternate payee amount
+            trace:
+              $ref: "#/components/schemas/CalculationTrace"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    # === RULE SCHEMAS ===
+    RuleListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              ruleId:
+                type: string
+                example: "ELIGIBILITY-003"
+              ruleName:
+                type: string
+              category:
+                type: string
+              description:
+                type: string
+              tierApplicability:
+                type: array
+                items:
+                  type: integer
+              sourceReference:
+                type: string
+                description: RMC section citation
+              effectiveDate:
+                type: string
+                format: date
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    RuleDetailResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          properties:
+            ruleId:
+              type: string
+            ruleName:
+              type: string
+            category:
+              type: string
+            description:
+              type: string
+            tierApplicability:
+              type: array
+              items:
+                type: integer
+            conditions:
+              type: array
+              items:
+                type: object
+                properties:
+                  field:
+                    type: string
+                  operator:
+                    type: string
+                  value:
+                    type: string
+            formula:
+              type: string
+              nullable: true
+            sourceReference:
+              type: string
+            effectiveDate:
+              type: string
+              format: date
+            endDate:
+              type: string
+              format: date
+              nullable: true
+            testCases:
+              type: array
+              items:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  inputs:
+                    type: object
+                  expectedOutput:
+                    type: object
+            version:
+              type: string
+            certifiedBy:
+              type: string
+            certifiedDate:
+              type: string
+              format: date
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    MemberContextResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          properties:
+            memberId:
+              type: string
+            openWorkItems:
+              type: array
+              items:
+                type: object
+                properties:
+                  caseId:
+                    type: string
+                  caseType:
+                    type: string
+                  status:
+                    type: string
+                  openDate:
+                    type: string
+                    format: date
+            recentTransactions:
+              type: array
+              items:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  date:
+                    type: string
+                    format: date
+                  detail:
+                    type: string
+            flags:
+              type: object
+              properties:
+                hasDRO:
+                  type: boolean
+                hasDataQualityFindings:
+                  type: boolean
+                approachingEligibility:
+                  type: object
+                  nullable: true
+                  properties:
+                    pathType:
+                      type: string
+                    projectedDate:
+                      type: string
+                      format: date
+                    timeUntil:
+                      type: string
+                isDeceased:
+                  type: boolean
+                isVested:
+                  type: boolean
+                hasPurchasedService:
+                  type: boolean
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"

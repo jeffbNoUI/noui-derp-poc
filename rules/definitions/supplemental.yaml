@@ -1,383 +1,477 @@
-# ============================================================================
-# Category 7: Supplemental Benefits (IPR & Death Benefit)
-# ============================================================================
-# Supplemental benefits are calculated alongside the core retirement benefit.
-# IPR provides health insurance assistance. The lump-sum death benefit is an
-# irrevocable election made at retirement.
-#
-# Source: derp-business-rules-inventory.docx, Category 7
-# Rules: 6
-# ============================================================================
+# ===========================================================================
+# NoUI DERP POC — Supplemental Benefits (IPR & Death Benefit)
+# ===========================================================================
+# Category 7: IPR provides health insurance assistance. Lump-sum death
+# benefit is an irrevocable election at retirement.
+# Evaluation order: 7
+# ===========================================================================
+
+file_metadata:
+  category: supplemental
+  description: "IPR calculation and lump-sum death benefit tables."
+  evaluation_order: 7
+  rule_count: 6
+  governing_authority: "RMC §18-391 through §18-430.7"
+  schema_version: "1.0"
 
 rules:
 
-  # --------------------------------------------------------------------------
-  # RULE-IPR: Insurance Premium Reduction
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-IPR
+  # =========================================================================
   - rule_id: RULE-IPR
-    rule_name: Insurance Premium Reduction
+    rule_name: "Insurance Premium Reduction"
     category: supplemental
     description: >
-      IPR provides a monthly supplement: $12.50 per year of earned service
-      (non-Medicare eligible) or $6.25 per year of earned service (Medicare
-      eligible). Purchased service is EXCLUDED from IPR calculation.
+      IPR provides monthly supplement: $12.50/year of earned service
+      (non-Medicare) or $6.25/year (Medicare eligible). Purchased service
+      excluded from IPR.
     tier_applicability: [1, 2, 3]
-
     formula:
-      expression: "earned_service_years * rate"
+      expression: "iprMonthly = earnedServiceYears * iprRate"
       variables:
-        - name: earned_service_years
-          source: "RULE-SVC-SEPARATION output (earned only)"
-          description: >
-            Earned service only — purchased, military, leave credit
-            EXCLUDED from IPR calculation.
-        - name: rate
-          source: "Statutory rates"
-          description: >
-            $12.50/year (non-Medicare, typically under age 65).
-            $6.25/year (Medicare-eligible, typically age 65+).
-
+        - name: earnedServiceYears
+          source: "rule.RULE-SVC-PURCHASED.output.totalServiceForIPR"
+          description: "Earned service only"
+        - name: iprRate
+          source: "constant.IPR_RATE_PRE_MEDICARE or IPR_RATE_POST_MEDICARE"
+          description: "$12.50 pre-Medicare, $6.25 post-Medicare"
     result:
       type: calculation
-      output: ipr_monthly_amount
-      details:
-        pre_medicare_rate: 12.50
-        post_medicare_rate: 6.25
-        transition_age: 65
-
+      output_fields:
+        - name: preMedicareMonthly
+          type: decimal
+          format: monetary
+        - name: postMedicareMonthly
+          type: decimal
+          format: monetary
+        - name: medicareTransitionAge
+          type: integer
+          description: "Age 65 (standard assumption)"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-412"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-SVC-PURCHASED]
+    assumptions:
+      - id: IPR-MEDICARE-01
+        description: "Medicare eligibility at age 65 (standard). Disability Medicare not modeled."
+        impact: "Early Medicare eligibility would trigger lower rate sooner"
+        status: ACCEPTED
+      - id: IPR-EARNED-01
+        description: "IPR uses earned service only. Consistent with purchased-service exclusion."
+        impact: "None — confirmed"
+        status: ACCEPTED
     test_cases:
-      - description: "Martinez — IPR with 28.75 earned years"
-        inputs: { earned_service: 28.75, medicare_eligible: false }
-        expected:
-          pre_medicare_monthly: 359.38
-          post_medicare_monthly: 179.69
-        demo_case_ref: case1-robert-martinez
-      - description: "Kim — IPR with earned service only (purchased excluded)"
-        inputs: { earned_service: 18.17, purchased_service: 3.00, medicare_eligible: false }
-        expected:
-          service_for_ipr: 18.17
-          pre_medicare_monthly: 227.13
-          post_medicare_monthly: 113.56
-          note: "Purchased 3 years excluded"
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — IPR with 13.58 earned years"
-        inputs: { earned_service: 13.58, medicare_eligible: false }
-        expected:
-          pre_medicare_monthly: 169.75
-          post_medicare_monthly: 84.88
-        demo_case_ref: case3-david-washington
-      - description: "Negative — DRO alternate payee NOT eligible"
-        inputs: { recipient_type: "alternate_payee", earned_service: 18.25 }
-        expected:
-          eligible: false
-          reason: "DRO alternate payees excluded per RULE-DRO-NO-IPR"
-
+      - id: TC-IPR-01
+        description: "Martinez — 28.75 years × $12.50"
+        type: happy_path
+        inputs: { totalServiceForIPR: 28.75 }
+        expected: { preMedicareMonthly: "359.38", postMedicareMonthly: "179.69" }
+        notes: "Case 1: 28.75 × 12.50 = 359.375 → 359.38; 28.75 × 6.25 = 179.6875 → 179.69"
+      - id: TC-IPR-02
+        description: "Washington — 13.58 years × $12.50"
+        type: happy_path
+        inputs: { totalServiceForIPR: 13.58 }
+        expected: { preMedicareMonthly: "169.75", postMedicareMonthly: "84.88" }
+        notes: "Case 3: 13.58 × 12.50 = 169.75; 13.58 × 6.25 = 84.875 → 84.88"
+      - id: TC-IPR-03
+        description: "Kim — purchased service excluded from IPR"
+        type: boundary
+        inputs: { earnedServiceYears: 18.17, purchasedServiceYears: 3.00, totalServiceForIPR: 18.17 }
+        expected: { preMedicareMonthly: "227.13" }
+        notes: "Uses 18.17 (earned), NOT 21.17 (total)"
+      - id: TC-IPR-04
+        description: "Negative — DRO alternate payee gets no IPR"
+        type: negative
+        inputs: { isAlternatePayee: true }
+        expected: { iprEligible: false }
+        notes: "See RULE-DRO-NO-IPR"
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.1"
+      inventory_ref: "Section 7.1"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-    assumptions:
-      - id: IPR-MEDICARE-AGE
-        description: >
-          Medicare eligibility is typically at age 65, but members may become
-          Medicare-eligible earlier through disability. For POC, we assume
-          age 65 = Medicare transition point.
-        risk: MEDIUM
-        resolution: "Confirm with DERP staff"
-
-  # --------------------------------------------------------------------------
-  # RULE-DEATH-NORMAL: Lump-Sum Death Benefit (Normal/Rule of N)
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DEATH-NORMAL
+  # =========================================================================
   - rule_id: RULE-DEATH-NORMAL
-    rule_name: Lump-Sum Death Benefit (Normal/Rule of N)
+    rule_name: "Lump-Sum Death Benefit (Normal/Rule of N)"
     category: supplemental
     description: >
-      For normal retirement, Rule of 75, Rule of 85, or Disability Retirement
-      after age 65: lump-sum death benefit is $5,000. Must retire directly
-      from active service to be eligible.
+      For normal retirement, Rule of 75, Rule of 85, or Disability
+      Retirement after age 65: lump-sum death benefit is $5,000.
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: derived.retirementType
+        operator: in
+        value: ["normal", "rule_of_75", "rule_of_85"]
     result:
       type: calculation
-      output: death_benefit_amount
-      value: 5000.00
-
+      output_fields:
+        - name: lumpSumDeathBenefit
+          type: decimal
+          format: monetary
+          description: "Always $5,000"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-411(d)(1-2)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-ELIG-HIERARCHY]
+    assumptions:
+      - id: DEATH-ACTIVE-01
+        description: "Must retire directly from active service. Deferred retirees NOT eligible."
+        impact: "Deferred members get $0 death benefit"
+        status: ACCEPTED
     test_cases:
-      - description: "Martinez — Rule of 75, $5,000 death benefit"
-        inputs: { retirement_type: "rule_of_75", tier: 1 }
-        expected: { death_benefit: 5000.00 }
-        demo_case_ref: case1-robert-martinez
-      - description: "Case 4 — Rule of 75 with DRO, still $5,000"
-        inputs: { retirement_type: "rule_of_75", tier: 1, has_dro: true }
-        expected: { death_benefit: 5000.00, dro_affects: false }
-        demo_case_ref: case4-robert-dro
-      - description: "Normal retirement at 65"
-        inputs: { retirement_type: "normal", tier: 2 }
-        expected: { death_benefit: 5000.00 }
-      - description: "Negative — deferred retiree NOT eligible"
-        inputs: { retirement_type: "deferred" }
-        expected: { death_benefit: 0, eligible: false, reason: "not_active_service" }
-
+      - id: TC-DEATH-NORM-01
+        description: "Martinez — Rule of 75, $5,000"
+        type: happy_path
+        inputs: { retirementType: "rule_of_75" }
+        expected: { lumpSumDeathBenefit: "5000.00" }
+      - id: TC-DEATH-NORM-02
+        description: "Normal retirement, $5,000"
+        type: happy_path
+        inputs: { retirementType: "normal" }
+        expected: { lumpSumDeathBenefit: "5000.00" }
+      - id: TC-DEATH-NORM-03
+        description: "Rule of 85, $5,000"
+        type: boundary
+        inputs: { retirementType: "rule_of_85" }
+        expected: { lumpSumDeathBenefit: "5000.00" }
+      - id: TC-DEATH-NORM-04
+        description: "Case 4 — Rule of 75 with DRO, still $5,000"
+        type: happy_path
+        inputs: { retirementType: "rule_of_75", computedTier: 1, hasDRO: true }
+        expected: { lumpSumDeathBenefit: "5000.00", droAffects: false }
+        notes: "Case 4: DRO does not reduce the death benefit amount"
+      - id: TC-DEATH-NORM-05
+        description: "Negative — deferred member, $0"
+        type: negative
+        inputs: { retirementType: "deferred" }
+        expected: { lumpSumDeathBenefit: "0.00" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.2"
+      inventory_ref: "Section 7.2"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-    assumptions:
-      - id: DEATH-ACTIVE-SERVICE
-        description: >
-          Must retire directly from active service to be eligible. Deferred
-          retirees are NOT eligible for lump-sum death benefit.
-        risk: MEDIUM
-        resolution: "Confirmed by RMC §18-411(d) language"
-
-  # --------------------------------------------------------------------------
-  # RULE-DEATH-EARLY-T12: Lump-Sum Death Benefit (Early Retirement, Tiers 1 & 2)
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DEATH-EARLY-T12
+  # =========================================================================
   - rule_id: RULE-DEATH-EARLY-T12
-    rule_name: Lump-Sum Death Benefit (Early Retirement, Tiers 1 & 2)
+    rule_name: "Lump-Sum Death Benefit (Early Retirement, Tiers 1 & 2)"
     category: supplemental
     description: >
-      For early retirement: $5,000 minus $250 per completed year under age 65.
-      Uses statutory dollar-amount table by integer age.
+      For early retirement: $5,000 minus $250 per completed year under 65.
+      Statutory dollar-amount table by integer age.
     tier_applicability: [1, 2]
-
-    # Statutory table from RMC §18-411(d)(1) — use this, not a formula
     lookup_table:
-      description: >
-        Death benefit amount by integer age at retirement for early
-        retirees (Tiers 1 & 2). $250 reduction per year under 65.
+      source: "RMC §18-411(d)(1)"
+      description: "Tiers 1 & 2 early retirement death benefit by integer age"
       entries:
-        55: 2500
-        56: 2750
-        57: 3000
-        58: 3250
-        59: 3500
-        60: 3750
-        61: 4000
-        62: 4250
-        63: 4500
-        64: 4750
-        65: 5000
-
+        "55": "2500"
+        "56": "2750"
+        "57": "3000"
+        "58": "3250"
+        "59": "3500"
+        "60": "3750"
+        "61": "4000"
+        "62": "4250"
+        "63": "4500"
+        "64": "4750"
+        "65": "5000"
+    conditions:
+      - field: derived.retirementType
+        operator: eq
+        value: "early"
+      - field: computedTier
+        operator: in
+        value: [1, 2]
     result:
       type: calculation
-      output: death_benefit_amount
-
+      output_fields:
+        - name: lumpSumDeathBenefit
+          type: decimal
+          format: monetary
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-411(d)(1)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-ELIG-HIERARCHY]
+    assumptions:
+      - id: DEATH-INT-AGE-01
+        description: "Integer-age approach confirmed by statutory dollar-amount table."
+        impact: "None — confirmed by statute"
+        status: ACCEPTED
     test_cases:
-      - description: "Kim — age 55, $2,500 death benefit"
-        inputs: { tier: 2, age_at_retirement: 55, retirement_type: "early" }
-        expected: { death_benefit: 2500.00, reduction: 2500.00 }
-        demo_case_ref: case2-jennifer-kim
-      - description: "Age 64 — $4,750"
-        inputs: { tier: 1, age_at_retirement: 64, retirement_type: "early" }
-        expected: { death_benefit: 4750.00, reduction: 250.00 }
-      - description: "Age 60 — $3,750"
-        inputs: { tier: 2, age_at_retirement: 60, retirement_type: "early" }
-        expected: { death_benefit: 3750.00, reduction: 1250.00 }
-      - description: "Age 65 — no reduction (normal retirement)"
-        inputs: { tier: 1, age_at_retirement: 65, retirement_type: "normal" }
-        expected: { death_benefit: 5000.00, use_rule: "RULE-DEATH-NORMAL" }
-
+      - id: TC-DEATH-ET12-01
+        description: "Kim — age 55, $2,500"
+        type: happy_path
+        inputs: { integerAge: 55, computedTier: 2, retirementType: "early" }
+        expected: { lumpSumDeathBenefit: "2500.00" }
+        notes: "Case 2: $5,000 - ($250 × 10) = $2,500"
+      - id: TC-DEATH-ET12-02
+        description: "Age 64 — $4,750"
+        type: boundary
+        inputs: { integerAge: 64, computedTier: 1, retirementType: "early" }
+        expected: { lumpSumDeathBenefit: "4750.00" }
+      - id: TC-DEATH-ET12-03
+        description: "Age 60 — mid-range $3,750"
+        type: happy_path
+        inputs: { integerAge: 60, computedTier: 1, retirementType: "early" }
+        expected: { lumpSumDeathBenefit: "3750.00" }
+      - id: TC-DEATH-ET12-04
+        description: "Negative — Tier 3 uses different table"
+        type: negative
+        inputs: { integerAge: 60, computedTier: 3, retirementType: "early" }
+        expected: { error: "Wrong table — use RULE-DEATH-EARLY-T3 for Tier 3" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.3"
+      inventory_ref: "Section 7.3"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DEATH-EARLY-T3: Lump-Sum Death Benefit (Early Retirement, Tier 3)
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DEATH-EARLY-T3
+  # =========================================================================
   - rule_id: RULE-DEATH-EARLY-T3
-    rule_name: Lump-Sum Death Benefit (Early Retirement, Tier 3)
+    rule_name: "Lump-Sum Death Benefit (Early Retirement, Tier 3)"
     category: supplemental
     description: >
-      For early retirement: $5,000 minus $500 per completed year under age 65.
-      Uses statutory dollar-amount table by integer age. Steeper reduction
-      than Tiers 1 & 2.
+      For early retirement: $5,000 minus $500 per completed year under 65.
+      Statutory table: age 60=$2,500 through age 64=$4,500.
     tier_applicability: [3]
-
-    # Statutory table from RMC §18-411(d)(2) — use this, not a formula
     lookup_table:
-      description: >
-        Death benefit amount by integer age at retirement for early
-        retirees (Tier 3). $500 reduction per year under 65.
+      source: "RMC §18-411(d)(2)"
+      description: "Tier 3 early retirement death benefit by integer age"
       entries:
-        60: 2500
-        61: 3000
-        62: 3500
-        63: 4000
-        64: 4500
-        65: 5000
-
+        "60": "2500"
+        "61": "3000"
+        "62": "3500"
+        "63": "4000"
+        "64": "4500"
+        "65": "5000"
+    conditions:
+      - field: derived.retirementType
+        operator: eq
+        value: "early"
+      - field: computedTier
+        operator: eq
+        value: 3
     result:
       type: calculation
-      output: death_benefit_amount
-
+      output_fields:
+        - name: lumpSumDeathBenefit
+          type: decimal
+          format: monetary
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-411(d)(2)"
       verification: CONFIRMED
-
     effective_date: "2011-07-01"
     end_date: null
-
+    depends_on: [RULE-ELIG-HIERARCHY]
+    assumptions: []
     test_cases:
-      - description: "Washington — age 63, $4,000 death benefit"
-        inputs: { tier: 3, age_at_retirement: 63, retirement_type: "early" }
-        expected: { death_benefit: 4000.00, reduction: 1000.00 }
-        demo_case_ref: case3-david-washington
-      - description: "Age 60 — minimum $2,500"
-        inputs: { tier: 3, age_at_retirement: 60, retirement_type: "early" }
-        expected: { death_benefit: 2500.00, reduction: 2500.00 }
-      - description: "Age 64 — $4,500"
-        inputs: { tier: 3, age_at_retirement: 64, retirement_type: "early" }
-        expected: { death_benefit: 4500.00, reduction: 500.00 }
-      - description: "Age 65 — no reduction (normal retirement)"
-        inputs: { tier: 3, age_at_retirement: 65, retirement_type: "normal" }
-        expected: { death_benefit: 5000.00, use_rule: "RULE-DEATH-NORMAL" }
-
+      - id: TC-DEATH-ET3-01
+        description: "Washington — age 63, $4,000"
+        type: happy_path
+        inputs: { integerAge: 63, computedTier: 3, retirementType: "early" }
+        expected: { lumpSumDeathBenefit: "4000.00" }
+        notes: "Case 3: $5,000 - ($500 × 2) = $4,000"
+      - id: TC-DEATH-ET3-02
+        description: "Age 60 — maximum reduction $2,500"
+        type: boundary
+        inputs: { integerAge: 60 }
+        expected: { lumpSumDeathBenefit: "2500.00" }
+      - id: TC-DEATH-ET3-03
+        description: "Age 64 — minimum reduction $4,500"
+        type: boundary
+        inputs: { integerAge: 64 }
+        expected: { lumpSumDeathBenefit: "4500.00" }
+      - id: TC-DEATH-ET3-04
+        description: "Negative — Tier 1 member uses T12 table"
+        type: negative
+        inputs: { integerAge: 60, computedTier: 1 }
+        expected: { error: "Wrong table" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.4"
+      inventory_ref: "Section 7.4"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DEATH-ELECTION: Death Benefit Election
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DEATH-ELECTION
+  # =========================================================================
   - rule_id: RULE-DEATH-ELECTION
-    rule_name: Death Benefit Election
+    rule_name: "Death Benefit Election"
     category: supplemental
     description: >
       Lump-sum death benefit may be drawn in 50 or 100 equal monthly
-      installments. This is an irrevocable election made at retirement.
-      Member may also elect NOT to draw the death benefit.
+      installments. Irrevocable election at retirement. Member may also
+      elect NOT to draw.
     tier_applicability: [1, 2, 3]
-
+    conditions:
+      - field: derived.lumpSumDeathBenefit
+        operator: gt
+        value: 0
+    formula:
+      expression: "installmentAmount = lumpSumDeathBenefit / electedInstallments"
+      variables:
+        - name: electedInstallments
+          source: "input.deathBenefitElection"
+          description: "50, 100, or null (do not draw)"
     result:
-      type: determination
-      output: death_benefit_election
-      details:
-        options:
-          - id: "50_installments"
-            description: "Lump sum / 50 monthly payments"
-          - id: "100_installments"
-            description: "Lump sum / 100 monthly payments"
-          - id: "do_not_draw"
-            description: "Elect not to draw death benefit"
-        irrevocable: true
-        concurrent: "Disbursed concurrently with monthly retirement benefit"
-
+      type: calculation
+      output_fields:
+        - name: installmentAmount
+          type: decimal
+          format: monetary
+        - name: installmentCount
+          type: integer
+        - name: isIrrevocable
+          type: boolean
+          description: "Always true"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-411(d)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DEATH-NORMAL, RULE-DEATH-EARLY-T12, RULE-DEATH-EARLY-T3]
+    assumptions: []
     test_cases:
-      - description: "Martinez — $5,000 in 50 installments"
-        inputs: { death_benefit: 5000.00, election: "50_installments" }
-        expected: { monthly_installment: 100.00, total_payments: 50 }
-        demo_case_ref: case1-robert-martinez
-      - description: "Martinez — $5,000 in 100 installments"
-        inputs: { death_benefit: 5000.00, election: "100_installments" }
-        expected: { monthly_installment: 50.00, total_payments: 100 }
-        demo_case_ref: case1-robert-martinez
-      - description: "Kim — $2,500 in 50 installments"
-        inputs: { death_benefit: 2500.00, election: "50_installments" }
-        expected: { monthly_installment: 50.00, total_payments: 50 }
-        demo_case_ref: case2-jennifer-kim
-      - description: "Washington — $4,000 in 100 installments"
-        inputs: { death_benefit: 4000.00, election: "100_installments" }
-        expected: { monthly_installment: 40.00, total_payments: 100 }
-        demo_case_ref: case3-david-washington
-      - description: "Election is irrevocable"
-        inputs: { death_benefit: 5000.00, election: "50_installments", change_request: true }
-        expected: { change_allowed: false, reason: "irrevocable" }
-
+      - id: TC-DEATH-ELECT-01
+        description: "Martinez — $5,000 in 50 installments"
+        type: happy_path
+        inputs: { lumpSumDeathBenefit: "5000.00", electedInstallments: 50 }
+        expected: { installmentAmount: "100.00", isIrrevocable: true }
+      - id: TC-DEATH-ELECT-01a
+        description: "Martinez — $5,000 in 100 installments"
+        type: happy_path
+        inputs: { lumpSumDeathBenefit: "5000.00", electedInstallments: 100 }
+        expected: { installmentAmount: "50.00", isIrrevocable: true }
+        notes: "Case 1: Alternative election option for Robert"
+      - id: TC-DEATH-ELECT-01b
+        description: "Kim — $2,500 in 50 installments"
+        type: happy_path
+        inputs: { lumpSumDeathBenefit: "2500.00", electedInstallments: 50 }
+        expected: { installmentAmount: "50.00", isIrrevocable: true }
+        notes: "Case 2: Early retirement reduced death benefit"
+      - id: TC-DEATH-ELECT-02
+        description: "Washington — $4,000 in 100 installments"
+        type: happy_path
+        inputs: { lumpSumDeathBenefit: "4000.00", electedInstallments: 100 }
+        expected: { installmentAmount: "40.00" }
+      - id: TC-DEATH-ELECT-03
+        description: "Elect not to draw"
+        type: boundary
+        inputs: { lumpSumDeathBenefit: "5000.00", electedInstallments: null }
+        expected: { installmentAmount: "0.00", installmentCount: 0 }
+      - id: TC-DEATH-ELECT-04
+        description: "Negative — invalid installment count"
+        type: negative
+        inputs: { electedInstallments: 75 }
+        expected: { error: "Must be 50 or 100" }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.5"
+      inventory_ref: "Section 7.5"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
-  # RULE-DEATH-REEMPLOY: Death Benefit Re-Employment Exclusion
-  # --------------------------------------------------------------------------
+  # =========================================================================
+  # RULE-DEATH-REEMPLOY
+  # =========================================================================
   - rule_id: RULE-DEATH-REEMPLOY
-    rule_name: Death Benefit Re-Employment Exclusion
+    rule_name: "Death Benefit Re-Employment Exclusion"
     category: supplemental
     description: >
       Re-employed retirees are NOT entitled to a subsequent death benefit.
-      The original amount from their first retirement applies.
+      The original amount from first retirement applies.
     tier_applicability: [1, 2, 3]
-
     conditions:
-      - field: reemployed_retiree
+      - field: derived.isReemployedRetiree
         operator: eq
         value: true
-
     result:
-      type: determination
-      output: subsequent_death_benefit
-      value: 0
-      details:
-        original_benefit: "Preserved from first retirement"
-
+      type: validation
+      output_fields:
+        - name: newDeathBenefitEligible
+          type: boolean
+          description: "Always false for re-employed retirees"
+        - name: originalDeathBenefit
+          type: decimal
+          format: monetary
+          description: "Amount from original retirement"
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-408(j)"
       verification: CONFIRMED
-
-    effective_date: "1999-01-01"
+    effective_date: "2000-01-01"
     end_date: null
-
+    depends_on: [RULE-DEATH-ELECTION]
+    assumptions: []
     test_cases:
-      - description: "Re-employed retiree — no new death benefit"
-        inputs: { reemployed: true, original_death_benefit: 5000.00 }
-        expected: { new_death_benefit: 0, original_preserved: 5000.00 }
-      - description: "First-time retiree — death benefit normal"
-        inputs: { reemployed: false, retirement_type: "normal" }
-        expected: { death_benefit: 5000.00, rule: "RULE-DEATH-NORMAL" }
-      - description: "Re-employed retiree retires again — original amount"
-        inputs: { reemployed: true, second_retirement: true }
-        expected: { death_benefit_from_second: 0, original_death_benefit: "preserved" }
-      - description: "Negative — member who re-employed but didn't re-retire"
-        inputs: { reemployed: true, still_working: true }
-        expected: { death_benefit_status: "original_election_in_force" }
-
+      - id: TC-DEATH-REEMP-01
+        description: "Re-employed — no new death benefit"
+        type: happy_path
+        inputs: { isReemployedRetiree: true, originalDeathBenefit: "5000.00" }
+        expected: { newDeathBenefitEligible: false, originalDeathBenefit: "5000.00" }
+      - id: TC-DEATH-REEMP-02
+        description: "First-time retiree — normal death benefit"
+        type: boundary
+        inputs: { isReemployedRetiree: false }
+        expected: { newDeathBenefitEligible: true }
+      - id: TC-DEATH-REEMP-03
+        description: "Re-employed with original $2,500 — keeps original"
+        type: edge_case
+        inputs: { isReemployedRetiree: true, originalDeathBenefit: "2500.00" }
+        expected: { originalDeathBenefit: "2500.00", newDeathBenefitEligible: false }
+      - id: TC-DEATH-REEMP-04
+        description: "Negative — not re-employed"
+        type: negative
+        inputs: { isReemployedRetiree: false }
+        expected: { ruleApplies: false }
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 7.6"
+      inventory_ref: "Section 7.6"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition"
+          author: "S2 Rules Engine Session"

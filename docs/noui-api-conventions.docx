@@ -1,0 +1,669 @@
+**NoUI API Conventions**
+
+& Service Contract Definitions
+
+DERP Proof of Concept --- Stream S3 Deliverable
+
+  ---------------------------- ------------------------------------------
+  **Document**                 noui-api-conventions
+
+  **Version**                  1.0 (Stream S3, Session 1)
+
+  **Status**                   Draft --- Provisional contracts
+
+  **Authority**                ARCHITECTURE_REFERENCE.md, ADR-001--007
+
+  **Audience**                 All streams (S1--S5)
+  ---------------------------- ------------------------------------------
+
+1\. Base URL Structure and Versioning
+
+All NoUI services expose RESTful HTTP APIs under a versioned base path.
+The version prefix ensures backward compatibility when breaking changes
+are introduced in future releases.
+
+1.1 URL Pattern
+
+> {scheme}://{host}:{port}/api/v{major}/{resource}
+
+For the DERP POC, the three services run on separate ports within the
+Kubernetes cluster:
+
+  --------------------- ----------------------- -------------- --------------
+  **Service**           **Internal DNS**        **Port**       **Base Path**
+
+  Data Connector        connector.noui.svc      8081           /api/v1
+
+  Intelligence          intelligence.noui.svc   8082           /api/v1
+
+  Workspace             workspace.noui.svc      8083           /api/v1
+  --------------------- ----------------------- -------------- --------------
+
+1.2 Versioning Policy
+
+The POC uses v1 for all endpoints. The version number increments only on
+breaking changes to request/response schemas. Non-breaking additions
+(new optional fields, new endpoints) do not require a version bump. The
+version applies at the service level, not per-endpoint. All endpoints
+within a service share the same version.
+
+2\. Resource Naming Conventions
+
+All resource names use lowercase, hyphenated plurals. Path parameters
+use camelCase identifiers matching domain model field names.
+
+2.1 URL Patterns by Operation Type
+
+  ---------------- ------------------------------------ ---------------------------
+  **Pattern**      **Example**                          **Semantics**
+
+  Collection       GET /api/v1/members                  List resources (paginated)
+
+  Instance         GET /api/v1/members/{id}             Retrieve single resource
+
+  Sub-resource     GET /api/v1/members/{id}/salary      Related collection
+
+  Detail variant   GET                                  Full record set (lazy load)
+                   /api/v1/members/{id}/salary/detail   
+
+  Action           POST /api/v1/eligibility/evaluate    Non-CRUD operation (verb)
+
+  Calculation      POST /api/v1/benefit/calculate       Deterministic computation
+  ---------------- ------------------------------------ ---------------------------
+
+2.2 Naming Rules
+
+-   Resource nouns are plural: /members, /beneficiaries, /contributions
+
+-   Path parameters use member ID, not member_id or memberId in the URL
+    itself: /members/{id}
+
+-   Query parameters use camelCase:
+    ?retirementDate=2026-04-01&includeTrace=true
+
+-   Action endpoints use verb form: /evaluate, /calculate, /compose
+
+-   No trailing slashes. Requests to /members/ should 301 redirect to
+    /members
+
+-   No file extensions in URLs. Content type negotiation via Accept
+    header
+
+3\. Request and Response Format
+
+3.1 Content Type
+
+All requests and responses use application/json with UTF-8 encoding. The
+Content-Type header must be present on all requests with a body. The
+Accept header should be application/json for all requests.
+
+3.2 Standard Response Envelope
+
+All successful responses follow a consistent envelope structure. The
+envelope provides metadata alongside the payload so clients can always
+rely on the same top-level fields.
+
+> {
+>
+> \"data\": { \... }, // The primary response payload
+>
+> \"meta\": {
+>
+> \"requestId\": \"uuid\", // Unique request identifier for tracing
+>
+> \"timestamp\": \"ISO-8601\", // Server timestamp of response
+>
+> \"service\": \"connector\", // Originating service name
+>
+> \"version\": \"v1\", // API version that served the request
+>
+> \"degradationLevel\": 0 // Current system degradation level (ADR-007)
+>
+> }
+>
+> }
+
+The degradationLevel field in every response enables the frontend to
+display appropriate status indicators without polling a separate health
+endpoint. Level 0 is normal operation; levels 1--5 correspond to the
+degradation hierarchy defined in ADR-007.
+
+3.3 Collection Response with Pagination
+
+> {
+>
+> \"data\": \[ \... \], // Array of resources
+>
+> \"pagination\": {
+>
+> \"total\": 10000, // Total matching resources
+>
+> \"limit\": 50, // Page size
+>
+> \"offset\": 0, // Current offset
+>
+> \"hasMore\": true // Whether more pages exist
+>
+> },
+>
+> \"meta\": { \... }
+>
+> }
+
+Default page size is 50. Maximum page size is 200. Clients request
+pagination via query parameters: ?limit=50&offset=100. For the POC, most
+sub-resource collections (salary records, employment history) are small
+enough to return in full. Pagination is implemented for member search
+and transaction log queries.
+
+3.4 Date and Time Format
+
+-   All dates: ISO 8601 format, YYYY-MM-DD (e.g., 2026-04-01)
+
+-   All timestamps: ISO 8601 with timezone, YYYY-MM-DDTHH:MM:SSZ (e.g.,
+    2026-04-01T14:30:00Z)
+
+-   All monetary values: string with exactly two decimal places (e.g.,
+    \"5432.17\"), never floating point
+
+-   All percentages: decimal number (e.g., 0.03 for 3%), never
+    pre-multiplied
+
+-   All service credit durations: object with years and months as
+    integers (e.g., { \"years\": 28, \"months\": 9 })
+
+4\. Error Response Format
+
+All error responses use a consistent structure regardless of which
+service produces the error. This allows the frontend to implement a
+single error-handling path.
+
+4.1 Error Envelope
+
+> {
+>
+> \"error\": {
+>
+> \"code\": \"MEMBER_NOT_FOUND\", // Machine-readable error code
+>
+> \"message\": \"No member found with ID 12345\", // Human-readable
+> message
+>
+> \"details\": { \... }, // Optional structured details
+>
+> \"source\": {
+>
+> \"service\": \"connector\", // Service that produced the error
+>
+> \"endpoint\": \"/api/v1/members/12345\" // Endpoint that failed
+>
+> }
+>
+> },
+>
+> \"meta\": {
+>
+> \"requestId\": \"uuid\",
+>
+> \"timestamp\": \"ISO-8601\"
+>
+> }
+>
+> }
+
+4.2 HTTP Status Code Usage
+
+  ---------- ------------------------ -------------------------------------
+  **Code**   **Meaning**              **When Used**
+
+  200        OK                       Successful GET or POST calculation
+
+  201        Created                  Successful POST creating a resource
+
+  400        Bad Request              Malformed JSON, missing required
+                                      fields, invalid date format
+
+  404        Not Found                Member ID, DRO ID, or case ID does
+                                      not exist
+
+  422        Unprocessable Entity     Valid JSON but business rule
+                                      violation (e.g., not eligible)
+
+  500        Internal Server Error    Unexpected failure in service logic
+
+  502        Bad Gateway              Downstream service unavailable
+                                      (Intelligence calling Connector)
+
+  503        Service Unavailable      Service starting up or in degraded
+                                      state
+  ---------- ------------------------ -------------------------------------
+
+4.3 Standard Error Codes
+
+Each service defines error codes within its namespace. The code field
+uses SCREAMING_SNAKE_CASE with a service prefix for cross-service
+errors.
+
+  ----------------------------- --------------------- -----------------------
+  **Error Code**                **HTTP Status**       **Description**
+
+  MEMBER_NOT_FOUND              404                   Member ID not in
+                                                      database
+
+  INVALID_RETIREMENT_DATE       400                   Date in past or invalid
+                                                      format
+
+  NOT_ELIGIBLE                  422                   Member does not meet
+                                                      criteria
+
+  RULE_EVALUATION_FAILED        500                   Rule engine internal
+                                                      error
+
+  CONNECTOR_UNAVAILABLE         502                   Intelligence cannot
+                                                      reach Connector
+
+  CALCULATION_PRECISION_ERROR   500                   Intermediate result
+                                                      overflow
+
+  MISSING_SALARY_DATA           422                   Insufficient salary
+                                                      history for AMS
+
+  DRO_NOT_FOUND                 404                   No DRO record for
+                                                      member
+
+  AI_SERVICE_UNAVAILABLE        200 (degraded)        Tier 3 composition fell
+                                                      back
+  ----------------------------- --------------------- -----------------------
+
+5\. Health Check Pattern
+
+Every service exposes two health endpoints outside the versioned API
+path. These endpoints are consumed by Kubernetes liveness and readiness
+probes, and by the system-wide degradation monitoring.
+
+5.1 Endpoints
+
+  ---------------------- --------------- ---------------------------------
+  **Endpoint**           **Probe Type**  **Purpose**
+
+  GET /healthz           Liveness        Is the process alive? Returns 200
+                                         if the HTTP server is responding.
+
+  GET /readyz            Readiness       Can the service handle requests?
+                                         Checks database connectivity
+                                         (Connector), rule loader status
+                                         (Intelligence), downstream
+                                         reachability (Workspace).
+  ---------------------- --------------- ---------------------------------
+
+5.2 Health Response Schema
+
+> {
+>
+> \"status\": \"healthy\" \| \"degraded\" \| \"unhealthy\",
+>
+> \"service\": \"connector\",
+>
+> \"version\": \"1.0.0\",
+>
+> \"uptime\": \"2h34m12s\",
+>
+> \"checks\": {
+>
+> \"database\": { \"status\": \"healthy\", \"latency\": \"2ms\" },
+>
+> \"rules\": { \"status\": \"healthy\", \"rulesLoaded\": 52 },
+>
+> \"downstream\": {
+>
+> \"connector\": { \"status\": \"healthy\", \"latency\": \"5ms\" }
+>
+> }
+>
+> }
+>
+> }
+
+The checks object varies by service. The Connector checks database
+connectivity. The Intelligence service checks rule loader status and
+Connector reachability. The Workspace service checks both Intelligence
+and Connector reachability plus AI service availability (which may be
+degraded without affecting overall readiness).
+
+6\. Structured Logging
+
+All services emit structured JSON logs. Every log entry includes the
+request ID for distributed tracing across service boundaries.
+
+6.1 Log Fields
+
+  --------------- ---------------- ---------------------------------------
+  **Field**       **Type**         **Description**
+
+  timestamp       ISO-8601         When the event occurred
+
+  level           string           DEBUG, INFO, WARN, ERROR
+
+  requestId       UUID             Propagated via X-Request-ID header
+
+  service         string           connector, intelligence, workspace
+
+  method          string           HTTP method
+
+  path            string           Request path (with IDs masked in
+                                   production)
+
+  statusCode      integer          HTTP response status
+
+  duration        string           Request processing time (e.g., 12ms)
+
+  memberId        string           Member ID when applicable (masked in
+                                   production logs)
+  --------------- ---------------- ---------------------------------------
+
+6.2 Request ID Propagation
+
+The frontend generates a UUID for each user action and passes it as the
+X-Request-ID header. Each service propagates this header to downstream
+calls. If no X-Request-ID is present, the first service in the chain
+generates one. This enables end-to-end tracing from the user's click
+through all service interactions back to the database query.
+
+7\. Calculation Trace Format
+
+The calculation trace is the foundation of Phase 1 (Transparent)
+operation. Every benefit calculation, eligibility determination, and
+payment option computation returns a trace object that shows every
+input, formula, intermediate result, and final output. This is not
+optional metadata---it is a core contract that the frontend depends on
+for rendering the BenefitCalculationPanel.
+
+7.1 Trace Structure
+
+> {
+>
+> \"traceId\": \"uuid\",
+>
+> \"calculationType\": \"benefit\" \| \"eligibility\" \|
+> \"paymentOptions\" \| \"dro\",
+>
+> \"memberId\": \"12345\",
+>
+> \"retirementDate\": \"2026-04-01\",
+>
+> \"timestamp\": \"ISO-8601\",
+>
+> \"steps\": \[
+>
+> {
+>
+> \"stepNumber\": 1,
+>
+> \"label\": \"Determine Tier\",
+>
+> \"ruleId\": \"MEMBERSHIP-001\",
+>
+> \"sourceReference\": \"RMC 18-403.5(a)\",
+>
+> \"inputs\": { \"hireDate\": \"1997-06-15\" },
+>
+> \"formula\": \"hireDate \< 2004-09-01 → Tier 1\",
+>
+> \"result\": \"Tier 1\",
+>
+> \"notes\": \"Hired before September 1, 2004\"
+>
+> },
+>
+> \...
+>
+> \],
+>
+> \"finalResult\": {
+>
+> \"grossBenefit\": \"4312.50\",
+>
+> \"reduction\": \"0.00\",
+>
+> \"netBenefit\": \"4312.50\",
+>
+> \"retirementType\": \"Rule of 75\"
+>
+> }
+>
+> }
+
+Every step references its governing rule ID and the statutory source
+provision. The frontend renders each step as a row in the calculation
+worksheet, enabling the demo's "show your work" capability. Steps are
+ordered by execution sequence, and the step chain must be
+reproducible---given the same inputs, the same steps produce the same
+results.
+
+8\. Cross-Service Communication
+
+Services communicate via synchronous HTTP calls within the Kubernetes
+cluster. The Intelligence service calls the Connector to fetch member
+data before evaluating rules. The Workspace service calls both
+Intelligence and Connector to assemble workspace definitions.
+
+8.1 Service Dependency Graph
+
+-   Frontend → Workspace → Intelligence → Connector → PostgreSQL
+
+-   Frontend → Connector (direct, for data display components)
+
+-   Frontend → Intelligence (direct, for calculation requests)
+
+-   Workspace → Claude API (Tier 3 only, optional, with fallback)
+
+The frontend may call any service directly. The Workspace service
+orchestrates calls when composing a complete workspace. Each service is
+independently deployable and testable---the Connector can be tested with
+only the database, and the Intelligence service can be tested with
+mocked Connector responses.
+
+8.2 Timeout and Retry Policy
+
+  ---------------------- --------------- ---------------- ----------------
+  **Call Path**          **Timeout**     **Retries**      **Fallback**
+
+  Connector → Database   5 seconds       1 retry, 100ms   Level 4
+                                         delay            degradation
+
+  Intelligence →         10 seconds      1 retry, 200ms   502 error
+  Connector                              delay            
+
+  Workspace →            15 seconds      No retry         502 error
+  Intelligence                                            
+
+  Workspace → Claude API 5 seconds       No retry         Tier 2 fallback
+  ---------------------- --------------- ---------------- ----------------
+
+9\. Complete Endpoint Inventory
+
+This section consolidates every endpoint across all three services,
+organized by service and function. Request and response schemas are
+defined in the companion OpenAPI specification files.
+
+9.1 Data Connector Service
+
+  ------------ -------------------------------------------- -------------------------------
+  **Method**   **Path**                                     **Description**
+
+  **GET**      /api/v1/members/{id}                         Member profile with current
+                                                            employment
+
+  **GET**      /api/v1/members/search                       Search by name, ID, or last 4
+                                                            SSN
+
+  **GET**      /api/v1/members/{id}/employment              Employment timeline with
+                                                            service credit
+
+  **GET**      /api/v1/members/{id}/salary                  Salary history with AMS
+                                                            calculation
+
+  **GET**      /api/v1/members/{id}/beneficiaries           Current and historical
+                                                            beneficiary designations
+
+  **GET**      /api/v1/members/{id}/dro                     Domestic relations orders
+
+  **GET**      /api/v1/members/{id}/contributions           Contribution history with
+                                                            running balance
+
+  **GET**      /api/v1/members/{id}/service-credit          Service credit summary by type
+
+  **GET**      /api/v1/members/{id}/service-credit/detail   Detailed service credit records
+  ------------ -------------------------------------------- -------------------------------
+
+9.2 Intelligence Service
+
+  ------------ ------------------------------- -------------------------------
+  **Method**   **Path**                        **Description**
+
+  **POST**     /api/v1/eligibility/evaluate    Evaluate all retirement
+                                               eligibility paths
+
+  **POST**     /api/v1/benefit/calculate       Full benefit calculation with
+                                               trace
+
+  **POST**     /api/v1/benefit/options         Payment options with actuarial
+                                               factors
+
+  **POST**     /api/v1/benefit/scenario        Multi-date scenario comparison
+
+  **POST**     /api/v1/dro/calculate           DRO marital share and split
+                                               calculation
+
+  **GET**      /api/v1/rules                   List loaded rules with source
+                                               references
+
+  **GET**      /api/v1/rules/{ruleId}          Rule detail with conditions and
+                                               formula
+
+  **GET**      /api/v1/members/{id}/context    Aggregated member context for
+                                               hub
+  ------------ ------------------------------- -------------------------------
+
+9.3 Workspace Service
+
+  ------------ ------------------------------- -------------------------------
+  **Method**   **Path**                        **Description**
+
+  **POST**     /api/v1/composition/task        Compose task workspace for
+                                               member/process
+
+  **POST**     /api/v1/composition/hub         Compose member context hub
+                                               layout
+
+  **GET**      /api/v1/composition/templates   List available workspace
+                                               templates
+
+  **GET**      /api/v1/components              Component registry with
+                                               metadata
+  ------------ ------------------------------- -------------------------------
+
+10\. Security Conventions (POC Scope)
+
+The POC operates in a single-user, local Kubernetes environment.
+Production security controls are architecturally present but
+implementation is deferred per the security architecture's
+phase-appropriate approach.
+
+10.1 POC Security Posture
+
+-   No authentication on API endpoints (single-user demo environment)
+
+-   No TLS between services (cluster-internal traffic only)
+
+-   X-Request-ID header required for audit tracing (enforced)
+
+-   Member IDs are logged but not masked in POC (production: masked)
+
+-   CORS: allow-origin set to frontend service only
+
+10.2 Production-Ready Headers (Documented, Not Enforced in POC)
+
+-   Authorization: Bearer {jwt} --- RBAC + ABAC token
+
+-   X-User-Id: authenticated user identity
+
+-   X-User-Role: role claim from token
+
+-   X-Audit-Reason: required for break-glass access
+
+These headers are accepted and logged by the POC services but not
+validated. The API contracts define them so that implementing
+authentication is additive, not restructuring.
+
+11\. Cross-Stream Integration Notes
+
+This section documents provisional decisions and known dependencies on
+other streams. Items tagged CROSS-STREAM require reconciliation when S1
+and S2 produce their draft contracts.
+
+11.1 Dependencies on S1 (Schema)
+
+-   CROSS-STREAM: The Member response schema uses clean domain field
+    names. S1 must provide the mapping from legacy MEMBER_MASTER column
+    names (e.g., MBR_ID, FIRST_NM, LAST_NM, HIRE_DT, TIER_CD, STATUS_CD)
+    to domain model fields (id, firstName, lastName, hireDate, tier,
+    status).
+
+-   CROSS-STREAM: The Salary endpoint returns pensionablePay and
+    leavePayout as separate fields. S1 must confirm SALARY_HIST
+    distinguishes these or whether they require derivation.
+
+-   CROSS-STREAM: The service credit detail endpoint assumes SVC_CREDIT
+    has a type discriminator (employment, purchased, military, leave).
+    S1 must confirm column name and valid values.
+
+11.2 Dependencies on S2 (Rules)
+
+-   CROSS-STREAM: The calculation trace step structure assumes rule IDs
+    follow the format CATEGORY-NNN (e.g., MEMBERSHIP-001,
+    ELIGIBILITY-003). S2 must confirm rule ID format.
+
+-   CROSS-STREAM: The eligibility evaluate response lists all retirement
+    paths. S2 must confirm the complete enumeration: normal, rule75,
+    rule85, earlyTier12, earlyTier3, deferred, disability.
+
+-   CROSS-STREAM: Payment option actuarial factors are currently
+    placeholders. S2 must provide the factor table or formula for J&S
+    reductions based on member and beneficiary ages.
+
+-   CROSS-STREAM: The benefit calculator assumes AMS is computed by the
+    Connector and passed to Intelligence. If S2 determines that AMS is a
+    rules-layer concern, this boundary shifts.
+
+11.3 Dependencies on S4 (Frontend)
+
+S4 consumes the API contracts defined here. The workspace composition
+response drives component rendering. S4 needs the component registry
+endpoint to enumerate available components and their expected data
+shapes. The composition response includes component IDs and parameter
+objects; S4 must implement a component resolver that maps IDs to React
+components.
+
+12\. Document Governance
+
+12.1 Contract Maturity Levels
+
+  ----------------- -------------------------- ---------------------------------
+  **Level**         **Meaning**                **Usage**
+
+  **Provisional**   Best current understanding Streams may build to this but
+                                               expect changes
+
+  **Draft**         Reviewed by at least two   Streams should build to this with
+                    streams                    confidence
+
+  **Accepted**      Technical Director         Changes require formal revision
+                    approved                   
+  ----------------- -------------------------- ---------------------------------
+
+All contracts in this document are currently at Provisional maturity.
+They will advance to Draft status after reconciliation with S1 and S2
+outputs, and to Accepted after Technical Director review.
+
+**End of Document**

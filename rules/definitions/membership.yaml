@@ -1,20 +1,27 @@
-# ============================================================================
-# Category 1: Membership & Tier Determination
-# ============================================================================
-# These rules fire first on every member interaction. Tier determination is
-# immutable once established and gates all eligibility and benefit calculations.
+# ===========================================================================
+# NoUI DERP POC — Membership & Tier Determination Rules
+# ===========================================================================
+# Category 1: These rules fire first on every member interaction.
+# Tier determination is immutable once established and gates all
+# eligibility and benefit calculations.
 #
-# Source: derp-business-rules-inventory.docx, Category 1
-# Rules: 5 (RULE-TIER-1, RULE-TIER-2, RULE-TIER-3, RULE-CONTRIB-EE, RULE-CONTRIB-ER)
-# ============================================================================
+# Evaluation order: 1 (first category evaluated)
+# ===========================================================================
 
+file_metadata:
+  category: membership
+  description: "Tier determination and contribution rate rules. Evaluated first — all downstream rules depend on tier."
+  evaluation_order: 1
+  rule_count: 5
+  governing_authority: "RMC §18-391 through §18-430.7"
+  schema_version: "1.0"
+
+# ===========================================================================
+# RULE-TIER-1: Tier 1 Determination
+# ===========================================================================
 rules:
-
-  # --------------------------------------------------------------------------
-  # RULE-TIER-1: Tier 1 Determination
-  # --------------------------------------------------------------------------
   - rule_id: RULE-TIER-1
-    rule_name: Tier 1 Determination
+    rule_name: "Tier 1 Determination"
     category: membership
     description: >
       A member is classified as Tier 1 if their initial service began before
@@ -22,65 +29,112 @@ rules:
     tier_applicability: [1]
 
     conditions:
-      - field: hire_date
+      - field: hireDate
         operator: lt
         value: "2004-09-01"
         join: AND
-      - field: termination_date
+      - field: terminationDate
         operator: gt
         value: "1999-12-31"
-        description: >
-          Members who separated before 2000 are under a prior plan provision.
-          For active members (no termination), this condition is met by default.
+        join: AND
+        notes: "Members who separated before 2000 are under prior plan provisions"
 
     result:
       type: determination
-      output: tier_number
-      value: 1
+      output_fields:
+        - name: computedTier
+          type: integer
+          description: "The tier this member belongs to"
+        - name: tierMatch
+          type: boolean
+          description: "Whether computed tier matches stored tier"
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(1)"
       verification: CONFIRMED
 
     effective_date: "2004-09-01"
     end_date: null
 
+    depends_on: []
+
+    assumptions:
+      - id: TIER1-TERM-01
+        description: >
+          The 'terminates after Dec 31, 1999' clause means members who
+          separated before 2000 are under a prior plan provision. Seed data
+          must not generate Tier 1 members with termination before Jan 1, 2000.
+        impact: "Could misclassify pre-2000 separations as Tier 1"
+        status: ACCEPTED
+
     test_cases:
-      - description: "Martinez — Tier 1 member hired 1997"
-        inputs: { hire_date: "1997-06-15", termination_date: null }
-        expected: { tier: 1 }
-        demo_case_ref: case1-robert-martinez
-      - description: "Boundary — hired Aug 31, 2004 = Tier 1"
-        inputs: { hire_date: "2004-08-31", termination_date: null }
-        expected: { tier: 1 }
-      - description: "Just above boundary — hired Sep 1, 2004 = NOT Tier 1"
-        inputs: { hire_date: "2004-09-01", termination_date: null }
-        expected: { tier: 2, not_tier_1: true }
-      - description: "Negative — terminated before Jan 1, 2000 = NOT Tier 1"
-        inputs: { hire_date: "1995-01-15", termination_date: "1999-06-30" }
-        expected: { not_tier_1: true, reason: "prior_plan_provision" }
+      - id: TC-TIER1-01
+        description: "Martinez — hired 1997, typical Tier 1 member"
+        type: happy_path
+        inputs:
+          hireDate: "1997-06-15"
+          terminationDate: "2026-04-01"
+        expected:
+          computedTier: 1
+        notes: "Case 1: Robert Martinez"
+
+      - id: TC-TIER1-02
+        description: "Boundary — hired Aug 31, 2004 = last day for Tier 1"
+        type: boundary
+        inputs:
+          hireDate: "2004-08-31"
+          terminationDate: "2026-01-01"
+        expected:
+          computedTier: 1
+
+      - id: TC-TIER1-03
+        description: "Just over — hired Sep 1, 2004 = Tier 2, not Tier 1"
+        type: just_below
+        inputs:
+          hireDate: "2004-09-01"
+          terminationDate: "2026-01-01"
+        expected:
+          computedTier: 2
+        notes: "This input should NOT produce Tier 1"
+
+      - id: TC-TIER1-04
+        description: "Negative — terminated before 2000 = prior plan"
+        type: negative
+        inputs:
+          hireDate: "1995-03-01"
+          terminationDate: "1999-06-15"
+        expected:
+          computedTier: null
+          priorPlan: true
+        notes: "Pre-2000 termination excluded from current tier system"
+
+      - id: TC-TIER1-05
+        description: "Edge — hired 1990, terminated exactly Jan 1, 2000"
+        type: edge_case
+        inputs:
+          hireDate: "1990-01-15"
+          terminationDate: "2000-01-01"
+        expected:
+          computedTier: 1
+        notes: "Termination ON Jan 1, 2000 is after Dec 31, 1999"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 1.1"
+      inventory_ref: "Section 1.1"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition from business rules inventory"
+          author: "S2 Rules Engine Session"
 
-    assumptions:
-      - id: TIER-REHIRE-01
-        description: >
-          Members who separated before 2000 are under a prior plan provision.
-          Seed data must not generate Tier 1 members with termination before
-          Jan 1, 2000.
-        risk: LOW
-        resolution: "Confirmed by RMC §18-409(a)(1) language"
-
-  # --------------------------------------------------------------------------
+  # =========================================================================
   # RULE-TIER-2: Tier 2 Determination
-  # --------------------------------------------------------------------------
+  # =========================================================================
   - rule_id: RULE-TIER-2
-    rule_name: Tier 2 Determination
+    rule_name: "Tier 2 Determination"
     category: membership
     description: >
       A member is classified as Tier 2 if their initial service began on or
@@ -88,53 +142,97 @@ rules:
     tier_applicability: [2]
 
     conditions:
-      - field: hire_date
+      - field: hireDate
         operator: gte
         value: "2004-09-01"
         join: AND
-      - field: hire_date
+      - field: hireDate
         operator: lt
         value: "2011-07-01"
+        join: AND
 
     result:
       type: determination
-      output: tier_number
-      value: 2
+      output_fields:
+        - name: computedTier
+          type: integer
+          description: "The tier this member belongs to"
+        - name: tierMatch
+          type: boolean
+          description: "Whether computed tier matches stored tier"
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(2)"
       verification: CONFIRMED
 
     effective_date: "2004-09-01"
     end_date: null
 
+    depends_on: []
+
+    assumptions: []
+
     test_cases:
-      - description: "Kim — Tier 2 member hired March 2008"
-        inputs: { hire_date: "2008-03-01" }
-        expected: { tier: 2 }
-        demo_case_ref: case2-jennifer-kim
-      - description: "Boundary lower — hired Sep 1, 2004 = Tier 2"
-        inputs: { hire_date: "2004-09-01" }
-        expected: { tier: 2 }
-      - description: "Boundary upper — hired Jun 30, 2011 = Tier 2"
-        inputs: { hire_date: "2011-06-30" }
-        expected: { tier: 2 }
-      - description: "Just above upper — hired Jul 1, 2011 = NOT Tier 2"
-        inputs: { hire_date: "2011-07-01" }
-        expected: { tier: 3, not_tier_2: true }
+      - id: TC-TIER2-01
+        description: "Kim — hired March 2008, typical Tier 2 member"
+        type: happy_path
+        inputs:
+          hireDate: "2008-03-01"
+        expected:
+          computedTier: 2
+        notes: "Case 2: Jennifer Kim"
+
+      - id: TC-TIER2-02
+        description: "Boundary low — hired exactly Sep 1, 2004 = first Tier 2 date"
+        type: boundary
+        inputs:
+          hireDate: "2004-09-01"
+        expected:
+          computedTier: 2
+
+      - id: TC-TIER2-03
+        description: "Boundary high — hired Jun 30, 2011 = last Tier 2 date"
+        type: boundary
+        inputs:
+          hireDate: "2011-06-30"
+        expected:
+          computedTier: 2
+
+      - id: TC-TIER2-04
+        description: "Just below — hired Aug 31, 2004 = Tier 1, not Tier 2"
+        type: just_below
+        inputs:
+          hireDate: "2004-08-31"
+        expected:
+          computedTier: 1
+        notes: "Should NOT produce Tier 2"
+
+      - id: TC-TIER2-05
+        description: "Just above — hired Jul 1, 2011 = Tier 3, not Tier 2"
+        type: negative
+        inputs:
+          hireDate: "2011-07-01"
+        expected:
+          computedTier: 3
+        notes: "Should NOT produce Tier 2"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 1.2"
+      inventory_ref: "Section 1.2"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition from business rules inventory"
+          author: "S2 Rules Engine Session"
 
-  # --------------------------------------------------------------------------
+  # =========================================================================
   # RULE-TIER-3: Tier 3 Determination
-  # --------------------------------------------------------------------------
+  # =========================================================================
   - rule_id: RULE-TIER-3
-    rule_name: Tier 3 Determination
+    rule_name: "Tier 3 Determination"
     category: membership
     description: >
       A member is classified as Tier 3 if their initial service first began
@@ -142,169 +240,334 @@ rules:
     tier_applicability: [3]
 
     conditions:
-      - field: hire_date
+      - field: hireDate
         operator: gte
         value: "2011-07-01"
 
     result:
       type: determination
-      output: tier_number
-      value: 3
+      output_fields:
+        - name: computedTier
+          type: integer
+          description: "The tier this member belongs to"
+        - name: tierMatch
+          type: boolean
+          description: "Whether computed tier matches stored tier"
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-409(a)(3)"
       verification: CONFIRMED
 
     effective_date: "2011-07-01"
     end_date: null
 
-    test_cases:
-      - description: "Washington — Tier 3 member hired Sep 2012"
-        inputs: { hire_date: "2012-09-01" }
-        expected: { tier: 3 }
-        demo_case_ref: case3-david-washington
-      - description: "Boundary — hired Jul 1, 2011 = Tier 3"
-        inputs: { hire_date: "2011-07-01" }
-        expected: { tier: 3 }
-      - description: "Just below — hired Jun 30, 2011 = NOT Tier 3"
-        inputs: { hire_date: "2011-06-30" }
-        expected: { tier: 2, not_tier_3: true }
-      - description: "Negative — hired in 1997 = NOT Tier 3"
-        inputs: { hire_date: "1997-06-15" }
-        expected: { tier: 1, not_tier_3: true }
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 1.3"
+    depends_on: []
 
     assumptions:
-      - id: TIER-REHIRE-01
+      - id: TIER3-REHIRE-01
         description: >
           Tier is determined by INITIAL hire date, not most recent. For
           re-employment after retirement, RMC §18-408(j)(1) confirms new
           service earns under Tier 3 formula regardless of original tier,
           but original benefit retains original tier.
-        risk: MEDIUM
-        resolution: "Confirm rehire tier treatment with DERP staff"
+        impact: "Could misclassify rehired members"
+        status: OPEN
+      - id: TIER-REHIRE-01
+        description: >
+          If a member quits (not retires) in Tier 2 era and is rehired in
+          Tier 3 era, which tier applies? Most likely original tier based
+          on 'initial service' language, but needs DERP confirmation.
+        impact: "Affects tier for a subset of rehired members"
+        status: OPEN
 
-  # --------------------------------------------------------------------------
+    test_cases:
+      - id: TC-TIER3-01
+        description: "Washington — hired Sep 2012, typical Tier 3 member"
+        type: happy_path
+        inputs:
+          hireDate: "2012-09-01"
+        expected:
+          computedTier: 3
+        notes: "Case 3: David Washington"
+
+      - id: TC-TIER3-02
+        description: "Boundary — hired exactly Jul 1, 2011 = first Tier 3 date"
+        type: boundary
+        inputs:
+          hireDate: "2011-07-01"
+        expected:
+          computedTier: 3
+
+      - id: TC-TIER3-03
+        description: "Just below — hired Jun 30, 2011 = Tier 2, not Tier 3"
+        type: just_below
+        inputs:
+          hireDate: "2011-06-30"
+        expected:
+          computedTier: 2
+        notes: "Should NOT produce Tier 3"
+
+      - id: TC-TIER3-04
+        description: "Negative — hired 1997 = Tier 1, not Tier 3"
+        type: negative
+        inputs:
+          hireDate: "1997-06-15"
+        expected:
+          computedTier: 1
+        notes: "Should NOT produce Tier 3"
+
+      - id: TC-TIER3-05
+        description: "Recent hire — hired 2024, clearly Tier 3"
+        type: happy_path
+        inputs:
+          hireDate: "2024-01-15"
+        expected:
+          computedTier: 3
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 1.3"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition from business rules inventory"
+          author: "S2 Rules Engine Session"
+
+  # =========================================================================
   # RULE-CONTRIB-EE: Employee Contribution Rate
-  # --------------------------------------------------------------------------
+  # =========================================================================
   - rule_id: RULE-CONTRIB-EE
-    rule_name: Employee Contribution Rate
+    rule_name: "Employee Contribution Rate"
     category: membership
-    description: "Employee contributes 8.45% of gross salary, pretax."
+    description: >
+      Employee contributes 8.45% of gross salary, pretax.
     tier_applicability: [1, 2, 3]
 
+    conditions:
+      - field: status
+        operator: eq
+        value: "active"
+        notes: "Contributions only apply to active members"
+
     formula:
-      expression: "gross_salary * 0.0845"
+      expression: "grossSalary * employeeContributionRate"
       variables:
-        - name: gross_salary
-          source: "SALARY_HIST.BASE_PAY (biweekly)"
-          description: Gross pensionable salary for the pay period
-        - name: rate
-          source: "constant: 0.0845"
-          description: "Employee contribution rate, effective Jan 1, 2023"
+        - name: grossSalary
+          source: "input.currentAnnualSalary"
+          description: "Member's current gross annual salary"
+        - name: employeeContributionRate
+          source: "constant.EMPLOYEE_CONTRIBUTION_RATE"
+          description: "Current employee contribution rate: 0.0845"
 
     result:
       type: calculation
-      output: employee_contribution_amount
+      output_fields:
+        - name: annualContribution
+          type: decimal
+          description: "Annual employee contribution amount"
+          format: monetary
+        - name: monthlyContribution
+          type: decimal
+          description: "Monthly employee contribution (annual / 12)"
+          format: monetary
+        - name: rate
+          type: decimal
+          description: "The contribution rate applied"
+          format: percentage
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-407(f)(1)"
       verification: CONFIRMED
+      notes: "Effective January 1, 2023. Historical rates differ."
 
     effective_date: "2023-01-01"
     end_date: null
 
-    test_cases:
-      - description: "Standard biweekly contribution"
-        inputs: { gross_salary: 3500.00 }
-        expected: { contribution: 295.75 }
-      - description: "High earner"
-        inputs: { gross_salary: 5000.00 }
-        expected: { contribution: 422.50 }
-      - description: "Boundary — zero salary (leave without pay)"
-        inputs: { gross_salary: 0.00 }
-        expected: { contribution: 0.00 }
-      - description: "Verify pretax — contribution does not reduce gross for calculation"
-        inputs: { gross_salary: 3500.00, pretax: true }
-        expected: { contribution: 295.75, reduces_gross: false }
-
-    governance:
-      version: "1.0.0"
-      certified_by: PENDING
-      certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 1.4"
+    depends_on: []
 
     assumptions:
       - id: CONTRIB-HIST-01
         description: >
           This is the current rate only. Historical rates needed for seed
           data (8.45% since at least 2014; earlier rates unknown). For the
-          rules engine, only current rate matters.
-        risk: LOW
-        resolution: "Obtain historical rate schedule from DERP"
+          rules engine, only the current rate matters.
+        impact: "Seed data contribution histories may not reflect actual historical rates"
+        status: OPEN
 
-  # --------------------------------------------------------------------------
+    test_cases:
+      - id: TC-CONTRIB-EE-01
+        description: "Standard salary — 8.45% of $85,000"
+        type: happy_path
+        inputs:
+          currentAnnualSalary: "85000.00"
+          status: "active"
+        expected:
+          annualContribution: "7182.50"
+          monthlyContribution: "598.54"
+          rate: "0.0845"
+
+      - id: TC-CONTRIB-EE-02
+        description: "High salary — 8.45% of $150,000"
+        type: happy_path
+        inputs:
+          currentAnnualSalary: "150000.00"
+          status: "active"
+        expected:
+          annualContribution: "12675.00"
+          monthlyContribution: "1056.25"
+          rate: "0.0845"
+
+      - id: TC-CONTRIB-EE-03
+        description: "Minimum salary scenario"
+        type: boundary
+        inputs:
+          currentAnnualSalary: "30000.00"
+          status: "active"
+        expected:
+          annualContribution: "2535.00"
+          monthlyContribution: "211.25"
+          rate: "0.0845"
+
+      - id: TC-CONTRIB-EE-04
+        description: "Negative — retired member has no active contribution"
+        type: negative
+        inputs:
+          currentAnnualSalary: "85000.00"
+          status: "retired"
+        expected:
+          annualContribution: "0.00"
+          rate: "0.0845"
+        notes: "Rule should not produce contribution for non-active members"
+
+    governance:
+      version: "1.0.0"
+      last_updated: "2026-02-24"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "Section 1.4"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition from business rules inventory"
+          author: "S2 Rules Engine Session"
+
+  # =========================================================================
   # RULE-CONTRIB-ER: Employer Contribution Rate
-  # --------------------------------------------------------------------------
+  # =========================================================================
   - rule_id: RULE-CONTRIB-ER
-    rule_name: Employer Contribution Rate
+    rule_name: "Employer Contribution Rate"
     category: membership
-    description: "Employer contributes 17.95% of gross salary."
+    description: >
+      Employer contributes 17.95% of gross salary.
     tier_applicability: [1, 2, 3]
 
+    conditions:
+      - field: status
+        operator: eq
+        value: "active"
+        notes: "Contributions only apply to active members"
+
     formula:
-      expression: "gross_salary * 0.1795"
+      expression: "grossSalary * employerContributionRate"
       variables:
-        - name: gross_salary
-          source: "SALARY_HIST.BASE_PAY (biweekly)"
-          description: Gross pensionable salary for the pay period
-        - name: rate
-          source: "constant: 0.1795"
-          description: "Employer contribution rate, effective Jan 1, 2023"
+        - name: grossSalary
+          source: "input.currentAnnualSalary"
+          description: "Member's current gross annual salary"
+        - name: employerContributionRate
+          source: "constant.EMPLOYER_CONTRIBUTION_RATE"
+          description: "Current employer contribution rate: 0.1795"
 
     result:
       type: calculation
-      output: employer_contribution_amount
+      output_fields:
+        - name: annualContribution
+          type: decimal
+          description: "Annual employer contribution amount"
+          format: monetary
+        - name: monthlyContribution
+          type: decimal
+          description: "Monthly employer contribution (annual / 12)"
+          format: monetary
+        - name: rate
+          type: decimal
+          description: "The contribution rate applied"
+          format: percentage
 
     source_reference:
-      document: RMC
+      document: "RMC"
       section: "§18-407(e)(1)"
       verification: CONFIRMED
+      notes: "Effective January 1, 2023. Historical rates differ."
 
     effective_date: "2023-01-01"
     end_date: null
 
+    depends_on: []
+
+    assumptions:
+      - id: CONTRIB-ER-HIST-01
+        description: >
+          Historical employer contribution rates approximate ~11% pre-2012,
+          scaling to 17.95% current. These are estimates for seed data,
+          not verified rates.
+        impact: "Seed data employer contribution histories may be approximate"
+        status: ACCEPTED
+
     test_cases:
-      - description: "Standard biweekly employer contribution"
-        inputs: { gross_salary: 3500.00 }
-        expected: { contribution: 628.25 }
-      - description: "High earner"
-        inputs: { gross_salary: 5000.00 }
-        expected: { contribution: 897.50 }
-      - description: "Boundary — zero salary"
-        inputs: { gross_salary: 0.00 }
-        expected: { contribution: 0.00 }
-      - description: "Verify combined rate"
-        inputs: { gross_salary: 3500.00 }
-        expected: { ee_contribution: 295.75, er_contribution: 628.25, total: 924.00 }
+      - id: TC-CONTRIB-ER-01
+        description: "Standard salary — 17.95% of $85,000"
+        type: happy_path
+        inputs:
+          currentAnnualSalary: "85000.00"
+          status: "active"
+        expected:
+          annualContribution: "15257.50"
+          monthlyContribution: "1271.46"
+          rate: "0.1795"
+
+      - id: TC-CONTRIB-ER-02
+        description: "High salary — 17.95% of $150,000"
+        type: happy_path
+        inputs:
+          currentAnnualSalary: "150000.00"
+          status: "active"
+        expected:
+          annualContribution: "26925.00"
+          monthlyContribution: "2243.75"
+          rate: "0.1795"
+
+      - id: TC-CONTRIB-ER-03
+        description: "Verify EE + ER total contribution rate = 26.40%"
+        type: boundary
+        inputs:
+          currentAnnualSalary: "100000.00"
+          status: "active"
+        expected:
+          annualContribution: "17950.00"
+          rate: "0.1795"
+        notes: "Combined with RULE-CONTRIB-EE: 8.45% + 17.95% = 26.40% total"
+
+      - id: TC-CONTRIB-ER-04
+        description: "Negative — terminated member has no active contribution"
+        type: negative
+        inputs:
+          currentAnnualSalary: "85000.00"
+          status: "terminated"
+        expected:
+          annualContribution: "0.00"
+          rate: "0.1795"
+        notes: "Rule should not produce contribution for non-active members"
 
     governance:
       version: "1.0.0"
+      last_updated: "2026-02-24"
       certified_by: PENDING
       certified_date: null
-      inventory_ref: "derp-business-rules-inventory.docx, Section 1.5"
-
-    assumptions:
-      - id: CONTRIB-HIST-01
-        description: >
-          Historical employer rates approximate: ~11% pre-2012, scaling to
-          17.95% current. These are estimates for seed data, not verified rates.
-        risk: LOW
-        resolution: "Obtain historical rate schedule from DERP"
+      inventory_ref: "Section 1.5"
+      change_history:
+        - date: "2026-02-24"
+          description: "Initial rule definition from business rules inventory"
+          author: "S2 Rules Engine Session"

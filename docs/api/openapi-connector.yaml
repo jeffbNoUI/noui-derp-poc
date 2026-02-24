@@ -1,0 +1,942 @@
+openapi: 3.1.0
+info:
+  title: NoUI Data Connector Service
+  description: |
+    Layer 1 of the NoUI architecture. Abstracts the DERP legacy database
+    into a clean domain model via REST API. Handles schema mapping,
+    AMS calculation, and data quality discovery.
+    
+    All monetary values are strings with exactly two decimal places.
+    All dates use ISO 8601 (YYYY-MM-DD). All timestamps use ISO 8601 with timezone.
+    Service credit durations use { years, months } objects.
+  version: 1.0.0
+  contact:
+    name: NoUI Technical Director
+  license:
+    name: Proprietary
+
+servers:
+  - url: http://connector.noui.svc:8081
+    description: Kubernetes cluster internal
+
+tags:
+  - name: Members
+    description: Member profile and search
+  - name: Employment
+    description: Employment history and service credit
+  - name: Compensation
+    description: Salary history and AMS calculation
+  - name: Benefits
+    description: Beneficiaries, DRO, contributions
+  - name: Health
+    description: Service health and readiness
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      description: Returns 200 if the HTTP server is responding.
+      operationId: getLiveness
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: |
+        Checks database connectivity and returns 200 only when the
+        service can handle requests. Used by Kubernetes readiness probe.
+      operationId: getReadiness
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service is not ready (database unreachable)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /api/v1/members/search:
+    get:
+      tags: [Members]
+      summary: Search members
+      description: |
+        Search by last name, first name, member ID, or last 4 digits of SSN.
+        Returns minimal context for search result display.
+      operationId: searchMembers
+      parameters:
+        - name: q
+          in: query
+          required: true
+          description: Search query string
+          schema:
+            type: string
+            minLength: 2
+        - name: limit
+          in: query
+          description: Maximum results to return (default 10, max 50)
+          schema:
+            type: integer
+            default: 10
+            maximum: 50
+        - name: offset
+          in: query
+          description: Pagination offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Search results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberSearchResponse"
+
+  /api/v1/members/{id}:
+    get:
+      tags: [Members]
+      summary: Get member profile
+      description: |
+        Returns the complete member profile including demographics,
+        current employment, tier, and status. Maps legacy MEMBER_MASTER
+        and current EMPLOYMENT_HIST to the clean domain model.
+      operationId: getMember
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: Member profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MemberResponse"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/members/{id}/employment:
+    get:
+      tags: [Employment]
+      summary: Get employment history
+      description: |
+        Returns the full employment timeline ordered by effective date,
+        including service credit breakdown by type (earned, purchased,
+        military, leave). Each employment period includes department,
+        position, FTE, and action type.
+      operationId: getEmploymentHistory
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: Employment history with service credit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmploymentHistoryResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/members/{id}/salary:
+    get:
+      tags: [Compensation]
+      summary: Get salary history with AMS
+      description: |
+        Returns salary records and calculates AMS using a sliding window
+        algorithm. Window size is 36 months for Tiers 1/2 and 60 months
+        for Tier 3. Handles leave payout inclusion for pre-2010 hires.
+        
+        The AMS calculation is the most computationally significant
+        function in the Connector. The response includes the complete
+        window details so the frontend can highlight the AMS period
+        in the SalaryTable component.
+      operationId: getSalaryHistory
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+        - name: fromDate
+          in: query
+          description: Filter salary records from this date (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: toDate
+          in: query
+          description: Filter salary records to this date (inclusive)
+          schema:
+            type: string
+            format: date
+        - name: retirementDate
+          in: query
+          description: |
+            Target retirement date for AMS calculation. If omitted,
+            uses current date. Required for leave payout boost
+            calculation (payout is applied to the final month).
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Salary history with AMS calculation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SalaryHistoryResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+        "422":
+          description: Insufficient salary data for AMS window
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/members/{id}/beneficiaries:
+    get:
+      tags: [Benefits]
+      summary: Get beneficiary designations
+      description: |
+        Returns current (non-superseded) beneficiary designations and
+        optionally historical designations. Includes primary/contingent
+        type and allocation percentages.
+      operationId: getBeneficiaries
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+        - name: includeHistory
+          in: query
+          description: Include superseded designations
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Beneficiary designations
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BeneficiaryResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/members/{id}/dro:
+    get:
+      tags: [Benefits]
+      summary: Get DRO records
+      description: |
+        Returns domestic relations orders for the member, including
+        alternate payee information, marriage/divorce dates, division
+        method, and status. Returns empty array if no DRO exists.
+      operationId: getDRORecords
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: DRO records (may be empty array)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DROResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/members/{id}/contributions:
+    get:
+      tags: [Benefits]
+      summary: Get contribution history
+      description: |
+        Returns member and employer contribution records with running
+        balance. Supports pagination for members with long histories.
+      operationId: getContributions
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+            maximum: 200
+        - name: offset
+          in: query
+          schema:
+            type: integer
+            default: 0
+      responses:
+        "200":
+          description: Contribution history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContributionResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/members/{id}/service-credit:
+    get:
+      tags: [Employment]
+      summary: Get service credit summary
+      description: |
+        Returns service credit totals by type. CRITICAL: purchased
+        service is tracked separately because it counts for benefit
+        calculation but is excluded from Rule of 75/85 eligibility
+        and IPR calculations.
+      operationId: getServiceCredit
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: Service credit summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceCreditSummaryResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+  /api/v1/members/{id}/service-credit/detail:
+    get:
+      tags: [Employment]
+      summary: Get detailed service credit records
+      description: |
+        Returns individual service credit records for drill-down display.
+        Includes period dates, type, months credited, cost (for purchases),
+        and payment status. The response always includes a computed total
+        and record count for verification footer validation.
+      operationId: getServiceCreditDetail
+      parameters:
+        - $ref: "#/components/parameters/MemberId"
+      responses:
+        "200":
+          description: Detailed service credit records
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServiceCreditDetailResponse"
+        "404":
+          $ref: "#/components/responses/MemberNotFound"
+
+components:
+  parameters:
+    MemberId:
+      name: id
+      in: path
+      required: true
+      description: Member identifier
+      schema:
+        type: string
+
+  responses:
+    MemberNotFound:
+      description: Member not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    # === META & ENVELOPE ===
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp, service, version, degradationLevel]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+          description: Unique request identifier for distributed tracing
+        timestamp:
+          type: string
+          format: date-time
+          description: Server timestamp of response
+        service:
+          type: string
+          enum: [connector]
+        version:
+          type: string
+          example: "v1"
+        degradationLevel:
+          type: integer
+          minimum: 0
+          maximum: 5
+          description: Current system degradation level per ADR-007
+
+    PaginationInfo:
+      type: object
+      required: [total, limit, offset, hasMore]
+      properties:
+        total:
+          type: integer
+        limit:
+          type: integer
+        offset:
+          type: integer
+        hasMore:
+          type: boolean
+
+    ErrorResponse:
+      type: object
+      required: [error, meta]
+      properties:
+        error:
+          type: object
+          required: [code, message, source]
+          properties:
+            code:
+              type: string
+              description: Machine-readable error code (SCREAMING_SNAKE_CASE)
+              example: MEMBER_NOT_FOUND
+            message:
+              type: string
+              description: Human-readable error description
+              example: "No member found with ID 12345"
+            details:
+              type: object
+              description: Optional structured error details
+            source:
+              type: object
+              required: [service, endpoint]
+              properties:
+                service:
+                  type: string
+                endpoint:
+                  type: string
+        meta:
+          type: object
+          properties:
+            requestId:
+              type: string
+              format: uuid
+            timestamp:
+              type: string
+              format: date-time
+
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        service:
+          type: string
+        version:
+          type: string
+        uptime:
+          type: string
+          example: "2h34m12s"
+        checks:
+          type: object
+          properties:
+            database:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [healthy, degraded, unhealthy]
+                latency:
+                  type: string
+                  example: "2ms"
+
+    # === DOMAIN TYPES ===
+    ServiceDuration:
+      type: object
+      required: [years, months]
+      description: Service credit duration as years and months
+      properties:
+        years:
+          type: integer
+        months:
+          type: integer
+        totalMonths:
+          type: integer
+          description: Convenience field for calculations
+        decimalYears:
+          type: string
+          description: Decimal representation (e.g., "28.75")
+
+    Member:
+      type: object
+      required: [id, firstName, lastName, dateOfBirth, hireDate, tier, status]
+      properties:
+        id:
+          type: string
+          description: Member identifier (mapped from MBR_ID)
+        firstName:
+          type: string
+        lastName:
+          type: string
+        middleName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        hireDate:
+          type: string
+          format: date
+          description: Original hire date (determines tier)
+        terminationDate:
+          type: string
+          format: date
+          nullable: true
+        tier:
+          type: integer
+          enum: [1, 2, 3]
+          description: |
+            Benefit tier determined by hire date.
+            Tier 1: hired before 2004-09-01.
+            Tier 2: hired 2004-09-01 through 2011-06-30.
+            Tier 3: hired on or after 2011-07-01.
+        status:
+          type: string
+          enum: [Active, Retired, Terminated, Deceased, Deferred, Disability]
+        gender:
+          type: string
+        maritalStatus:
+          type: string
+          enum: [Single, Married, Divorced, Widowed]
+        department:
+          type: string
+          description: Current department name
+        position:
+          type: string
+          description: Current position title
+        currentEmployment:
+          $ref: "#/components/schemas/EmploymentPeriod"
+
+    EmploymentPeriod:
+      type: object
+      required: [effectiveDate, department, position, employmentType, fte, actionType]
+      properties:
+        effectiveDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+          nullable: true
+        department:
+          type: string
+        position:
+          type: string
+        employmentType:
+          type: string
+          enum: [Full-Time, Part-Time, Temporary]
+        fte:
+          type: number
+          description: Full-time equivalent percentage (1.0 = full time)
+          minimum: 0
+          maximum: 1
+        actionType:
+          type: string
+          enum: [Hire, Transfer, Promotion, Separation, Rehire]
+
+    SalaryRecord:
+      type: object
+      required: [payPeriodDate, grossPay, pensionablePay, employeeContribution, employerContribution]
+      properties:
+        payPeriodDate:
+          type: string
+          format: date
+        payPeriodEndDate:
+          type: string
+          format: date
+        grossPay:
+          type: string
+          description: Gross pay for the period (2 decimal places)
+        pensionablePay:
+          type: string
+          description: Pensionable pay amount (2 decimal places)
+        overtime:
+          type: string
+          description: Overtime pay (generally not pensionable)
+        leavePayout:
+          type: string
+          description: |
+            Leave payout amount included in this period.
+            Only applicable for members hired before 2010-01-01.
+            When present in the final pay period, this amount
+            boosts the AMS calculation.
+        furloughDeduction:
+          type: string
+          description: Furlough deduction amount (if applicable)
+        employeeContribution:
+          type: string
+          description: Employee contribution at 8.45%
+        employerContribution:
+          type: string
+          description: Employer contribution at 17.95%
+        isInAmsWindow:
+          type: boolean
+          description: Whether this record falls within the AMS calculation window
+
+    AMSCalculation:
+      type: object
+      required: [amount, windowMonths, windowStart, windowEnd, monthlyBreakdown]
+      properties:
+        amount:
+          type: string
+          description: Average Monthly Salary (2 decimal places)
+        windowMonths:
+          type: integer
+          enum: [36, 60]
+          description: Window size (36 for Tiers 1/2, 60 for Tier 3)
+        windowStart:
+          type: string
+          format: date
+        windowEnd:
+          type: string
+          format: date
+        totalCompensationInWindow:
+          type: string
+          description: Sum of pensionable pay in the AMS window
+        leavePayoutIncluded:
+          type: boolean
+          description: Whether a leave payout was included in AMS
+        leavePayoutAmount:
+          type: string
+          description: Leave payout amount if included
+        monthlyBreakdown:
+          type: array
+          description: Monthly totals within the AMS window
+          items:
+            type: object
+            properties:
+              month:
+                type: string
+                format: date
+              pensionablePay:
+                type: string
+              leavePayout:
+                type: string
+              total:
+                type: string
+
+    ServiceCreditRecord:
+      type: object
+      required: [type, duration, status]
+      properties:
+        type:
+          type: string
+          enum: [Employment, Purchased, Military, Leave]
+        startDate:
+          type: string
+          format: date
+        endDate:
+          type: string
+          format: date
+        duration:
+          $ref: "#/components/schemas/ServiceDuration"
+        cost:
+          type: string
+          description: Cost for purchased service (null for earned)
+          nullable: true
+        paymentStatus:
+          type: string
+          enum: [Paid, Partial, Pending]
+          nullable: true
+        countsForBenefit:
+          type: boolean
+          description: Whether this credit counts in benefit formula
+        countsForEligibility:
+          type: boolean
+          description: |
+            Whether this credit counts for Rule of 75/85.
+            CRITICAL: Purchased service is always false here.
+        countsForIPR:
+          type: boolean
+          description: Whether this credit counts for IPR calculation
+
+    Beneficiary:
+      type: object
+      required: [id, firstName, lastName, type, allocationPercentage, effectiveDate]
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        dateOfBirth:
+          type: string
+          format: date
+        relationship:
+          type: string
+          enum: [Spouse, Child, Parent, Sibling, Other]
+        type:
+          type: string
+          enum: [Primary, Contingent]
+        allocationPercentage:
+          type: number
+          minimum: 0
+          maximum: 100
+        effectiveDate:
+          type: string
+          format: date
+        supersededDate:
+          type: string
+          format: date
+          nullable: true
+          description: Non-null for historical designations
+
+    DRORecord:
+      type: object
+      required: [id, alternatePayee, marriageDate, divorceDate, divisionMethod, divisionValue, status]
+      properties:
+        id:
+          type: string
+        alternatePayee:
+          type: object
+          properties:
+            firstName:
+              type: string
+            lastName:
+              type: string
+            dateOfBirth:
+              type: string
+              format: date
+        marriageDate:
+          type: string
+          format: date
+        divorceDate:
+          type: string
+          format: date
+        divisionMethod:
+          type: string
+          enum: [Percentage, Amount]
+          description: |
+            How the benefit is divided.
+            Percentage: divisionValue is the percentage of the marital share.
+            Amount: divisionValue is a fixed dollar amount.
+        divisionValue:
+          type: string
+          description: |
+            The division value. For Percentage method, this is a
+            decimal (e.g., "0.40" for 40%). For Amount method,
+            this is a dollar amount (e.g., "500.00").
+        status:
+          type: string
+          enum: [Active, Pending, Expired]
+        courtOrderDate:
+          type: string
+          format: date
+        filingDate:
+          type: string
+          format: date
+
+    ContributionRecord:
+      type: object
+      required: [date, employeeAmount, employerAmount, runningBalance]
+      properties:
+        date:
+          type: string
+          format: date
+        employeeAmount:
+          type: string
+        employerAmount:
+          type: string
+        employeeRate:
+          type: string
+          description: Rate applied (e.g., "0.0845")
+        employerRate:
+          type: string
+        runningBalance:
+          type: string
+          description: Cumulative employee contribution balance
+
+    # === RESPONSE WRAPPERS ===
+    MemberSearchResponse:
+      type: object
+      required: [data, pagination, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              firstName:
+                type: string
+              lastName:
+                type: string
+              tier:
+                type: integer
+              status:
+                type: string
+              department:
+                type: string
+        pagination:
+          $ref: "#/components/schemas/PaginationInfo"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    MemberResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          $ref: "#/components/schemas/Member"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    EmploymentHistoryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [periods, serviceCredit]
+          properties:
+            periods:
+              type: array
+              items:
+                $ref: "#/components/schemas/EmploymentPeriod"
+            serviceCredit:
+              type: object
+              properties:
+                earned:
+                  $ref: "#/components/schemas/ServiceDuration"
+                purchased:
+                  $ref: "#/components/schemas/ServiceDuration"
+                military:
+                  $ref: "#/components/schemas/ServiceDuration"
+                leave:
+                  $ref: "#/components/schemas/ServiceDuration"
+                totalForBenefit:
+                  $ref: "#/components/schemas/ServiceDuration"
+                totalForEligibility:
+                  $ref: "#/components/schemas/ServiceDuration"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    SalaryHistoryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [records, ams]
+          properties:
+            records:
+              type: array
+              items:
+                $ref: "#/components/schemas/SalaryRecord"
+            ams:
+              $ref: "#/components/schemas/AMSCalculation"
+            recordCount:
+              type: integer
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    BeneficiaryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          properties:
+            current:
+              type: array
+              items:
+                $ref: "#/components/schemas/Beneficiary"
+            historical:
+              type: array
+              items:
+                $ref: "#/components/schemas/Beneficiary"
+            totalAllocation:
+              type: number
+              description: Sum of current allocation percentages (should be 100)
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    DROResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/DRORecord"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    ContributionResponse:
+      type: object
+      required: [data, pagination, meta]
+      properties:
+        data:
+          type: object
+          properties:
+            records:
+              type: array
+              items:
+                $ref: "#/components/schemas/ContributionRecord"
+            currentBalance:
+              type: string
+              description: Current total employee contribution balance
+        pagination:
+          $ref: "#/components/schemas/PaginationInfo"
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    ServiceCreditSummaryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [earned, totalForBenefit, totalForEligibility]
+          properties:
+            earned:
+              $ref: "#/components/schemas/ServiceDuration"
+            purchased:
+              $ref: "#/components/schemas/ServiceDuration"
+            military:
+              $ref: "#/components/schemas/ServiceDuration"
+            leave:
+              $ref: "#/components/schemas/ServiceDuration"
+            totalForBenefit:
+              $ref: "#/components/schemas/ServiceDuration"
+              description: Earned + Purchased + Military + Leave
+            totalForEligibility:
+              $ref: "#/components/schemas/ServiceDuration"
+              description: |
+                Earned + Military + Leave ONLY.
+                Purchased service is EXCLUDED from eligibility.
+            totalForIPR:
+              $ref: "#/components/schemas/ServiceDuration"
+              description: Same as eligibility (purchased excluded)
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    ServiceCreditDetailResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [records, total, recordCount]
+          properties:
+            records:
+              type: array
+              items:
+                $ref: "#/components/schemas/ServiceCreditRecord"
+            total:
+              $ref: "#/components/schemas/ServiceDuration"
+            recordCount:
+              type: integer
+              description: For verification footer validation
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"

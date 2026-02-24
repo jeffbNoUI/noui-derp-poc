@@ -1,0 +1,655 @@
+openapi: 3.1.0
+info:
+  title: NoUI Workspace Service
+  description: |
+    Layer 3+4 of the NoUI architecture. Composes dynamic workspaces
+    by combining relevance filtering (Layer 3) with component
+    assembly (Layer 4).
+    
+    Workspace composition uses a three-tier architecture:
+    - Tier 1 (Deterministic, sub-100ms): Process configuration defines base workspace
+    - Tier 2 (Rule-Based, sub-100ms): Situational factors add/remove components
+    - Tier 3 (AI Augmentation, optional): Claude API for novel situations
+    
+    The system is fully functional without Tier 3. AI affects layout
+    optimization, never data or calculations.
+  version: 1.0.0
+  contact:
+    name: NoUI Technical Director
+
+servers:
+  - url: http://workspace.noui.svc:8083
+    description: Kubernetes cluster internal
+
+tags:
+  - name: Composition
+    description: Workspace composition and layout
+  - name: Components
+    description: Component registry and metadata
+  - name: Health
+    description: Service health and readiness
+
+paths:
+  /healthz:
+    get:
+      tags: [Health]
+      summary: Liveness probe
+      operationId: getLiveness
+      responses:
+        "200":
+          description: Service is alive
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /readyz:
+    get:
+      tags: [Health]
+      summary: Readiness probe
+      description: |
+        Checks downstream service reachability (Intelligence, Connector)
+        and AI service availability. AI service may be degraded (Level 1)
+        without affecting overall readiness.
+      operationId: getReadiness
+      responses:
+        "200":
+          description: Service is ready
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+        "503":
+          description: Service not ready
+
+  /api/v1/composition/task:
+    post:
+      tags: [Composition]
+      summary: Compose task workspace
+      description: |
+        Composes a complete task workspace for a member/process/stage
+        combination. This is the primary endpoint for the staff-facing
+        application. The response defines which components to render,
+        their layout positions, their data sources, and any alert
+        conditions.
+        
+        Composition proceeds through tiers:
+        1. Tier 1: Process template defines mandatory components
+        2. Tier 2: Member situation adds conditional components
+           (e.g., DRO panel if DRO exists, leave payout if pre-2010)
+        3. Tier 3 (optional): AI optimizes layout for novel scenarios
+        
+        The response includes a compositionMeta block that tells the
+        frontend which tier produced each component, enabling the
+        demo's transparency requirement.
+      operationId: composeTaskWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TaskCompositionRequest"
+      responses:
+        "200":
+          description: Composed workspace definition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceResponse"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /api/v1/composition/hub:
+    post:
+      tags: [Composition]
+      summary: Compose member context hub
+      description: |
+        Composes the Member Context Hub layout for a given member.
+        The hub is the landing page when a staff member selects
+        a member from search. It shows an ordered array of summary
+        cards with contextual prioritization.
+        
+        Card ordering rules:
+        - If open tasks exist: OpenTasks card first, highlighted
+        - If DRO present: DRO card appears
+        - If member deceased: survivor workflow replaces benefit estimate
+        - If non-vested: refund eligibility card surfaces
+        - If approaching Rule of 75/85: scenario modeler promoted
+        - Default: OpenTasks, RecentActivity, BenefitEstimate,
+          ServiceCredit, Contributions, BeneficiaryInfo, Contact, Documents
+      operationId: composeHub
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/HubCompositionRequest"
+      responses:
+        "200":
+          description: Hub composition
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HubResponse"
+        "404":
+          description: Member not found
+
+  /api/v1/composition/templates:
+    get:
+      tags: [Composition]
+      summary: List workspace templates
+      description: |
+        Returns available workspace templates with their mandatory
+        and optional component lists. Templates define the Tier 1
+        base composition for each process type.
+      operationId: listTemplates
+      parameters:
+        - name: processType
+          in: query
+          description: Filter by process type
+          schema:
+            type: string
+            enum: [service-retirement, disability-retirement, refund, dro, death-benefit]
+      responses:
+        "200":
+          description: Template list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TemplateListResponse"
+
+  /api/v1/components:
+    get:
+      tags: [Components]
+      summary: Component registry
+      description: |
+        Returns the complete component registry with metadata for
+        each available workspace component. Includes component ID,
+        display name, data source endpoint, expected props shape,
+        and accessibility attributes.
+        
+        The frontend uses this registry to resolve component IDs
+        from composition responses to actual React components.
+      operationId: listComponents
+      responses:
+        "200":
+          description: Component registry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComponentRegistryResponse"
+
+components:
+  schemas:
+    ResponseMeta:
+      type: object
+      required: [requestId, timestamp, service, version, degradationLevel]
+      properties:
+        requestId:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+        service:
+          type: string
+          enum: [workspace]
+        version:
+          type: string
+        degradationLevel:
+          type: integer
+          minimum: 0
+          maximum: 5
+
+    ErrorResponse:
+      type: object
+      required: [error, meta]
+      properties:
+        error:
+          type: object
+          required: [code, message, source]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+            source:
+              type: object
+              properties:
+                service:
+                  type: string
+                endpoint:
+                  type: string
+        meta:
+          type: object
+          properties:
+            requestId:
+              type: string
+            timestamp:
+              type: string
+
+    HealthResponse:
+      type: object
+      required: [status, service, version]
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+        service:
+          type: string
+        version:
+          type: string
+        uptime:
+          type: string
+        checks:
+          type: object
+          properties:
+            downstream:
+              type: object
+              properties:
+                connector:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    latency:
+                      type: string
+                intelligence:
+                  type: object
+                  properties:
+                    status:
+                      type: string
+                    latency:
+                      type: string
+            aiService:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [available, unavailable]
+                  description: |
+                    AI service may be unavailable without
+                    affecting overall readiness (Level 1 degradation)
+
+    # === REQUEST SCHEMAS ===
+    TaskCompositionRequest:
+      type: object
+      required: [memberId, processType]
+      properties:
+        memberId:
+          type: string
+        processType:
+          type: string
+          enum: [service-retirement, disability-retirement, refund, dro, death-benefit]
+          description: The process being worked
+        processStage:
+          type: string
+          description: |
+            Current stage within the process lifecycle.
+            If omitted, determines stage from member/case state.
+          enum: [intake, verification, calculation, review, approval, payment-setup, complete]
+        retirementDate:
+          type: string
+          format: date
+          description: Target retirement date (for retirement processes)
+        userRole:
+          type: string
+          description: |
+            Role of the staff member viewing the workspace.
+            Affects which components are visible and editable.
+          enum: [csr, counselor, benefits-analyst, supervisor, executive]
+          default: benefits-analyst
+        requestTier3:
+          type: boolean
+          default: false
+          description: |
+            Explicitly request Tier 3 AI composition.
+            If false, only Tier 1+2 composition is used.
+            If true and AI is unavailable, falls back to Tier 2.
+
+    HubCompositionRequest:
+      type: object
+      required: [memberId]
+      properties:
+        memberId:
+          type: string
+
+    # === RESPONSE SCHEMAS ===
+    WorkspaceResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [workspaceId, memberId, processType, layout, components, alerts, compositionMeta]
+          properties:
+            workspaceId:
+              type: string
+              format: uuid
+              description: Unique identifier for this workspace instance
+            memberId:
+              type: string
+            processType:
+              type: string
+            processStage:
+              type: string
+            layout:
+              $ref: "#/components/schemas/WorkspaceLayout"
+            components:
+              type: array
+              items:
+                $ref: "#/components/schemas/WorkspaceComponent"
+            alerts:
+              type: array
+              description: AlertBar content for this workspace
+              items:
+                $ref: "#/components/schemas/WorkspaceAlert"
+            compositionMeta:
+              type: object
+              description: |
+                Transparency metadata showing how the workspace was composed.
+                Enables the demo's "show your work" for composition.
+              properties:
+                tier1Components:
+                  type: array
+                  items:
+                    type: string
+                  description: Components added by Tier 1 (process template)
+                tier2Components:
+                  type: array
+                  items:
+                    type: string
+                  description: Components added by Tier 2 (situational rules)
+                tier2Removals:
+                  type: array
+                  items:
+                    type: string
+                  description: Components removed by Tier 2 rules
+                tier3Components:
+                  type: array
+                  items:
+                    type: string
+                  description: Components added/reordered by Tier 3 AI
+                tier3Used:
+                  type: boolean
+                  description: Whether Tier 3 AI was invoked
+                tier3FellBack:
+                  type: boolean
+                  description: Whether Tier 3 was requested but fell back to Tier 2
+                compositionRules:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      rule:
+                        type: string
+                      trigger:
+                        type: string
+                      action:
+                        type: string
+                  description: |
+                    List of Tier 2 rules that fired and what they did.
+                    E.g., { rule: "DRO_PRESENT", trigger: "member has active DRO",
+                    action: "add DROImpactPanel" }
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    WorkspaceLayout:
+      type: object
+      required: [zones]
+      properties:
+        zones:
+          type: array
+          items:
+            type: object
+            required: [zoneId, name, componentIds]
+            properties:
+              zoneId:
+                type: string
+                enum: [banner, alerts, primary, secondary, analysis, actions]
+              name:
+                type: string
+                description: Human-readable zone name
+              componentIds:
+                type: array
+                items:
+                  type: string
+                description: Ordered list of component IDs in this zone
+              layout:
+                type: string
+                enum: [stack, grid-2col, grid-3col, tabs]
+                default: stack
+
+    WorkspaceComponent:
+      type: object
+      required: [componentId, componentType, visible]
+      properties:
+        componentId:
+          type: string
+          description: |
+            Unique ID for this component instance.
+            Matches an entry in layout zones.
+        componentType:
+          type: string
+          description: |
+            Component type from the registry. The frontend
+            resolves this to a React component.
+          enum:
+            - MemberBanner
+            - AlertBar
+            - EmploymentTimeline
+            - SalaryTable
+            - ServiceCreditSummary
+            - BenefitCalculationPanel
+            - PaymentOptionsComparison
+            - DROImpactPanel
+            - ScenarioModeler
+            - LeavePayoutCalculator
+            - EarlyRetirementReductionCalculator
+            - IPRCalculator
+            - DataQualityDashboard
+            - TransactionAnalysisDashboard
+        visible:
+          type: boolean
+          description: Whether the component should render
+        expanded:
+          type: boolean
+          default: true
+          description: Initial expansion state (if collapsible)
+        dataSource:
+          type: object
+          description: |
+            Tells the frontend where to fetch this component's data.
+            The frontend calls this endpoint and passes the response
+            as props to the React component.
+          properties:
+            service:
+              type: string
+              enum: [connector, intelligence]
+            endpoint:
+              type: string
+              description: Full endpoint path with {id} placeholder
+            method:
+              type: string
+              enum: [GET, POST]
+            body:
+              type: object
+              nullable: true
+              description: Request body for POST endpoints
+        parameters:
+          type: object
+          description: |
+            Additional parameters passed to the component.
+            Shape depends on componentType.
+          additionalProperties: true
+        compositionTier:
+          type: integer
+          enum: [1, 2, 3]
+          description: Which tier added this component
+
+    WorkspaceAlert:
+      type: object
+      required: [alertId, severity, message]
+      properties:
+        alertId:
+          type: string
+        severity:
+          type: string
+          enum: [info, warning, error]
+        message:
+          type: string
+        details:
+          type: string
+        actionable:
+          type: boolean
+          default: false
+        actionLabel:
+          type: string
+          nullable: true
+
+    HubResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: object
+          required: [memberId, cards]
+          properties:
+            memberId:
+              type: string
+            cards:
+              type: array
+              items:
+                type: object
+                required: [cardId, cardType, title, visible, order]
+                properties:
+                  cardId:
+                    type: string
+                  cardType:
+                    type: string
+                    enum:
+                      - OpenTasks
+                      - RecentActivity
+                      - BenefitEstimate
+                      - ServiceCredit
+                      - Contributions
+                      - BeneficiaryInfo
+                      - Contact
+                      - Documents
+                      - DRO
+                      - SurvivorWorkflow
+                      - RefundEligibility
+                      - ScenarioModeler
+                  title:
+                    type: string
+                  visible:
+                    type: boolean
+                  order:
+                    type: integer
+                  expanded:
+                    type: boolean
+                    default: false
+                  highlighted:
+                    type: boolean
+                    default: false
+                    description: Whether the card should have visual emphasis
+                  badge:
+                    type: string
+                    nullable: true
+                    description: Badge text (e.g., "3 open items")
+                  dataSource:
+                    type: object
+                    properties:
+                      service:
+                        type: string
+                      endpoint:
+                        type: string
+                      method:
+                        type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    TemplateListResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              templateId:
+                type: string
+              processType:
+                type: string
+              displayName:
+                type: string
+              mandatoryComponents:
+                type: array
+                items:
+                  type: string
+              optionalComponents:
+                type: array
+                items:
+                  type: string
+              tier2Rules:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    condition:
+                      type: string
+                    action:
+                      type: string
+                    componentAffected:
+                      type: string
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"
+
+    ComponentRegistryResponse:
+      type: object
+      required: [data, meta]
+      properties:
+        data:
+          type: array
+          items:
+            type: object
+            properties:
+              componentType:
+                type: string
+              displayName:
+                type: string
+              description:
+                type: string
+              category:
+                type: string
+                enum: [identity, data-display, analysis, operational]
+              dataSourceService:
+                type: string
+                enum: [connector, intelligence, none]
+              dataSourceEndpoint:
+                type: string
+                nullable: true
+              requiredProps:
+                type: array
+                items:
+                  type: string
+              optionalProps:
+                type: array
+                items:
+                  type: string
+              accessibilityRole:
+                type: string
+                description: ARIA role for the component
+              supportsCollapse:
+                type: boolean
+              supportsDrilldown:
+                type: boolean
+        meta:
+          $ref: "#/components/schemas/ResponseMeta"

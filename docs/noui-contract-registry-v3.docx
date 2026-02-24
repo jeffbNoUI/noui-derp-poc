@@ -1,0 +1,496 @@
+NoUI --- DERP Proof of Concept
+
+**CONTRACT REGISTRY**
+
+*Parallel Design Strategy Integration Artifact*
+
+Version 3.0 \| February 24, 2026
+
+Maintained by: Technical Director (Jeff)
+
+**Status: All five streams Phase 2 complete. All conflicts resolved.**
+
+**Change Log**
+
+  ------------- ------------- ------------------------------------------------
+  **Version**   **Date**      **Changes**
+
+  1.0           Feb 23, 2026  Initial creation. 18 contracts in Draft.
+
+  2.0           Feb 24, 2026  CR-1: 21 contracts. 3 conflicts found
+                              (CON-01/02/03). 42 XS items cataloged.
+
+  **3.0**       **Feb 24,     **CR-2: 23 contracts. All conflicts resolved. 7
+                2026**        S2 XS items closed. C-05--C-09 advanced to
+                              Proposed. 2 new contracts discovered (C-22,
+                              C-23). DISC-01 identified.**
+  ------------- ------------- ------------------------------------------------
+
+**1. Stream Reference**
+
+  ------------ -------------- ------------------------- -------------------------
+  **Stream**   **Chat Name**  **Scope**                 **Deliverables**
+
+  S1           DATA - Schema  Legacy DDL, domain entity 001_legacy_schema.sql,
+               Design (v1)    model, data generation,   domain entity specs,
+                              embedded quality issues   Connector data contracts
+
+  S2           RULES -        YAML rule schema, 52      schema.yaml, 8 rule YAML
+               Calculation    business rules in YAML,   files, 4 hand calcs,
+               Engine Design  hand calculations,        trace format, XS
+               (v1)           calculation trace format  resolutions
+
+  S3           ARCH - API     RESTful API design for    3 OpenAPI specs, shared
+               Contracts (v1) all three services.       type defs, API
+                              Integration authority.    conventions, integration
+                                                        test contracts
+
+  S4           ARCH -         Component inventory,      Component interfaces,
+               Frontend       props/state contracts,    frontend architecture,
+               Components     workspace composition,    composition decision tree
+               (v1)           accessibility             
+
+  S5           TEST -         Test architecture, demo   Verification
+               Verification   case acceptance criteria, implementation artifacts,
+               Strategy (v1)  boundary tests, data      boundary case inventory
+                              quality detection         
+  ------------ -------------- ------------------------- -------------------------
+
+**2. Contract Lifecycle States**
+
+  ----------- ----------------------------- -----------------------------
+  **State**   **Meaning**                   **Build Confidence**
+
+  Draft       Single stream has proposed    Design to this, but expect
+              this contract. Not yet        changes.
+              reviewed cross-stream.        
+
+  Proposed    Reviewed during convergence.  Safe to build to this
+              No conflicts remain. Multiple contract.
+              streams agree.                
+
+  Resolved    Was in conflict; resolution   Build to the resolved version
+              applied and verified across   only.
+              streams.                      
+  ----------- ----------------------------- -----------------------------
+
+**3. Contract Registry**
+
+**3.1 Data Boundary Contracts**
+
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------------- -------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                          **Notes**
+
+  **C-01**   Legacy Schema    S1          S2,S5          Proposed    001_legacy_schema.sql                 11 tables,
+             DDL                                                                                           intentional
+                                                                                                           realism
+                                                                                                           patterns
+
+  **C-02**   Domain Entity    S1          S2,S3,S4       Proposed    002_domain_entity_specifications.md   10 entities,
+             Model                                                                                         computed
+                                                                                                           fields
+
+  **C-03**   Rule Input Data  S2          S3             Proposed    eligibility.yaml +                    52 rules
+             Shape                                                   benefit-calculation.yaml              define all
+                                                                                                           input fields
+
+  **C-04**   Salary History + S1          S2,S3          Proposed    003_connector_data_contracts.md       CON-01
+             AMS                                                                                           resolved:
+                                                                                                           monetary as
+                                                                                                           strings
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------------- -------------
+
+**3.2 Calculation Output Contracts**
+
+  ---------- ---------------- ----------- -------------- ----------- -------------------------- --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**               **Notes**
+
+  **C-05**   Eligibility      S2          S3,S4          Proposed    eligibility.yaml           10 rules, 6
+             Determination                                                                      retirement
+                                                                                                types
+                                                                                                confirmed
+                                                                                                (XS-20)
+
+  **C-06**   Benefit          S2          S3,S4          Proposed    benefit-calculation.yaml   9 rules, AMS
+             Calculation                                                                        from Connector
+                                                                                                trusted
+
+  **C-07**   Payment Options  S2          S3,S4          Proposed    payment-options.yaml       7 rules, J&S
+                                                                                                placeholders
+                                                                                                (Q-CALC-04)
+
+  **C-08**   DRO Division     S2          S3,S4          Proposed    dro.yaml                   6 rules,
+                                                                                                marital
+                                                                                                fraction
+                                                                                                calculation
+
+  **C-09**   Supplemental     S2          S3,S4          Proposed    supplemental.yaml          6 rules: IPR,
+             Benefits                                                                           death benefit,
+                                                                                                COLA
+  ---------- ---------------- ----------- -------------- ----------- -------------------------- --------------
+
+**3.3 API Service Contracts**
+
+  ---------- ---------------- ----------- -------------- ----------- --------------------------- --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                **Notes**
+
+  **C-10**   Connector API    S3          S4,S5          Proposed    openapi-connector.yaml      943 lines, all
+                                                                                                 endpoints
+                                                                                                 defined
+
+  **C-11**   Intelligence API S3          S4,S5          Proposed    openapi-intelligence.yaml   1130 lines,
+                                                                                                 all endpoints
+                                                                                                 defined
+
+  **C-12**   Workspace API    S3          S4             Draft       openapi-workspace.yaml      Composition
+                                                                                                 decision tree
+                                                                                                 pending S4
+                                                                                                 deep design
+
+  **C-13**   Error Response   S3          All            Proposed    noui-api-conventions.docx   Standardized
+                                                                                                 error envelope
+
+  **C-14**   Health Check     S3          S5             Proposed    noui-api-conventions.docx   GET /health
+                                                                                                 for all
+                                                                                                 services
+  ---------- ---------------- ----------- -------------- ----------- --------------------------- --------------
+
+**3.4 Frontend Component Contracts**
+
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------------ --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                         **Notes**
+
+  **C-15**   Component Props  S4          S3             Proposed    noui-component-interfaces.ts         CON-01/02
+                                                                                                          applied
+
+  **C-16**   Composition      S4          S3             Draft       noui-s4-frontend-architecture.docx   Decision tree
+             Rules                                                                                        defined, Tier
+                                                                                                          3 AI
+                                                                                                          augmentation
+                                                                                                          TBD
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------------ --------------
+
+**3.5 Test Boundary Contracts**
+
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------- --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                    **Notes**
+
+  **C-17**   Test Oracle      S5          S2             Proposed    case1-4 test fixtures + hand    All 4 cases
+             Format                                                  calcs                           now have hand
+                                                                                                     calculations
+
+  **C-18**   Integration      S5+S3       All            Draft       integration-test-contracts.md   Boundary specs
+             Tests                                                                                   defined,
+                                                                                                     concrete tests
+                                                                                                     pending
+  ---------- ---------------- ----------- -------------- ----------- ------------------------------- --------------
+
+**3.6 Discovered Contracts (CR-1)**
+
+  ---------- ---------------- ----------- -------------- ----------- --------------------------- --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                **Notes**
+
+  **C-19**   Response         S3          All            Resolved    shared-types.go/ts          CON-03
+             Envelope                                                                            resolved:
+                                                                                                 merged S1+S3
+                                                                                                 envelope
+
+  **C-20**   Shared Types     S3          All            Resolved    shared-types.go/ts          CON-01/02/03
+                                                                                                 all applied
+
+  **C-21**   API Conventions  S3          All            Proposed    noui-api-conventions.docx   URL patterns,
+                                                                                                 versioning,
+                                                                                                 pagination
+  ---------- ---------------- ----------- -------------- ----------- --------------------------- --------------
+
+**3.7 Discovered Contracts (CR-2)**
+
+  ---------- ---------------- ----------- -------------- ----------- ----------------------------- --------------
+  **ID**     **Contract**     **Owner**   **Consumer**   **State**   **Artifact**                  **Notes**
+
+  **C-22**   Rule YAML Schema S2          S5             Proposed    schema.yaml                   Meta-schema
+                                                                                                   for all rule
+                                                                                                   files
+
+  **C-23**   Calculation      S2          S3,S4,S5       Proposed    calculation-trace-format.md   Step-by-step
+             Trace Format                                                                          JSON trace
+                                                                                                   structure
+  ---------- ---------------- ----------- -------------- ----------- ----------------------------- --------------
+
+**4. Contract State Summary**
+
+  --------------- ----------- --------------------------------------------
+  **State**       **Count**   **Contracts**
+
+  Draft           3           C-12, C-16, C-18
+
+  Proposed        18          C-01--C-11, C-13--C-15, C-17, C-21--C-23
+
+  Resolved        2           C-19, C-20
+  --------------- ----------- --------------------------------------------
+
+**Total contracts tracked: 23. Build-ready (Proposed + Resolved): 20.
+Remaining Draft: 3.**
+
+**5. Conflict Resolution Log**
+
+All conflicts identified during convergence reviews. Resolution
+authority: CRITICAL-002-conflict-resolutions.md.
+
+  -------- -------------- ------------------- ------------ ----------------------
+  **ID**   **Subject**    **Conflict**        **Status**   **Resolution**
+
+  CON-01   Monetary       S1/S4 numeric vs S3 RESOLVED     Strings everywhere.
+           Format         string              (CR-1)       shared-types.\*
+                                                           authoritative.
+
+  CON-02   MemberStatus   S1 lowercase vs S3  RESOLVED     S1 canonical,
+           Enum           TitleCase vs S4     (CR-1)       lowercase. 6 values.
+                          different set                    
+
+  CON-03   Response       S1 data+DQ+metadata RESOLVED     Merged: data +
+           Envelope       vs S3 ResponseMeta  (CR-1)       dataQualityFlags +
+                          only                             meta.
+  -------- -------------- ------------------- ------------ ----------------------
+
+**No open conflicts remain as of CR-2.**
+
+**6. Discrepancy Log**
+
+Non-conflict issues found during convergence reviews that require
+correction.
+
+  --------- ----------- --------------- -------------------- -------------- ----------------
+  **ID**    **Found**   **Subject**     **Description**      **Severity**   **Resolution**
+
+  DISC-01   CR-2        Case 3          Hand calc says       Minor          Update hand calc
+                        beneficiary     \'Sarah Washington,                 to match fixture
+                        name/DOB        May 20 1963\'.                      (fixture is
+                                        Fixture says                        oracle).
+                                        \'Michelle                          
+                                        Washington, Aug 3                   
+                                        1965\'.                             
+  --------- ----------- --------------- -------------------- -------------- ----------------
+
+**7. Cross-Stream Discovery Log**
+
+**Total items: 42. Aligned: 19. Resolved: 9. Noted: 13. Open: 1.**
+
+**7.1 From S1**
+
+  -------- ---------- -------- -------------------------------- ------------------------
+  **ID**   **From**   **To**   **Discovery**                    **Status**
+
+  XS-01    S1         S2       TIER_CD untrusted; Connector     Aligned
+                               re-derives from HIRE_DT          
+
+  XS-02    S1         S3       SSN masking + tier derivation    Aligned
+                               are Connector responsibilities   
+
+  XS-03    S1         S5       Transaction log three eras need  Noted
+                               era-specific test coverage       
+
+  XS-04    S1         S2       SVC_CREDIT.INCL_ELIG=\'N\' for   Aligned
+                               purchased service                
+
+  XS-05    S1         S4       STATUS_CD \'X\' (deceased) added Noted
+                               late; some show \'R\'/\'T\'      
+
+  XS-06    S1         S2       Intelligence uses computedTier   Aligned
+                               only, never storedTier           
+
+  XS-07    S1         S3       AMS endpoint needs optional tier Aligned
+                               override parameter               
+
+  XS-08    S1         S3       ServiceCreditSummary             Aligned
+                               pre-computation trusted by       
+                               Intelligence                     
+
+  XS-09    S1         S4       dataQualityFlags drives DQ       Noted
+                               indicator component              
+
+  XS-10    S1         S5       Every entity mapping is testable Aligned
+                               contract                         
+
+  XS-11    S1         S2       AMS endpoint returns fully       Aligned
+                               computed result; Intelligence    
+                               does NOT re-derive               
+
+  XS-12    S1         S3       Response envelope must be        Resolved (CON-03)
+                               consistent across services       
+
+  XS-13    S1         S3       /data-quality/member/{id}        Open
+                               endpoint ownership unclear       
+
+  XS-14    S1         S4       calculationTrace should use      Noted
+                               markdown-safe strings            
+
+  XS-15    S1         S5       Every JSON shape is testable     Noted
+                               contract                         
+  -------- ---------- -------- -------------------------------- ------------------------
+
+**7.2 From S3**
+
+  -------- ---------- -------- -------------------------------- ------------------------
+  **ID**   **From**   **To**   **Discovery**                    **Status**
+
+  XS-16    S3         S1       Member schema confirmation       Aligned
+
+  XS-17    S3         S1       Salary schema confirmation       Aligned
+
+  XS-18    S3         S1       Service credit schema            Aligned
+                               confirmation                     
+
+  XS-19    S3         S2       Rule IDs in calculation trace    Resolved (CR-2): Exact
+                                                                match confirmed
+
+  XS-20    S3         S2       Eligibility retirement type enum Resolved (CR-2): 6
+                                                                values confirmed
+
+  XS-21    S3         S2       J&S actuarial factor sourcing    Resolved (CR-2):
+                                                                Hardcoded placeholders
+                                                                (Q-CALC-04)
+
+  XS-22    S3         S2       AMS sourcing from Connector      Aligned
+  -------- ---------- -------- -------------------------------- ------------------------
+
+**7.3 From S4**
+
+  -------- ---------- -------- -------------------------------- -------------------------
+  **ID**   **From**   **To**   **Discovery**                    **Status**
+
+  XS-23    S4         S1       Schema provision for all         Aligned
+                               entities                         
+
+  XS-24    S4         S3       API schemas must map to          Resolved (CON-01/02)
+                               component props                  
+
+  XS-25    S4         S2       Workspace composition needs      Aligned
+                               eligibility structure            
+
+  XS-26    S4         S3       Leave balance data sourcing      Noted
+
+  XS-27    S4         S2       Scenario projection API shape    Noted
+
+  XS-28    S4         S3       Death benefit variant display    Noted
+
+  XS-29    S4         S2       ScenarioModeler requires         Resolved (CR-2):
+                               retirement date projection       what_if_retirement_date
+                                                                re-runs pipeline
+
+  XS-30    S4         S3       Composition decision tree        Noted
+
+  XS-31    S4         S3       Degradation levels               Aligned
+
+  XS-32    S4         S2       Calculation trace rendering      Aligned
+
+  XS-33    S4         S5       Demo case workspace layouts      Noted
+
+  XS-34    S4         S5       Accessibility test coverage      Noted
+
+  XS-35    S4         S2       DRO panel conditional display    Aligned
+  -------- ---------- -------- -------------------------------- -------------------------
+
+**7.4 From S5**
+
+  -------- ---------- -------- -------------------------------- ------------------------
+  **ID**   **From**   **To**   **Discovery**                    **Status**
+
+  XS-36    S5         S2       RULE-ROUNDING test cases depend  Resolved (CR-2):
+                               on convention                    Banker\'s rounding,
+                                                                final amount only
+
+  XS-37    S5         S2       Partial-year service calculation Resolved (CR-2):
+                               method                           months/12
+
+  XS-38    S5         S1       JSON validation against domain   Aligned
+                               entity specs                     
+
+  XS-39    S5         S4       Workspace composition test       Noted
+                               scenarios                        
+
+  XS-40    S5         S3       Integration test boundary        Aligned
+                               definitions                      
+
+  XS-41    S5         S2       Full statutory reduction tables  Resolved (CR-2): Lookup
+                               confirmation                     by integer age string
+
+  XS-42    S5         S1       DQ-005 detection for deceased    Noted
+                               status mismatch                  
+  -------- ---------- -------- -------------------------------- ------------------------
+
+**8. Convergence Review Log**
+
+  ------------ ---------- ------------- ------------------ ----------------------
+  **Review**   **Date**   **Streams     **Conflicts        **Outcome**
+                          Reviewed**    Found**            
+
+  **CR-01**    Feb 24,    S1, S3, S4,   3 (CON-01, CON-02, All resolved via
+               2026       S5            CON-03)            CRITICAL-002. 42 XS
+                                                           items cataloged. 21
+                                                           contracts tracked.
+
+  **CR-02**    Feb 24,    S2 (full      0 new conflicts    S2 deliverables
+               2026       output)                          validated. 52 rules,
+                                                           257 test cases. 7 XS
+                                                           items resolved.
+                                                           C-05--C-09 advanced. 2
+                                                           new contracts
+                                                           discovered. DISC-01
+                                                           identified.
+  ------------ ---------- ------------- ------------------ ----------------------
+
+**9. Build Readiness Summary**
+
+All five streams have completed Phase 2 (Independent Exploration) and
+passed convergence review. Status as of CR-2:
+
+**Completed:**
+
+• 52 business rules translated to YAML with 257 inline test cases
+
+• All 4 demo case hand calculations complete (Cases 1, 2, 3, 4)
+
+• Calculation trace format defined and validated against Case 1
+
+• All 3 cross-stream conflicts resolved (CRITICAL-002)
+
+• All 7 S2-blocking cross-stream items resolved
+
+• Legacy schema DDL with intentional realism patterns
+
+• Domain entity model with computed fields and data quality flags
+
+• OpenAPI specs for all 3 services
+
+• Shared type definitions in Go and TypeScript
+
+• Frontend component interfaces and architecture
+
+• Verification strategy with boundary case inventory
+
+**Remaining before BUILD:**
+
+• DISC-01: Update Case 3 hand calc beneficiary name to match fixture
+
+• XS-13: Decide /data-quality/member/{id} endpoint ownership (Connector
+vs Intelligence)
+
+• C-12 (Workspace API), C-16 (Composition Rules), C-18 (Integration
+Tests) remain Draft --- acceptable for build start, will finalize during
+implementation
+
+**20 of 23 contracts are at Proposed or Resolved state. The 3 remaining
+Draft contracts are non-blocking for build start. The parallel design
+phase is complete.**
+
+**10. Registry Maintenance Protocol**
+
+This registry is maintained exclusively by the Technical Director.
+Streams never directly modify this document. During BUILD phase,
+contract updates follow the SYNC_LOG protocol with formal revision
+through the convergence hub.
+
+A contract cannot override a governing principle, ADR, or statutory
+provision. If a contract contradicts a governing document, the governing
+document wins and the contract must be revised.

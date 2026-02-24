@@ -1,232 +1,179 @@
-# ============================================================================
-# DERP Rule Definition Schema
-# ============================================================================
-# Every rule definition in this directory must conform to this structure.
+# ===========================================================================
+# NoUI DERP POC — Rule Definition Schema
+# ===========================================================================
+# Every rule YAML file must conform to this structure.
 # This schema is the contract between rule authors and the rules engine.
 #
-# Governing Document: derp-business-rules-inventory.docx
-# Architecture: noui-architecture-decisions.docx (ADR-001, ADR-002)
-# ============================================================================
+# Conventions (from CRITICAL-002):
+#   - Monetary values: strings with 2 decimals ("10639.45")
+#   - Percentages: string decimals ("0.03" = 3%, "0.0845" = 8.45%)
+#   - Enums: all lowercase
+#   - Field names: camelCase, matching 002_domain_entity_specifications.md
+#   - AMS: computed by Connector; engine trusts the value
+#
+# Assumptions in effect (build with these, adjust when DERP confirms):
+#   Q-CALC-01: Banker's rounding on final monthly benefit only
+#   Q-CALC-02: Partial year service = months/12
+#   Q-CALC-03: Reduction uses integer age only (no monthly proration)
+#   Q-CALC-04: J&S factors are placeholders (100%: 0.8850, 75%: 0.9150, 50%: 0.9450)
+#
+# Version: 1.0
+# Date: 2026-02-24
+# Stream: S2 — Rules & Calculation Engine Design
+# ===========================================================================
 
-rule_definition_schema:
-  # --- Identity ---
-  rule_id:
-    type: string
-    required: true
-    description: >
-      Unique identifier matching the business rules inventory.
-      Format: RULE-CATEGORY-NAME (e.g., RULE-TIER-1, RULE-AMS-CALC)
+schema_version: "1.0"
 
-  rule_name:
-    type: string
-    required: true
-    description: Human-readable name for display and logging
+# ---------------------------------------------------------------------------
+# File-level metadata (required at top of every rule YAML file)
+# ---------------------------------------------------------------------------
+file_metadata:
+  category: string          # One of: membership, service_credit, eligibility,
+                            #   benefit_calculation, payment_options, dro,
+                            #   supplemental, process
+  description: string       # What this file covers
+  evaluation_order: integer # Order this category is evaluated (1 = first)
+  rule_count: integer       # Number of rules in this file
+  governing_authority: string  # "RMC §18-391 through §18-430.7"
+  schema_version: string    # Must match schema_version above
 
-  category:
-    type: string
-    required: true
-    enum:
-      - membership
-      - service_credit
-      - eligibility
-      - benefit_calculation
-      - payment_options
-      - dro
-      - supplemental
-      - process
-    description: Rule category matching file organization
+# ---------------------------------------------------------------------------
+# Rule definition structure
+# ---------------------------------------------------------------------------
+rule_definition:
 
-  description:
-    type: string
-    required: true
-    description: >
-      Precise rule statement from the business rules inventory.
-      Must match the inventory's "Rule Statement" field exactly.
+  # --- Identity -----------------------------------------------------------
+  rule_id: string
+    # Format: RULE-{CATEGORY}-{NAME}
+    # Must match derp-business-rules-inventory.docx exactly
+    # Examples: RULE-TIER-1, RULE-SVC-EARNED, RULE-RULE-OF-75
 
-  # --- Applicability ---
-  tier_applicability:
-    type: array
-    items:
-      type: integer
-      enum: [1, 2, 3]
-    required: true
-    description: >
-      Which tiers this rule applies to. Use [1, 2, 3] for all tiers.
-      Tier determination rules apply to their own tier only.
+  rule_name: string
+    # Human-readable name matching inventory
 
-  # --- Logic ---
-  conditions:
-    type: array
-    required: false
-    description: >
-      Structured conditions evaluated in order. For determination
-      and eligibility rules.
-    items:
-      field:
-        type: string
-        description: Data field to evaluate
-      operator:
-        type: string
-        enum: [eq, neq, gt, gte, lt, lte, in, between, not_in]
-        description: Comparison operator
-      value:
-        type: any
-        description: Comparison value (scalar, array for in/between)
-      join:
-        type: string
-        enum: [AND, OR]
-        description: Logical join with next condition
+  category: string
+    # Must match file_metadata.category
 
+  description: string
+    # Precise rule statement from inventory — the authoritative English rule
+
+  # --- Applicability ------------------------------------------------------
+  tier_applicability: list[integer]
+    # Which tiers this rule applies to: [1], [2], [3], [1, 2], [1, 2, 3]
+    # For tier determination rules, list only the tier being determined
+
+  # --- Conditions ---------------------------------------------------------
+  # Evaluated in order. AND semantics by default (short-circuit on failure).
+  conditions: list[condition]
+    # Each condition:
+    #   field: string        — Domain entity field (camelCase) from
+    #                          002_domain_entity_specifications.md
+    #   operator: string     — eq, neq, gt, gte, lt, lte, in, between,
+    #                          not_in, is_null, is_not_null
+    #   value: any           — Comparison value (type matches field)
+    #   join: string         — AND | OR (default: AND)
+    #
+    # For compound logic, use condition_groups:
+    #   condition_groups:
+    #     - join: AND
+    #       conditions: [...]
+    #     - join: OR
+    #       conditions: [...]
+
+  # --- Lookup Tables ------------------------------------------------------
+  # For rules with statutory tables (reductions, death benefits).
+  # Prefer tables over computed formulas to match statute exactly.
+  lookup_table: map[string, any]
+    # Key: lookup field value (e.g., integer age as string)
+    # Value: result (e.g., reduction factor, dollar amount)
+
+  # --- Formula ------------------------------------------------------------
+  # For calculation rules. Omit for pure determination/validation rules.
   formula:
-    type: object
-    required: false
-    description: For calculation rules — the mathematical formula
-    properties:
-      expression:
-        type: string
-        description: >
-          Formula expression (e.g., "ams * multiplier * service_years").
-          Human-readable, not code.
-      variables:
-        type: array
-        items:
-          name:
-            type: string
-            description: Variable name used in expression
-          source:
-            type: string
-            description: Where this value comes from (API, rule, constant)
-          description:
-            type: string
-            description: What this variable represents
+    expression: string       # Human-readable: "ams * multiplier * serviceYears"
+    variables: list[variable]
+      # Each variable:
+      #   name: string        — Variable name used in expression
+      #   source: string      — Origin:
+      #                         "input.{fieldName}" — domain entity
+      #                         "rule.{RULE-ID}.output" — another rule's result
+      #                         "lookup.{table}.{key}" — lookup table
+      #                         "constant.{name}" — hardcoded value
+      #                         "connector.{endpoint}" — Connector API
+      #   description: string — What this variable represents
 
-  lookup_table:
-    type: object
-    required: false
-    description: >
-      For rules defined by statutory tables (early retirement reduction,
-      death benefit). Use tables, NOT formulas — the statute defines tables.
-      See CLAUDE_CODE_PROTOCOL.md for rationale.
-    properties:
-      description:
-        type: string
-      entries:
-        type: object
-        description: Map of integer key to value (e.g., age -> factor)
-
-  # --- Output ---
+  # --- Result -------------------------------------------------------------
   result:
-    type: object
-    required: true
-    properties:
-      type:
-        type: string
-        enum: [determination, calculation, validation, routing, informational]
-        description: What kind of result this rule produces
-      output:
-        type: string
-        description: What the rule returns (e.g., "tier_number", "monthly_benefit")
+    type: string
+      # determination — boolean or enum (eligible/ineligible)
+      # calculation   — numeric value
+      # validation    — pass/fail with messages
+      # routing       — next-step or workflow direction
+      # derivation    — intermediate value for downstream rules
+    output_fields: list[output_field]
+      # Each:
+      #   name: string      — Field name in result object
+      #   type: string      — boolean, string, decimal, integer, date, enum
+      #   description: string
+      #   format: string    — Optional: "monetary", "percentage", "years"
 
-  # --- Provenance ---
+  # --- Source Reference (REQUIRED) ----------------------------------------
   source_reference:
-    type: object
-    required: true
-    description: >
-      CRITICAL — every rule MUST have this. No rule without a source
-      reference passes governance review.
-    properties:
-      document:
-        type: string
-        enum: [RMC, DERP Handbook, Retirement Application, Operational Practice, Project Decision]
-        description: Governing document type
-      section:
-        type: string
-        description: Specific section (e.g., "§18-409(a)(1)")
-      verification:
-        type: string
-        enum: [CONFIRMED, ASSUMED, OPEN]
-        description: >
-          CONFIRMED: verified against RMC statutory text.
-          ASSUMED: reasonable assumption, not yet confirmed by DERP.
-          OPEN: requires DERP staff input.
+    document: string         # "RMC", "DERP Handbook", "Board Resolution"
+    section: string          # "§18-409(a)(1)"
+    url: string              # Optional
+    verification: string     # CONFIRMED | ASSUMED | OPEN
+    notes: string            # Optional clarification
 
-  effective_date:
-    type: date
-    required: true
-    description: When this rule version takes effect
+  # --- Effective Dating ---------------------------------------------------
+  effective_date: date       # ISO 8601, when provision was enacted
+  end_date: date             # null for current rules
 
-  end_date:
-    type: date
-    required: false
-    default: null
-    description: Null for current rules; set when superseded
+  # --- Dependencies -------------------------------------------------------
+  depends_on: list[string]   # Rule IDs that must evaluate first
 
-  # --- Testing ---
-  test_cases:
-    type: array
-    required: true
-    min_items: 4
-    description: >
-      Inline test expectations. Every rule must have at least:
-      1. Happy path — normal case that exercises the rule
-      2. Boundary — exact threshold value
-      3. Just below — one unit below threshold
-      4. Negative — case where rule should NOT fire
-    items:
-      description:
-        type: string
-        description: What this test case validates
-      inputs:
-        type: object
-        description: Input values for the test
-      expected:
-        type: object
-        description: Expected output values
-      demo_case_ref:
-        type: string
-        required: false
-        description: Reference to demo case (e.g., "case1-robert-martinez")
+  # --- Assumptions --------------------------------------------------------
+  assumptions: list[assumption]
+    # Each:
+    #   id: string           — e.g., "Q-CALC-02"
+    #   description: string
+    #   impact: string       — What happens if wrong
+    #   status: string       — OPEN | ACCEPTED | RESOLVED
 
-  # --- Governance ---
+  # --- Test Cases (REQUIRED — minimum 4 per rule) -------------------------
+  # 1. Happy path — normal case
+  # 2. Boundary — exact threshold
+  # 3. Just below — one unit below threshold
+  # 4. Negative — case where rule should NOT fire
+  test_cases: list[test_case]
+    # Each:
+    #   id: string           — Unique within rule (e.g., "TC-TIER1-01")
+    #   description: string
+    #   type: string         — happy_path, boundary, just_below, negative, edge_case
+    #   inputs: map          — Domain entity field names
+    #   expected: map        — Expected output values
+    #   notes: string        — Optional
+
+  # --- Governance ---------------------------------------------------------
   governance:
-    type: object
-    required: true
-    properties:
-      version:
-        type: string
-        description: Semantic version of this rule definition
-      certified_by:
-        type: string
-        default: PENDING
-        description: >
-          Who certified this rule. PENDING until human certifies.
-          Per ADR-002: no rule reaches production without human approval.
-      certified_date:
-        type: date
-        default: null
-        description: Date of certification (null until certified)
-      inventory_ref:
-        type: string
-        description: >
-          Reference to business rules inventory entry.
-          Must match an entry in derp-business-rules-inventory.docx.
+    version: string          # "1.0.0"
+    last_updated: date
+    certified_by: string     # "PENDING" until human certifies
+    certified_date: date     # null until certified
+    inventory_ref: string    # "Section 1.1" — ref to inventory doc
+    change_history: list[change]
+      # Each:
+      #   date: date
+      #   description: string
+      #   author: string
 
-  # --- Assumptions ---
-  assumptions:
-    type: array
-    required: false
-    description: >
-      Assumptions embedded in this rule, with risk ratings.
-      Maps to the Assumptions Register in the inventory.
-    items:
-      id:
-        type: string
-        description: Assumption ID (e.g., "Q-CALC-01")
-      description:
-        type: string
-      risk:
-        type: string
-        enum: [HIGH, MEDIUM, LOW]
-      resolution:
-        type: string
-        description: How to resolve (e.g., "Confirm with DERP staff")
+# ---------------------------------------------------------------------------
+# Shared lookup tables (file-level, referenced by rules)
+# ---------------------------------------------------------------------------
+# Define once, reference via "lookup.{table_name}.{key}" in rule formulas.
+#
+# shared_tables:
+#   table_name:
+#     source: string         — RMC section
+#     description: string
+#     entries: map[string, string]

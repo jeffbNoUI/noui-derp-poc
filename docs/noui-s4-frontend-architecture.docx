@@ -1,0 +1,1304 @@
+**NoUI Frontend Architecture**
+
+Stream S4: Prototype-to-Production Component Mapping, TypeScript
+Interfaces, Workspace Composition, and Accessibility
+
+*DERP POC \| February 2026 \| Parallel Design Strategy Output*
+
+1\. Prototype-to-Production Component Mapping
+
+This table maps each BUILD_PLAN Day 6-8 production component to its
+source prototype(s), identifies which UX patterns carry forward, and
+documents the changes needed for production. The dark-mode prototype
+palette (cyan/dark backgrounds) is replaced with the DERP brand design
+system (teal/orange on light backgrounds) across all components.
+
+> **CROSS-STREAM:** S1 (Database/Data Model) must provide the schema for
+> all entities referenced in the \'Pattern Carried Forward\' column
+> (member, employment periods, salary records, service credit, DRO
+> records, beneficiaries). Prototype data is hardcoded; production
+> components consume API responses.
+
+  ---------------------------------------- -------------------------- ---------------------- ------------------------------------------- ------------
+  **Component**                            **Source Prototype(s)**    **Pattern Carried      **Changes for Production**                  **Build
+                                                                      Forward**                                                          Day**
+
+  **MemberBanner**                         noui-ux-prototype.jsx      Persistent header with Replace inline styles with Tailwind +       Day 6
+                                           (MemberBanner),            name, ID, age, tier    design tokens. Add role=\"banner\",         
+                                           benefit-estimator-3.jsx    badge (color-coded),   aria-label. Use semantic \<header\>. Tier   
+                                           (Banner)                   department, service    badge color from design system (not         
+                                                                      credit. Compact mode   dark-mode palette). Add SSN masking toggle. 
+                                                                      for constrained                                                    
+                                                                      layouts.                                                           
+
+  **AlertBar**                             noui-ux-prototype.jsx      Contextual             Extract from inline step content into       Day 6
+                                           (callout blocks within     warning/info/success   standalone component. Add role=\"alert\",   
+                                           StepContent)               callouts. Icon +       aria-live=\"polite\". Use design system     
+                                                                      title + description    warning/success/info tokens. Support        
+                                                                      pattern. Color-coded   dismiss action with aria-label.             
+                                                                      by severity.                                                       
+
+  **EmploymentTimeline**                   noui-ux-prototype.jsx      Key-value field        Transform from flat field list to visual    Day 6
+                                           (verify-employment step),  display for employment horizontal timeline with period bars. Add   
+                                           noui-platform-vision.jsx   periods. Gap detection keyboard navigation between periods.        
+                                           (AnalystView timeline)     indicator. Shows total Support drill-down per                      
+                                                                      records count.         data-drilldown-interaction-patterns.docx.   
+                                                                                             Show FTE indicator per period.              
+
+  **SalaryTable**                          noui-ux-prototype.jsx      AMS window highlight.  Build as proper \<table\> with thead/tbody. Day 6
+                                           (salary-ams step),         Leave payout impact    Highlight AMS window rows with design       
+                                           benefit-estimator-3.jsx    callout. Shows         system primary-surface color. Support       
+                                           (salary panel)             with/without payout    36-month (Tier 1/2) and 60-month (Tier 3)   
+                                                                      comparison. Window     window widths. Add column sorting.          
+                                                                      period identification. Verification Footer per drill-down          
+                                                                                             patterns.                                   
+
+  **BenefitCalculationPanel**              benefit-estimator-3.jsx    Hero display with      Centerpiece component. Formula box uses     Day 7
+                                           (benefit panel hero +      formula + result.      design system formula tokens. Each input    
+                                           fields),                   Step-by-step           value is explainable (interaction_type from 
+                                           noui-ux-prototype.jsx      breakdown: multiplier, Intelligence API). Statutory references     
+                                           (benefit-calc step)        AMS, service, annual,  rendered as links. Support all three tier   
+                                                                      monthly. Governing     formulas. No rounding until final step.     
+                                                                      authority references                                               
+                                                                      (RMC sections).                                                    
+
+  **PaymentOptionsComparison**             benefit-estimator-3.jsx    Four options listed    Render as comparison table with radio       Day 7
+                                           (payment panel),           with amounts. Selected selection. Show J&S factors (0.8850,        
+                                           noui-ux-prototype.jsx      option highlighted     0.9150, 0.9450). Add lump-sum death benefit 
+                                           (payment-option step)      with badge. Survivor   row per option. Member-elected vs.          
+                                                                      benefit amount shown.  spouse-required validation. Focus           
+                                                                      Spousal consent        management on selection.                    
+                                                                      callout.                                                           
+
+  **ScenarioModeler**                      No direct prototype        Concept: side-by-side  New component. Interactive date picker or   Day 7
+                                           (referenced in             retirement date        slider. Calls /api/v1/benefit/scenario      
+                                           architecture docs)         comparison. Threshold  endpoint. Shows eligibility status,         
+                                                                      proximity detection.   reduction, and benefit for each date.       
+                                                                                             Highlights when Rule of 75/85 boundary is   
+                                                                                             crossed. Charts optional (recharts).        
+                                                                                             Critical for Case 2 (Jennifer Kim).         
+
+  **DROImpactPanel**                       No direct prototype (Case  Concept: marital       New component. Shows marriage/divorce       Day 7
+                                           4 specification)           fraction calculation,  dates, service during marriage, total       
+                                                                      alternate payee share, service. Calculates marital fraction. Shows 
+                                                                      interaction with       gross benefit, marital share, alternate     
+                                                                      payment options.       payee amount, member net. Conditional: only 
+                                                                                             appears when DRO flag is true.              
+
+  **ServiceCreditSummary**                 noui-ux-prototype.jsx      Earned vs. purchased   Expand to full breakdown: earned, purchased Day 7
+                                           (verify-employment         distinction. Total     (by type: military, governmental,           
+                                           earned/purchased fields)   shown.                 non-governmental), transferred. Prominent   
+                                                                                             callout when purchased service exists:      
+                                                                                             excluded from Rule of 75/85. Drill-down to  
+                                                                                             purchase records. Critical for Case 2.      
+
+  **LeavePayoutCalculator**                noui-ux-prototype.jsx      Shows payout amount,   Standalone calculator component. Shows:     Day 7
+                                           (salary-ams step leave     impact on AMS.         leave balance, payout rate, total payout,   
+                                           payout callout),           Before/after           AMS without payout, AMS with payout,        
+                                           benefit-estimator-3.jsx    comparison.            monthly benefit delta. Conditional: only    
+                                           (leave payout in salary                           for Tier 1/2 members hired before Jan 1,    
+                                           panel)                                            2010. Critical for Case 1.                  
+
+  **EarlyRetirementReductionCalculator**   noui-ux-prototype.jsx      Shows reduction        Full calculator: age at retirement, years   Day 7
+                                           (confirm-retirement step   percentage and that no under 65, reduction rate (3% Tiers 1/2, 6%  
+                                           reduction field)           reduction applies      Tier 3), unreduced benefit, reduced         
+                                                                      (Rule of 75 met).      benefit. Visual bar showing reduction.      
+                                                                                             Conditional: only when early retirement     
+                                                                                             applies. Critical for Cases 2 and 3.        
+
+  **IPRCalculator**                        benefit-estimator-3.jsx    Pre-Medicare and       Show rate table, service years (earned only Day 7
+                                           (IPR panel)                Post-Medicare rates.   for IPR), pre-Medicare amount,              
+                                                                      Service years used.    post-Medicare amount, Medicare eligibility  
+                                                                      Per-year rate (\$12.50 age (65). Note: uses earned service only.   
+                                                                      / \$6.25).             Transition date display.                    
+  ---------------------------------------- -------------------------- ---------------------- ------------------------------------------- ------------
+
+2\. TypeScript Props and State Interfaces
+
+These interfaces define the contract between the Workspace Composition
+Engine (which determines which components to render and with what
+parameters) and the React components (which render the data). All
+monetary values are numbers in dollars (not cents). All dates are ISO
+8601 strings. Service years are decimal numbers (e.g., 28.75).
+
+> **CROSS-STREAM:** S3 (API) must produce response schemas that directly
+> map to these interfaces. The Intelligence Service response for each
+> endpoint should be directly assignable to the corresponding component
+> props without transformation layers. Any mismatch between API response
+> shape and these interfaces must be flagged for resolution.
+
+MemberBanner
+
+> // === MemberBanner ===
+>
+> interface MemberBannerProps {
+>
+> member: MemberIdentity;
+>
+> compact?: boolean; // collapsed for constrained layouts
+>
+> onExpandToggle?: () =\> void;
+>
+> }
+>
+> interface MemberIdentity {
+>
+> memberId: string;
+>
+> firstName: string;
+>
+> lastName: string;
+>
+> dateOfBirth: string; // ISO 8601
+>
+> ageAtDate: number; // computed for context date
+>
+> tier: 1 \| 2 \| 3;
+>
+> tierLabel: string; // \'Pre-2004\' \| \'Sept 2004-June 2011\' \|
+> \'Post-July 2011\'
+>
+> status: MemberStatus;
+>
+> department: string;
+>
+> position: string;
+>
+> hireDate: string;
+>
+> totalServiceYears: number;
+>
+> totalServiceMonths: number;
+>
+> earnedServiceYears: number;
+>
+> purchasedServiceYears: number;
+>
+> ssnLast4?: string; // masked display only
+>
+> maritalStatus?: \'single\' \| \'married\' \| \'divorced\' \|
+> \'widowed\';
+>
+> hasDRO: boolean;
+>
+> hasDataQualityIssues: boolean;
+>
+> }
+>
+> type MemberStatus = \'active\' \| \'inactive\' \| \'retired\' \|
+> \'deceased\' \| \'refunded\';
+
+AlertBar
+
+> // === AlertBar ===
+>
+> interface AlertBarProps {
+>
+> alerts: Alert\[\];
+>
+> onDismiss?: (alertId: string) =\> void;
+>
+> }
+>
+> interface Alert {
+>
+> id: string;
+>
+> severity: \'critical\' \| \'warning\' \| \'info\' \| \'success\';
+>
+> title: string;
+>
+> message: string;
+>
+> source?: string; // e.g., \'RULE-SVC-PURCH-EXCL\'
+>
+> statuteRef?: string; // e.g., \'RMC §18-406(c)\'
+>
+> dismissible: boolean;
+>
+> actionLabel?: string; // e.g., \'View Details\'
+>
+> actionHref?: string;
+>
+> }
+
+EmploymentTimeline
+
+> // === EmploymentTimeline ===
+>
+> interface EmploymentTimelineProps {
+>
+> periods: EmploymentPeriod\[\];
+>
+> gaps: EmploymentGap\[\];
+>
+> totalRecords: number;
+>
+> displayedRecords: number; // for completeness indicator
+>
+> onPeriodSelect?: (periodId: string) =\> void;
+>
+> onDrillDown?: (periodId: string) =\> void;
+>
+> }
+>
+> interface EmploymentPeriod {
+>
+> id: string;
+>
+> startDate: string;
+>
+> endDate: string \| null; // null = current
+>
+> department: string;
+>
+> position: string;
+>
+> fte: number; // 0.0 - 1.0
+>
+> employmentType: \'full-time\' \| \'part-time\' \| \'seasonal\';
+>
+> dataQualityFlags?: DataQualityFlag\[\];
+>
+> }
+>
+> interface EmploymentGap {
+>
+> startDate: string;
+>
+> endDate: string;
+>
+> durationDays: number;
+>
+> type: \'explained\' \| \'unexplained\';
+>
+> explanation?: string;
+>
+> }
+
+SalaryTable
+
+> // === SalaryTable ===
+>
+> interface SalaryTableProps {
+>
+> salaryRecords: SalaryRecord\[\];
+>
+> amsWindow: AMSWindow;
+>
+> leavePayout?: LeavePayoutSummary; // null when not applicable
+>
+> sortColumn?: string;
+>
+> sortDirection?: \'asc\' \| \'desc\';
+>
+> onSort?: (column: string) =\> void;
+>
+> onRecordDrillDown?: (recordId: string) =\> void;
+>
+> }
+>
+> interface SalaryRecord {
+>
+> id: string;
+>
+> year: number;
+>
+> month: number;
+>
+> grossSalary: number;
+>
+> pensionableSalary: number;
+>
+> isInAMSWindow: boolean;
+>
+> includesLeavePayout: boolean;
+>
+> interactionType: InteractionType;
+>
+> dataQualityFlags?: DataQualityFlag\[\];
+>
+> }
+>
+> interface AMSWindow {
+>
+> months: 36 \| 60; // Tier 1/2 = 36, Tier 3 = 60
+>
+> startDate: string;
+>
+> endDate: string;
+>
+> totalSalary: number;
+>
+> averageMonthlySalary: number;
+>
+> averageWithoutLeavePayout?: number;
+>
+> }
+>
+> interface LeavePayoutSummary {
+>
+> eligible: boolean;
+>
+> amount: number;
+>
+> monthApplied: string; // ISO month the payout hits
+>
+> amsImpact: number; // delta to AMS in dollars
+>
+> }
+
+BenefitCalculationPanel
+
+> // === BenefitCalculationPanel ===
+>
+> interface BenefitCalculationPanelProps {
+>
+> calculation: BenefitCalculation;
+>
+> showDerivation?: boolean; // expanded formula view
+>
+> onToggleDerivation?: () =\> void;
+>
+> onInputExplain?: (field: string) =\> void;
+>
+> }
+>
+> interface BenefitCalculation {
+>
+> tier: 1 \| 2 \| 3;
+>
+> multiplier: number; // 0.020 or 0.015
+>
+> multiplierSource: string; // \'RMC §18-407(a)\'
+>
+> ams: number;
+>
+> amsWindowMonths: 36 \| 60;
+>
+> serviceYears: number; // total credited service
+>
+> unreducedMonthlyBenefit: number;
+>
+> unreducedAnnualBenefit: number;
+>
+> reductionApplied: boolean;
+>
+> reductionPercent: number; // 0 if none
+>
+> reductionSource?: string; // \'Early retirement 3%/yr\'
+>
+> reducedMonthlyBenefit?: number;
+>
+> reducedAnnualBenefit?: number;
+>
+> formulaDisplay: string; // e.g., \'2.0% x \$10,639.45 x 28.75\'
+>
+> statuteRefs: StatuteRef\[\];
+>
+> verificationStatus: \'verified\' \| \'pending\' \| \'discrepancy\';
+>
+> calculationTimestamp: string;
+>
+> }
+>
+> interface StatuteRef {
+>
+> section: string; // e.g., \'§18-401(a)\'
+>
+> description: string; // e.g., \'Benefit multiplier\'
+>
+> }
+
+PaymentOptionsComparison
+
+> // === PaymentOptionsComparison ===
+>
+> interface PaymentOptionsComparisonProps {
+>
+> options: PaymentOption\[\];
+>
+> selectedOptionId?: string;
+>
+> spousalConsentRequired: boolean;
+>
+> beneficiary?: Beneficiary;
+>
+> onSelect?: (optionId: string) =\> void;
+>
+> lumpSumDeathBenefit: number;
+>
+> }
+>
+> interface PaymentOption {
+>
+> id: string;
+>
+> type: \'maximum\' \| \'js100\' \| \'js75\' \| \'js50\';
+>
+> label: string; // \'Maximum (Single Life)\'
+>
+> factor: number; // e.g., 0.9150
+>
+> monthlyAmount: number;
+>
+> annualAmount: number;
+>
+> survivorMonthlyAmount: number; // 0 for maximum
+>
+> survivorPercent: number; // 0, 50, 75, or 100
+>
+> }
+>
+> interface Beneficiary {
+>
+> name: string;
+>
+> relationship: string;
+>
+> dateOfBirth: string;
+>
+> age: number;
+>
+> }
+
+ScenarioModeler
+
+> // === ScenarioModeler ===
+>
+> interface ScenarioModelerProps {
+>
+> memberId: string;
+>
+> currentScenario: ScenarioResult;
+>
+> scenarios: ScenarioResult\[\];
+>
+> onAddScenario?: (retirementDate: string) =\> void;
+>
+> onRemoveScenario?: (scenarioId: string) =\> void;
+>
+> isLoading?: boolean;
+>
+> }
+>
+> interface ScenarioResult {
+>
+> id: string;
+>
+> retirementDate: string;
+>
+> ageAtRetirement: number;
+>
+> serviceYears: number;
+>
+> ruleOfScore: number; // age + earned service
+>
+> ruleOfThreshold: 75 \| 85; // tier-dependent
+>
+> ruleOfMet: boolean;
+>
+> eligibilityType: \'normal\' \| \'rule_of\' \| \'early\' \|
+> \'not_eligible\';
+>
+> reductionPercent: number;
+>
+> estimatedAMS: number;
+>
+> unreducedMonthly: number;
+>
+> reducedMonthly: number; // same as unreduced if no reduction
+>
+> thresholdProximity?: ThresholdProximity;
+>
+> }
+>
+> interface ThresholdProximity {
+>
+> pointsAway: number; // e.g., 1.83 for Case 2
+>
+> dateThresholdMet: string; // when Rule of 75/85 would be met
+>
+> benefitAtThreshold: number; // estimated monthly benefit
+>
+> monthlyDelta: number; // increase from waiting
+>
+> percentIncrease: number; // e.g., 54% for Case 2
+>
+> }
+
+DROImpactPanel
+
+> // === DROImpactPanel ===
+>
+> interface DROImpactPanelProps {
+>
+> droRecord: DRORecord;
+>
+> benefitCalculation: BenefitCalculation;
+>
+> selectedPaymentOption?: PaymentOption;
+>
+> }
+>
+> interface DRORecord {
+>
+> id: string;
+>
+> caseNumber: string;
+>
+> alternatePayee: {
+>
+> name: string;
+>
+> relationship: \'former_spouse\';
+>
+> };
+>
+> marriageDate: string;
+>
+> divorceDate: string;
+>
+> serviceAtMarriage: number; // years of service at marriage date
+>
+> serviceAtDivorce: number; // years of service at divorce date
+>
+> serviceDuringMarriage: number; // divorce - marriage service
+>
+> totalServiceAtRetirement: number;
+>
+> maritalFraction: number; // serviceDuringMarriage / total
+>
+> awardType: \'percentage\' \| \'fixed_amount\';
+>
+> awardPercentage?: number; // e.g., 0.40 for 40%
+>
+> awardFixedAmount?: number;
+>
+> maritalShareOfBenefit: number; // gross benefit \* marital fraction
+>
+> alternatePayeeAmount: number; // marital share \* award percentage
+>
+> memberNetBenefit: number; // gross - alternate payee
+>
+> effectiveDate: string;
+>
+> status: \'approved\' \| \'pending_review\' \| \'rejected\';
+>
+> }
+
+ServiceCreditSummary
+
+> // === ServiceCreditSummary ===
+>
+> interface ServiceCreditSummaryProps {
+>
+> serviceCredit: ServiceCreditBreakdown;
+>
+> showPurchasedServiceWarning: boolean; // true when purchased exists
+>
+> onDrillDown?: (category: string) =\> void;
+>
+> }
+>
+> interface ServiceCreditBreakdown {
+>
+> totalCredited: number; // all service for benefit calc
+>
+> totalEarned: number; // for Rule of 75/85 eligibility
+>
+> totalPurchased: number;
+>
+> categories: ServiceCreditCategory\[\];
+>
+> }
+>
+> interface ServiceCreditCategory {
+>
+> type: \'earned\' \| \'military\' \| \'governmental\' \|
+> \'non_governmental\' \| \'transferred\';
+>
+> label: string;
+>
+> years: number;
+>
+> months: number;
+>
+> countsForBenefit: boolean; // always true
+>
+> countsForEligibility: boolean; // false for purchased
+>
+> purchaseDate?: string;
+>
+> purchaseCost?: number;
+>
+> interactionType: InteractionType;
+>
+> }
+
+LeavePayoutCalculator
+
+> // === LeavePayoutCalculator ===
+>
+> interface LeavePayoutCalculatorProps {
+>
+> leavePayout: LeavePayoutDetail;
+>
+> amsWithout: number;
+>
+> amsWith: number;
+>
+> benefitWithout: number;
+>
+> benefitWith: number;
+>
+> }
+>
+> interface LeavePayoutDetail {
+>
+> eligible: boolean; // Tier 1/2 hired before Jan 1, 2010
+>
+> eligibilityReason: string; // statutory basis
+>
+> sickLeaveHours: number;
+>
+> vacationLeaveHours: number;
+>
+> hourlyRate: number;
+>
+> totalPayoutAmount: number;
+>
+> payoutMonth: string; // month added to salary record
+>
+> statuteRef: string; // \'RMC §18-401.5\'
+>
+> }
+
+EarlyRetirementReductionCalculator
+
+> // === EarlyRetirementReductionCalculator ===
+>
+> interface EarlyRetirementReductionProps {
+>
+> tier: 1 \| 2 \| 3;
+>
+> ageAtRetirement: number;
+>
+> yearsUnder65: number;
+>
+> reductionRatePerYear: number; // 0.03 for T1/T2, 0.06 for T3
+>
+> totalReductionPercent: number; // yearsUnder65 \* rate
+>
+> unreducedBenefit: number;
+>
+> reducedBenefit: number;
+>
+> reductionAmount: number; // unreduced - reduced
+>
+> statuteRef: string; // tier-specific RMC section
+>
+> }
+
+IPRCalculator
+
+> // === IPRCalculator ===
+>
+> interface IPRCalculatorProps {
+>
+> serviceYearsForIPR: number; // earned service only
+>
+> preMedicareRate: number; // \$12.50/year
+>
+> postMedicareRate: number; // \$6.25/year
+>
+> preMedicareAmount: number; // service \* rate
+>
+> postMedicareAmount: number;
+>
+> medicareEligibilityAge: number; // 65
+>
+> memberAge: number;
+>
+> isMedicareEligible: boolean;
+>
+> currentAmount: number; // based on current Medicare status
+>
+> statuteRef: string; // \'RMC §18-412\'
+>
+> }
+
+Shared Types
+
+> // === Shared Types (used across components) ===
+>
+> type InteractionType = \'static\' \| \'drillable\' \| \'explainable\';
+>
+> interface DataQualityFlag {
+>
+> id: string;
+>
+> severity: \'critical\' \| \'high\' \| \'medium\' \| \'low\';
+>
+> message: string;
+>
+> field: string;
+>
+> proposedCorrection?: string;
+>
+> }
+>
+> // Workspace Composition Types
+>
+> interface WorkspaceDefinition {
+>
+> memberId: string;
+>
+> processType: \'service_retirement\';
+>
+> processStage: ProcessStage;
+>
+> compositionTier: 1 \| 2 \| 3; // highest tier used
+>
+> components: ComponentSlot\[\];
+>
+> degradationLevel: 0 \| 1 \| 2 \| 3 \| 4 \| 5; // per ADR-007
+>
+> composedAt: string;
+>
+> }
+>
+> interface ComponentSlot {
+>
+> componentId: string; // e.g., \'benefit-calculation-panel\'
+>
+> initialState: \'expanded\' \| \'collapsed\' \| \'summary\';
+>
+> order: number; // display ordering
+>
+> contextParams: Record\<string, unknown\>; // tier-specific config
+>
+> compositionTier: 1 \| 2; // which tier added this
+>
+> required: boolean; // false = can be removed by user
+>
+> }
+>
+> type ProcessStage =
+>
+> \| \'application_review\'
+>
+> \| \'employment_verification\'
+>
+> \| \'salary_verification\'
+>
+> \| \'eligibility_determination\'
+>
+> \| \'benefit_calculation\'
+>
+> \| \'payment_option_selection\'
+>
+> \| \'final_certification\';
+
+3\. Workspace Composition Decision Tree
+
+The composition engine receives three inputs: member context (identity,
+tier, status, flags), process context (type, current stage), and
+situational context (DRO present, purchased service, leave payout
+eligible, threshold proximity). It produces a WorkspaceDefinition
+containing the ordered list of components with their initial states and
+configuration parameters.
+
+Critical principle from architecture: \'Show everything, prioritize what
+matters.\' Default to inclusion, not exclusion. Tier 2 rules ADD
+components for relevance; they rarely REMOVE. The result is a workspace
+where the worker sees the full picture with situational components
+promoted to prominence.
+
+3.1 Tier 1 (Deterministic): Base Workspace for Service Retirement
+
+Every service retirement case, regardless of tier or situation, receives
+these components. Tier 1 composition uses process configuration only and
+executes in sub-100ms.
+
+  ------------------------------ --------------- --------------- -------------- ------------
+  **Component**                  **Initial       **Order**       **Required**   **Source**
+                                 State**                                        
+
+  **MemberBanner**               expanded        1 (always       Yes            Process
+                                                 first)                         config
+
+  **AlertBar**                   expanded        2 (below        Yes            Process
+                                                 banner)                        config
+
+  **EmploymentTimeline**         collapsed       3               Yes            Process
+                                                                                config
+
+  **SalaryTable**                collapsed       4               Yes            Process
+                                                                                config
+
+  **BenefitCalculationPanel**    expanded        5 (centerpiece) Yes            Process
+                                                                                config
+
+  **PaymentOptionsComparison**   collapsed       6               Yes            Process
+                                                                                config
+
+  **IPRCalculator**              collapsed       7               Yes            Process
+                                                                                config
+  ------------------------------ --------------- --------------- -------------- ------------
+
+3.2 Tier 2 (Rule-Based): Situational Component Addition
+
+Tier 2 evaluates member context (tier, flags, eligibility path) and
+conditionally adds, removes, or reconfigures components. Executes in
+sub-100ms via deterministic conditional logic. No AI involved.
+
+  ------------------------------------------------- -------------------------------------------------- ------------------------------------- --------------
+  **Condition**                                     **Action**                                         **Component(s)**                      **Demo Case**
+
+  **member.hasDRO === true**                        ADD DROImpactPanel after BenefitCalculationPanel   DROImpactPanel, AlertBar update       Case 4
+                                                    (order 5.5). ADD alert: \'DRO on file --- benefit                                        
+                                                    will be divided\'. Set PaymentOptionsComparison to                                       
+                                                    show member net amounts.                                                                 
+
+  **member.tier === 3**                             RECONFIGURE SalaryTable: set amsWindow.months =    SalaryTable (reconfig), AlertBar      Case 3
+                                                    60. RECONFIGURE                                    (update)                              
+                                                    EarlyRetirementReductionCalculator:                                                      
+                                                    reductionRatePerYear = 0.06. UPDATE AlertBar: tier                                       
+                                                    badge shows \'Tier 3 --- Post-July 2011\'.                                               
+
+  **member.tier === 1 \|\| member.tier === 2**      RECONFIGURE SalaryTable: set amsWindow.months =    SalaryTable (reconfig)                Cases 1, 2, 4
+                                                    36. If early retirement: reductionRatePerYear =                                          
+                                                    0.03.                                                                                    
+
+  **eligibility.type === \'early\'**                ADD EarlyRetirementReductionCalculator after       EarlyRetirementReductionCalculator,   Cases 2, 3
+                                                    BenefitCalculationPanel (order 5.3). ADD alert     AlertBar update                       
+                                                    (warning): \'Early retirement reduction applies:                                         
+                                                    X% (Y years under 65)\'. SET                                                             
+                                                    BenefitCalculationPanel.reductionApplied = true.                                         
+
+  **eligibility.type === \'rule_of\'**              ADD alert (success): \'Rule of 75/85 met --- no    AlertBar update                       Cases 1, 4
+                                                    benefit reduction\'. REMOVE                                                              
+                                                    EarlyRetirementReductionCalculator if present.                                           
+
+  **member.purchasedServiceYears \> 0**             ADD ServiceCreditSummary after EmploymentTimeline  ServiceCreditSummary, AlertBar update Case 2
+                                                    (order 3.5). ADD alert (warning): \'Member has                                           
+                                                    purchased service credit --- excluded from Rule of                                       
+                                                    75/85 eligibility\'. Set                                                                 
+                                                    ServiceCreditSummary.showPurchasedServiceWarning =                                       
+                                                    true.                                                                                    
+
+  **member.purchasedServiceYears === 0**            ADD ServiceCreditSummary after EmploymentTimeline  ServiceCreditSummary                  Cases 1, 3, 4
+                                                    (order 3.5, collapsed). No warning.                                                      
+
+  **leavePayout.eligible === true**                 ADD LeavePayoutCalculator adjacent to SalaryTable  LeavePayoutCalculator, AlertBar       Case 1 (Case
+                                                    (order 4.5). ADD alert (info): \'Leave payout      update                                4)
+                                                    eligible --- impacts AMS calculation\'. SET                                              
+                                                    SalaryTable to highlight payout month.                                                   
+
+  **leavePayout.eligible === false**                No LeavePayoutCalculator. No payout alert.         (none)                                Cases 2, 3
+
+  **member.maritalStatus === \'married\'**          ADD alert (warning): \'Spousal consent required    AlertBar update                       Cases 1, 4
+                                                    for payment option selection (RMC §18-403(d))\'.                                         
+                                                    Minimum 50% J&S unless spouse waives.                                                    
+
+  **scenarioModeler.thresholdProximity.pointsAway   ADD ScenarioModeler in expanded state after        ScenarioModeler, AlertBar update      Case 2
+  \<= 5**                                           BenefitCalculationPanel (order 5.7). ADD alert                                           
+                                                    (info): \'Member is X points from Rule of 75/85                                          
+                                                    --- scenario comparison available\'.                                                     
+
+  **eligibility.type === \'normal\' (age 65+)**     No reduction calculator. No scenario modeler       (none)                                (no demo case)
+                                                    (already at normal retirement).                                                          
+  ------------------------------------------------- -------------------------------------------------- ------------------------------------- --------------
+
+3.3 Demo Case Composition Results
+
+The following shows the complete component list after Tier 1 + Tier 2
+composition for each demo case, validating the decision tree above.
+
+**Case 1: Robert Martinez (Tier 1, Rule of 75, Leave Payout)**
+
+> 1\. MemberBanner --- expanded, tier=1 badge (blue)
+>
+> 2\. AlertBar --- Rule of 75 met (success), Leave payout eligible
+> (info), Spousal consent required (warning)
+>
+> 3\. EmploymentTimeline --- collapsed
+>
+> 3.5. ServiceCreditSummary --- collapsed, no purchased service warning
+>
+> 4\. SalaryTable --- collapsed, amsWindow=36, payout month highlighted
+>
+> 4.5. LeavePayoutCalculator --- expanded (situational relevance)
+>
+> 5\. BenefitCalculationPanel --- expanded, multiplier=2.0%, no
+> reduction
+>
+> 6\. PaymentOptionsComparison --- collapsed,
+> spousalConsentRequired=true
+>
+> 7\. IPRCalculator --- collapsed
+
+**Case 2: Jennifer Kim (Tier 2, Purchased Service, Early Retirement)**
+
+> 1\. MemberBanner --- expanded, tier=2 badge (amber)
+>
+> 2\. AlertBar --- Purchased service exclusion (warning), Early
+> retirement reduction 30% (warning), Threshold proximity 1.83 points
+> (info)
+>
+> 3\. EmploymentTimeline --- collapsed
+>
+> 3.5. ServiceCreditSummary --- expanded,
+> showPurchasedServiceWarning=true
+>
+> 4\. SalaryTable --- collapsed, amsWindow=36
+>
+> 5\. BenefitCalculationPanel --- expanded, multiplier=1.5%,
+> reductionApplied=true
+>
+> 5.3. EarlyRetirementReductionCalculator --- expanded, rate=3%,
+> years=10, reduction=30%
+>
+> 5.7. ScenarioModeler --- expanded (threshold proximity ≤5)
+>
+> 6\. PaymentOptionsComparison --- collapsed
+>
+> 7\. IPRCalculator --- collapsed
+
+**Case 3: David Washington (Tier 3, Early Retirement)**
+
+> 1\. MemberBanner --- expanded, tier=3 badge (green)
+>
+> 2\. AlertBar --- Tier 3 provisions (info), Early retirement reduction
+> 12% (warning)
+>
+> 3\. EmploymentTimeline --- collapsed
+>
+> 3.5. ServiceCreditSummary --- collapsed, no purchased service
+>
+> 4\. SalaryTable --- collapsed, amsWindow=60
+>
+> 5\. BenefitCalculationPanel --- expanded, multiplier=1.5%,
+> reductionApplied=true
+>
+> 5.3. EarlyRetirementReductionCalculator --- expanded, rate=6%,
+> years=2, reduction=12%
+>
+> 6\. PaymentOptionsComparison --- collapsed
+>
+> 7\. IPRCalculator --- collapsed
+
+**Case 4: Robert Martinez with DRO (Tier 1, Rule of 75, DRO)**
+
+> 1\. MemberBanner --- expanded, tier=1 badge (blue), hasDRO indicator
+>
+> 2\. AlertBar --- Rule of 75 met (success), DRO on file (warning),
+> Leave payout eligible (info), Spousal consent required (warning)
+>
+> 3\. EmploymentTimeline --- collapsed
+>
+> 3.5. ServiceCreditSummary --- collapsed
+>
+> 4\. SalaryTable --- collapsed, amsWindow=36, payout month highlighted
+>
+> 4.5. LeavePayoutCalculator --- expanded
+>
+> 5\. BenefitCalculationPanel --- expanded, multiplier=2.0%, no
+> reduction
+>
+> 5.5. DROImpactPanel --- expanded, maritalFraction=63.48%, awardPct=40%
+>
+> 6\. PaymentOptionsComparison --- collapsed, shows member net after DRO
+>
+> 7\. IPRCalculator --- collapsed
+
+3.4 Tier 3 (AI Augmentation): Edge Cases
+
+Tier 3 composition is invoked only for genuinely novel situations not
+covered by Tier 1+2 rules. For the POC, Tier 3 is not exercised by any
+of the four demo cases. The composition engine logs when it would have
+invoked Tier 3, enabling post-deployment analysis of edge case
+frequency.
+
+Per ADR-007, the workspace is fully functional without AI service. If AI
+is unavailable, the system falls back to Tier 1+2 composition (which
+handles all four demo cases) and logs the fallback event.
+
+> **CROSS-STREAM:** S3 (API) must ensure the /api/v1/workspace/compose
+> endpoint returns a WorkspaceDefinition matching this decision tree.
+> The endpoint receives member context + process context and returns the
+> component list with ordering and state. S3 must define the
+> CompositionRequest and CompositionResponse schemas.
+>
+> **CROSS-STREAM:** S2 (Rules) must expose eligibility determination
+> results (type, reduction, threshold proximity) in the response from
+> /api/v1/eligibility/evaluate so that Tier 2 composition rules can
+> consume them without re-computing.
+
+4\. Accessibility Requirements (Section 508 Compliance)
+
+All components must meet Section 508 compliance (per 36 CFR Part 1194)
+and WCAG 2.1 Level AA. This is non-negotiable for government-facing
+software. The following requirements apply universally, followed by
+component-specific requirements.
+
+4.1 Universal Requirements
+
+  ------------------ ----------------------------------------------------
+  **Requirement**    **Implementation**
+
+  **Color contrast** All text/background combinations meet WCAG AA: 4.5:1
+                     for normal text (\< 18pt), 3:1 for large text (18pt+
+                     or 14pt bold). Design system tokens are
+                     pre-validated. Tier badge colors validated: Tier 1
+                     blue #3B82F6 on #EBF5FF (5.2:1), Tier 2 amber
+                     #B45309 on #FFF3E0 (4.8:1), Tier 3 green #15803D on
+                     #E8F5E9 (5.1:1).
+
+  **Keyboard         All interactive elements reachable via Tab. Logical
+  navigation**       tab order follows visual order (component ordering
+                     from composition). No keyboard traps.
+                     Skip-to-content link at page top. Escape key closes
+                     modals/popovers and returns focus to trigger.
+
+  **Focus            Visible focus ring: 2px solid
+  indicators**       var(\--noui-border-focus) with 2px offset. Never
+                     removed (no outline: none). Focus visible on all
+                     interactive elements including drill-down triggers,
+                     radio buttons, sort headers, and dismiss buttons.
+
+  **Screen reader    Semantic HTML elements (\<header\>, \<main\>,
+  support**          \<nav\>, \<table\>, \<section\>). ARIA landmarks for
+                     workspace zones. aria-live regions for dynamic
+                     content updates (alert dismissals, calculation
+                     results, scenario comparisons). aria-describedby for
+                     fields with statutory references.
+
+  **Color not sole   Status conveyed by icon + color + text label (never
+  indicator**        color alone). Tier identification includes text
+                     label (\'Tier 1\') alongside badge color. AMS window
+                     rows use background color AND a marker icon/text
+                     prefix. Data quality severity uses icon + color +
+                     label.
+
+  **Text resizing**  All text renders correctly at 200% zoom. No content
+                     clipping or overlap. Components reflow to single
+                     column at reduced viewport. Monospace values
+                     maintain alignment at larger sizes.
+
+  **Motion and       All animations respect prefers-reduced-motion media
+  animation**        query. When reduced motion preferred: no staggered
+                     component entry, no expand/collapse transitions, no
+                     progress bar animations. Functional behavior
+                     unchanged.
+
+  **Error            Form validation errors identified by: red border on
+  identification**   field, error icon adjacent to field, descriptive
+                     error text below field linked via aria-describedby,
+                     and focus moved to first error on submission.
+  ------------------ ----------------------------------------------------
+
+4.2 Component-Specific Accessibility Requirements
+
+  ---------------------------------------- ------------------- ----------------------------------------- -------------------
+  **Component**                            **Keyboard**        **Screen Reader**                         **Focus
+                                                                                                         Management**
+
+  **MemberBanner**                         Tab to              role=\"banner\", aria-label=\"Member      Focus remains on
+                                           expand/collapse     information for \[name\]\". Tier          toggle after
+                                           toggle. No          announced as \'\[Tier N\] member\'. DRO   expand/collapse.
+                                           interactive         indicator: \'Domestic Relations Order on  Expanded content
+                                           elements in compact file\'.                                   not auto-focused.
+                                           mode beyond toggle.                                           
+
+  **AlertBar**                             Tab between alerts. role=\"alert\" on container,              Focus moves to next
+                                           Enter/Space to      aria-live=\"polite\". Each alert:         alert after
+                                           dismiss (if         role=\"status\" with severity announced.  dismiss. If last
+                                           dismissible). Enter Dismissible alerts: aria-label=\"Dismiss  alert dismissed,
+                                           to activate action  \[title\] alert\".                        focus returns to
+                                           link.                                                         banner.
+
+  **EmploymentTimeline**                   Arrow keys navigate Each period: role=\"button\",             Focus moves to
+                                           between periods.    aria-label=\"Employment period \[dept\],  detail panel on
+                                           Enter opens period  \[startDate\] to \[endDate\]\". Gaps      drill-down. Focus
+                                           detail              announced: \'Employment gap,              returns to
+                                           (drill-down). Tab   \[duration\],                             triggering period
+                                           moves to next       \[explained/unexplained\]\'.              on close.
+                                           interactive zone.                                             
+
+  **SalaryTable**                          Standard table      \<table\> with \<thead\>/\<tbody\>.       Sort activation:
+                                           keyboard: Arrow     scope=\"col\" on headers. AMS window      focus stays on
+                                           keys navigate       cells:                                    header. Drill-down:
+                                           cells. Tab to       aria-describedby=\"ams-window-note\".     focus to detail
+                                           sortable headers.   Leave payout cell:                        panel.
+                                           Enter activates     aria-describedby=\"leave-payout-note\".   
+                                           sort. AMS rows      Completeness: \'Showing \[N\] of \[M\]    
+                                           indicated in        records\'.                                
+                                           aria-describedby.                                             
+
+  **BenefitCalculationPanel**              Tab to formula box  Formula box: aria-label=\"Benefit         Popover: focus
+                                           (informational).    formula: \[multiplier\] times \[AMS\]     trapped within.
+                                           Tab to each         times \[service\]\". Result:              Escape returns to
+                                           explainable value.  aria-live=\"polite\" region announcing    trigger. Derivation
+                                           Enter/Space on      final amount. Statute refs:               toggle: focus to
+                                           explainable values  aria-describedby linking value to         expanded content.
+                                           opens popover. Tab  governing section.                        
+                                           to derivation                                                 
+                                           toggle. Tab to                                                
+                                           statute reference                                             
+                                           links.                                                        
+
+  **PaymentOptionsComparison**             Arrow keys navigate role=\"radiogroup\", aria-label=\"Payment Selection: focus
+                                           between radio       option selection\". Each option:          stays on selected
+                                           options (standard   aria-label=\"\[type\], monthly amount     radio. Warning
+                                           radio group). Tab   \[amount\], survivor benefit              appears without
+                                           to beneficiary      \[amount\]\". Spousal consent warning     stealing focus
+                                           section.            linked via aria-describedby.              (aria-live).
+
+  **ScenarioModeler**                      Tab to date input.  aria-label=\"Retirement date scenario     New scenario: focus
+                                           Enter to add        comparison\". Each scenario: structured   to result. Remove:
+                                           scenario. Tab       as table row. Threshold alert:            focus to adjacent
+                                           between scenario    aria-live=\"assertive\" when boundary     scenario.
+                                           results. Arrow keys crossed.                                  
+                                           within results                                                
+                                           table. Delete to                                              
+                                           remove scenario.                                              
+
+  **DROImpactPanel**                       Tab through         aria-label=\"Domestic Relations Order     Drill-down values:
+                                           informational       impact on benefit\". Marital fraction     popover focus
+                                           fields. Explainable announced with calculation context.       management per
+                                           values (marital     Member net: aria-live on payment option   standard pattern.
+                                           fraction, payee     change.                                   
+                                           amount) activated                                             
+                                           via Enter/Space.                                              
+
+  **ServiceCreditSummary**                 Tab to each         aria-label=\"Service credit breakdown\".  Drill-down: focus
+                                           category. Enter for Purchased service warning:                to detail panel.
+                                           drill-down on       role=\"alert\". Categories with           Close: focus
+                                           drillable           drill-down: role=\"button\",              returns to
+                                           categories. Tab to  aria-label=\"\[type\], \[years\] years,   category.
+                                           purchased service   drill down available\".                   
+                                           warning.                                                      
+
+  **LeavePayoutCalculator**                Tab through         aria-label=\"Leave payout impact on       No interactive
+                                           read-only fields    benefit calculation\". Before/after       focus management
+                                           (informational      comparison: explicit labeling (\"AMS      needed.
+                                           component). No      without payout: \[amount\], AMS with      
+                                           primary             payout: \[amount\]\").                    
+                                           interactions.                                                 
+
+  **EarlyRetirementReductionCalculator**   Tab through         aria-label=\"Early retirement reduction   No interactive
+                                           read-only fields.   calculation\". Reduction bar:             focus management
+                                           Tab to reduction    aria-label=\"\[X\] percent reduction      needed.
+                                           visual bar          applied\". Formula announced: \"\[years\] 
+                                           (informational).    years under 65 times \[rate\] per year    
+                                                               equals \[total\] percent\".               
+
+  **IPRCalculator**                        Tab through         aria-label=\"Insurance Premium            No interactive
+                                           read-only fields.   Reimbursement calculation\". Current rate focus management
+                                                               context: \'Currently                      needed.
+                                                               \[pre/post\]-Medicare eligible\'. Amount  
+                                                               announced with rate basis.                
+  ---------------------------------------- ------------------- ----------------------------------------- -------------------
+
+4.3 Testing Requirements
+
+Accessibility testing is integrated into the build process, not added as
+an afterthought. The following testing matrix applies:
+
+  --------------- ------------------------- ---------------------------------
+  **Test Type**   **Tool**                  **Scope**
+
+  **Automated     axe-core (via             Every component rendered in
+  scanning**      \@axe-core/react or       isolation. Run on every PR. Zero
+                  vitest-axe)               violations at \'critical\' and
+                                            \'serious\' severity.
+
+  **Keyboard      Manual (documented script Tab order, focus visibility,
+  testing**       per component)            keyboard activation, escape
+                                            behavior, no traps. One pass per
+                                            component per build day.
+
+  **Screen reader VoiceOver (macOS) or NVDA Full workspace composition for
+  testing**       (Windows)                 each demo case. All four cases
+                                            tested before POC demo. Verify
+                                            announcements match expected
+                                            content.
+
+  **Color         Colour Contrast Analyser  All design system token pairs
+  contrast        or axe                    verified. Any custom or dynamic
+  audit**                                   colors checked at component
+                                            level.
+
+  **Reduced       prefers-reduced-motion:   All animations disabled. No
+  motion**        reduce in dev tools       functional loss. Visual layout
+                                            unchanged.
+  --------------- ------------------------- ---------------------------------
+
+> **CROSS-STREAM:** S5 (Test) must include accessibility test stubs in
+> the verification framework. Each component test file should include an
+> axe-core render test. The four demo case acceptance tests must include
+> a keyboard-only walkthrough scenario.
+
+5\. Cross-Stream Discovery Summary
+
+The following discoveries during S4 analysis affect other parallel
+design streams:
+
+5.1 Discoveries for S1 (Database/Data Model)
+
+> **CROSS-STREAM:** The LeavePayoutCalculator requires leave balance
+> data (sick hours, vacation hours, hourly rate) not explicitly called
+> out in the current entity list. S1 must confirm whether this comes
+> from the legacy database or is a derived field in the data connector.
+>
+> **CROSS-STREAM:** The ScenarioModeler requires the ability to project
+> future salary and service for hypothetical retirement dates. S1 must
+> define whether this projection logic lives in the data connector or
+> the intelligence service.
+
+5.2 Discoveries for S2 (Business Rules)
+
+> **CROSS-STREAM:** The lump-sum death benefit calculation differs by
+> tier and eligibility type (normal vs. early retirement). Tiers 1/2
+> reduce by \$250/year under 65; Tier 3 reduces by \$500/year under 65.
+> S2 must ensure this is included in the benefit calculation rule set.
+> The PaymentOptionsComparison component needs this value.
+>
+> **CROSS-STREAM:** The composition decision tree relies on a
+> \'threshold proximity\' score (points away from Rule of 75/85). S2
+> must expose this as part of the eligibility evaluation response, not
+> just the binary met/not-met. Specifically: { pointsAway: number,
+> dateThresholdMet: string }.
+
+5.3 Discoveries for S3 (API)
+
+> **CROSS-STREAM:** The workspace composition endpoint must return
+> component ordering as fractional numbers (e.g., 5.3, 5.5, 5.7) to
+> support Tier 2 insertion between Tier 1 base components. The
+> ComponentSlot.order field must be a float, not an integer.
+>
+> **CROSS-STREAM:** The BenefitCalculationPanel requires an
+> \'explainable\' field metadata layer. Each numeric value in the
+> calculation response should include an interactionType field
+> indicating whether it can be drilled down or explained. This extends
+> the standard API response pattern and must be documented in the
+> OpenAPI spec.
+
+5.4 Discoveries for S5 (Test/Verification)
+
+> **CROSS-STREAM:** Each demo case must have a corresponding \'expected
+> workspace composition\' test fixture specifying the exact component
+> list, ordering, and initial states. These fixtures validate the
+> composition engine independently from the calculation engine.
+>
+> **CROSS-STREAM:** Accessibility acceptance tests must cover all four
+> demo cases with keyboard-only navigation. The test should verify that
+> every component in the composed workspace is reachable and operable
+> without a mouse.
+
+*Document generated as part of NoUI Parallel Design Strategy, Stream S4
+(Frontend Components v1). This is a living artifact --- updates will be
+incorporated as other streams produce their outputs and cross-stream
+conflicts are resolved.*
