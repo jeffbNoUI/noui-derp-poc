@@ -61,6 +61,7 @@ export type GuidedAction =
   | { type: 'TOGGLE_LAYER'; layer: keyof LayerState }
   | { type: 'UPDATE_ANALYST_INPUT'; field: keyof AnalystInputs; value: string | number | boolean }
   | { type: 'TOGGLE_EXPAND'; stageId: string }
+  | { type: 'SELECT_EXPERT_STAGE'; stageId: string }
   | { type: 'EXPAND_STAGE'; stageId: string }
   | { type: 'RESET'; viewMode?: 'guided' | 'expert' }
 
@@ -159,6 +160,10 @@ export function reducer(state: GuidedState, action: GuidedAction): GuidedState {
       if (next.has(action.stageId)) next.delete(action.stageId)
       else next.add(action.stageId)
       return { ...state, expandedStages: next }
+    }
+    case 'SELECT_EXPERT_STAGE': {
+      // Replace expanded set with just the selected stage (single-active detail pane)
+      return { ...state, expandedStages: new Set([action.stageId]) }
     }
     case 'EXPAND_STAGE': {
       // Mark a summary stage as manually expanded — stays full for the session

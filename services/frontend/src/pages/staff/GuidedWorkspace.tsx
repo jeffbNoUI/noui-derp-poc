@@ -9,6 +9,7 @@
  *   LearningModule, ProgressBar, CaseStatusBar, ExpertMode, stage components
  */
 import { useState, useCallback, useEffect, useReducer } from 'react'
+import { useKioskRegister } from '@/kiosk'
 import { useMember, useServiceCredit, useDROs, useApplicationIntake } from '@/hooks/useMember'
 import {
   useEligibility, useBenefitCalculation, usePaymentOptions,
@@ -24,9 +25,10 @@ import { computeAllAutoChecks, mergeChecks } from './guided-autochecks'
 import { reducer, createInitialState } from './guided-types'
 import type { StageProps } from './stages/StageProps'
 import { LearningModule } from './LearningModule'
+import { LiveSummary } from './LiveSummary'
 import { ProgressBar } from './ProgressBar'
 import { CaseStatusBar } from './CaseStatusBar'
-import { ExpertMode } from './ExpertMode'
+import { StageNav } from './StageNav'
 import { StageSummary } from './StageSummary'
 import {
   Stage0ApplicationIntake, Stage1MemberVerify, Stage2ServiceCredit, Stage3Eligibility,
@@ -57,6 +59,7 @@ const STAGE_COMPONENTS: Record<string, React.ComponentType<StageProps>> = {
 export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId: string; defaultMode?: 'guided' | 'expert' }) {
   const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
   const [state, dispatch] = useReducer(reducer, createInitialState(defaultMode))
+  useKioskRegister('guided', dispatch as (action: Record<string, unknown>) => void)
 
   // Data hooks (same as BenefitWorkspace)
   const member = useMember(memberId)
@@ -97,11 +100,11 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
   const isLastStage = state.currentIndex === stages.length - 1
   const allConfirmed = stages.every(s => state.confirmed.has(s.id))
 
-  // Auto-expand first unconfirmed stage when entering expert mode
+  // Auto-select first unconfirmed stage when entering expert mode
   useEffect(() => {
     if (state.viewMode === 'expert' && state.expandedStages.size === 0 && stages.length > 0) {
       const first = stages.find(s => !state.confirmed.has(s.id)) ?? stages[0]
-      dispatch({ type: 'TOGGLE_EXPAND', stageId: first.id })
+      dispatch({ type: 'SELECT_EXPERT_STAGE', stageId: first.id })
     }
   }, [state.viewMode, stages.length])
 
@@ -208,6 +211,12 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
   const tc = tierMeta[m.tier] || tierMeta[1]
   const age = elig?.age_at_retirement ?? 0
 
+  // Derived eligibility values for LiveSummary (expert mode sidebar)
+  const ruleType = m.tier === 3 ? 'Rule of 85' : 'Rule of 75'
+  const ruleSum = elig?.rule_of_n_value ?? 0
+  const ruleMet = elig?.retirement_type === 'rule_of_75' || elig?.retirement_type === 'rule_of_85'
+  const reductionPct = elig ? Math.round((1 - elig.reduction_factor) * 100) : 0
+
   // Case-level status — derived from confirmation progress and save state
   const confirmedCount = stages.filter(s => state.confirmed.has(s.id)).length
   const caseStatus = state.saveStatus === 'saved'
@@ -286,38 +295,42 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
               </div>
             ))}
           </div>
-          {/* Static benefit display — single source of truth */}
-          <div style={{
-            padding: '4px 12px', borderRadius: '6px', background: C.accentMuted,
-            border: `1px solid ${C.accentSolid}`, textAlign: 'right' as const,
-          }}>
+          {/* Static benefit display — guided mode only (expert mode shows it in LiveSummary) */}
+          {state.viewMode === 'guided' && (
             <div style={{
-              color: C.textMuted, fontSize: '8px', textTransform: 'uppercase' as const,
-              letterSpacing: '0.8px',
-            }}>{bannerLabel}</div>
-            <div style={{
-              color: ben ? C.accent : C.textDim, fontWeight: 700,
-              fontFamily: "'SF Mono',monospace", fontSize: '15px',
-              opacity: ben ? 1 : 0.5,
+              padding: '4px 12px', borderRadius: '6px', background: C.accentMuted,
+              border: `1px solid ${C.accentSolid}`, textAlign: 'right' as const,
             }}>
-              {ben ? fmt(bannerBenefit) : 'Pending'}
+              <div style={{
+                color: C.textMuted, fontSize: '8px', textTransform: 'uppercase' as const,
+                letterSpacing: '0.8px',
+              }}>{bannerLabel}</div>
+              <div style={{
+                color: ben ? C.accent : C.textDim, fontWeight: 700,
+                fontFamily: "'SF Mono',monospace", fontSize: '15px',
+                opacity: ben ? 1 : 0.5,
+              }}>
+                {ben ? fmt(bannerBenefit) : 'Pending'}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
       {/* Case status bar (F-7) */}
       <CaseStatusBar intake={intake.data} />
 
-      {/* Progress bar with confidence signals and mode toggle */}
-      <ProgressBar
-        stages={stages}
-        currentIndex={state.currentIndex}
-        confirmed={state.confirmed}
-        signals={signals}
-        allConfirmed={allConfirmed}
-        onGoTo={(i) => dispatch({ type: 'GO_TO', index: i })}
-      />
+      {/* Progress bar — guided mode only (expert mode uses StageNav instead) */}
+      {state.viewMode === 'guided' && (
+        <ProgressBar
+          stages={stages}
+          currentIndex={state.currentIndex}
+          confirmed={state.confirmed}
+          signals={signals}
+          allConfirmed={allConfirmed}
+          onGoTo={(i) => dispatch({ type: 'GO_TO', index: i })}
+        />
+      )}
 
       {/* Stage title bar — guided mode only */}
       {state.viewMode === 'guided' && currentStage && (
@@ -353,77 +366,87 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
         </div>
       )}
 
-      {/* Main content: stage + learning module */}
+      {/* Main content area */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
         {state.viewMode === 'guided' ? (
-          /* GUIDED MODE — single stage content, summary or full based on depth (F-1) */
-          <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
-            {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
-              <StageSummary
-                summaryFields={currentStage.summaryFields}
-                signal={signals[currentStage.id]}
-                stageProps={stageProps}
-                onExpand={() => dispatch({ type: 'EXPAND_STAGE', stageId: currentStage.id })}
+          /* ── GUIDED MODE — single stage content + Learning Module ── */
+          <>
+            <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
+              {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
+                <StageSummary
+                  summaryFields={currentStage.summaryFields}
+                  signal={signals[currentStage.id]}
+                  stageProps={stageProps}
+                  onExpand={() => dispatch({ type: 'EXPAND_STAGE', stageId: currentStage.id })}
+                />
+              ) : (
+                StageComponent && <StageComponent {...stageProps} />
+              )}
+            </div>
+            {focusedStage && (
+              <LearningModule
+                stage={focusedStage}
+                confirmed={state.confirmed}
+                checkedItems={mergedChecks[focusedStage.id] ?? new Set<number>()}
+                autoCheckedItems={autoChecks[focusedStage.id] ?? new Set<number>()}
+                layers={state.layers}
+                canConfirm={canConfirm}
+                isLastStage={isLastStage}
+                allConfirmed={allConfirmed}
+                saveStatus={state.saveStatus}
+                onToggleCheck={(index) =>
+                  dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
+                onToggleLayer={(layer) =>
+                  dispatch({ type: 'TOGGLE_LAYER', layer })}
+                onConfirm={handleConfirm}
+                onNext={() => dispatch({ type: 'NEXT', stageCount: stages.length })}
+                onUnconfirm={() => dispatch({ type: 'UNCONFIRM', stageId: focusedStage.id })}
+                onSave={handleSave}
               />
-            ) : (
-              StageComponent && <StageComponent {...stageProps} />
             )}
-          </div>
+          </>
         ) : (
-          /* EXPERT MODE — constrained width so cards aren't too wide; extra space goes to Learning Module */
-          <div style={{ flex: 5, minWidth: 0, display: 'flex' }}>
-            <ExpertMode
-              stages={stages}
-              stageComponents={STAGE_COMPONENTS}
-              stageProps={stageProps}
-              signals={signals}
-              depths={depths}
-              confirmed={state.confirmed}
-              expandedStages={state.expandedStages}
-              checkedItems={mergedChecks}
-              autoCheckedItems={autoChecks}
-              layers={state.layers}
-              onToggleExpand={(id) => dispatch({ type: 'TOGGLE_EXPAND', stageId: id })}
-              onExpandStage={(id) => dispatch({ type: 'EXPAND_STAGE', stageId: id })}
-              onConfirm={handleConfirmStage}
-              onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
-              onToggleCheck={(stageId, index) => dispatch({ type: 'TOGGLE_CHECK', stageId, index })}
-            />
-          </div>
-        )}
+          /* ── EXPERT MODE — carousel + live summary sidebar ── */
+          <>
+            {/* Carousel (~75%): horizontal carousel with full-content active card */}
+            <div style={{ flex: 3, minWidth: 0 }}>
+              <StageNav
+                stages={stages}
+                activeStageId={focusedStageId ?? stages[0]?.id ?? ''}
+                confirmed={state.confirmed}
+                signals={signals}
+                stageProps={stageProps}
+                stageComponents={STAGE_COMPONENTS}
+                onSelect={(id) => dispatch({ type: 'SELECT_EXPERT_STAGE', stageId: id })}
+                onConfirm={handleConfirmStage}
+                onUnconfirm={(id) => dispatch({ type: 'UNCONFIRM', stageId: id })}
+              />
+            </div>
 
-        {/* LEARNING MODULE — syncs to current/focused stage; wider in expert mode */}
-        {focusedStage && (
-          <LearningModule
-            wide={state.viewMode === 'expert'}
-            stage={focusedStage}
-            confirmed={state.confirmed}
-            checkedItems={mergedChecks[focusedStage.id] ?? new Set<number>()}
-            autoCheckedItems={autoChecks[focusedStage.id] ?? new Set<number>()}
-            layers={state.layers}
-            canConfirm={
-              state.viewMode === 'guided'
-                ? canConfirm
-                : (depths[focusedStage.id] === 'summary'
-                    || (state.layers.checklist
-                      ? (mergedChecks[focusedStage.id]?.size ?? 0) >= focusedStage.checklist.length
-                      : true)) && !state.confirmed.has(focusedStage.id)
-            }
-            isLastStage={state.viewMode === 'guided' ? isLastStage : focusedStage.id === stages[stages.length - 1]?.id}
-            allConfirmed={allConfirmed}
-            saveStatus={state.saveStatus}
-            onToggleCheck={(index) =>
-              dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
-            onToggleLayer={(layer) =>
-              dispatch({ type: 'TOGGLE_LAYER', layer })}
-            onConfirm={state.viewMode === 'guided'
-              ? handleConfirm
-              : () => handleConfirmStage(focusedStage.id)}
-            onNext={() => dispatch({ type: 'NEXT', stageCount: stages.length })}
-            onUnconfirm={() => dispatch({ type: 'UNCONFIRM', stageId: focusedStage.id })}
-            onSave={handleSave}
-          />
+            {/* Live summary sidebar (~25%) */}
+            <div style={{
+              flex: 1, minWidth: 0, borderLeft: `1px solid ${C.border}`,
+              background: C.surface, display: 'flex', flexDirection: 'column' as const,
+            }}>
+              <LiveSummary
+                confirmed={state.confirmed}
+                panelCount={stages.length}
+                ben={ben}
+                opts={opts}
+                dro={dro}
+                sc={sc}
+                electedOption={state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')}
+                leavePayout={leavePayout}
+                tc={tc}
+                ruleType={ruleType}
+                ruleSum={ruleSum}
+                ruleMet={ruleMet}
+                reductionPct={reductionPct}
+                onSave={handleSave}
+              />
+            </div>
+          </>
         )}
       </div>
 

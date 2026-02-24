@@ -6,6 +6,7 @@
  * Depends on: useTheme, usePortalAuth, useMember, useCalculations, usePortal, step components
  */
 import { useReducer, useCallback } from 'react'
+import { useKioskRegister } from '@/kiosk'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
@@ -66,6 +67,7 @@ export function ApplicationWizard() {
     retirement_date: retDate,
     last_day_worked: retDate ? new Date(new Date(retDate + 'T12:00:00').getTime() - 86400000).toISOString().split('T')[0] : '',
   })
+  useKioskRegister('wizard', dispatch as (action: Record<string, unknown>) => void)
 
   const step = draft.step
 
