@@ -15,7 +15,25 @@ export const TIMING = {
   CAPTION_READ: 3000,
   /** Pause between scenes */
   SCENE_TRANSITION: 1500,
+  /** Initial pause before teleprompter scroll begins */
+  NARRATOR_SCROLL_DELAY: 1500,
+  /** Padding added to auto-computed dwell (ms) */
+  NARRATOR_DWELL_PADDING: 2500,
+  /** Milliseconds per character for auto-dwell computation */
+  NARRATOR_MS_PER_CHAR: 100,
 } as const
+
+// ─── Caption positioning ─────────────────────────────────────
+
+export type CaptionPosition = 'bottom-center' | 'bottom-right' | 'top-right' | 'left-panel'
+
+// ─── Narrator overlay ────────────────────────────────────────
+
+export interface NarratorCaption {
+  headline: string
+  body: string
+  position: CaptionPosition
+}
 
 // ─── Step types ──────────────────────────────────────────────
 
@@ -23,6 +41,7 @@ export interface NavigateStep {
   type: 'navigate'
   path: string
   caption?: string
+  narrator?: NarratorCaption
   dwell?: number
 }
 
@@ -31,12 +50,14 @@ export interface DispatchStep {
   target: 'guided' | 'wizard'
   action: Record<string, unknown>
   caption?: string
+  narrator?: NarratorCaption
   dwell?: number
 }
 
 export interface CaptionStep {
   type: 'caption'
   text: string
+  narrator?: NarratorCaption
   dwell?: number
 }
 
@@ -44,12 +65,14 @@ export interface PauseStep {
   type: 'pause'
   dwell: number
   caption?: string
+  narrator?: NarratorCaption
 }
 
 export interface SceneStep {
   type: 'scene'
   name: string
   caption: string
+  narrator?: NarratorCaption
   dwell?: number
 }
 
@@ -61,6 +84,7 @@ export interface KioskState {
   currentStep: number
   totalSteps: number
   caption: string
+  narrator: NarratorCaption | null
   paused: boolean
   done: boolean
 }

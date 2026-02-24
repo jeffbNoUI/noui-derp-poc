@@ -11,8 +11,16 @@ import { KioskOverlay } from './KioskOverlay'
 import { KIOSK_SCRIPT } from './kiosk-script'
 import { TIMING, type KioskState, type KioskStep } from './kiosk-types'
 
+/** Compute dwell time — narrator body auto-computes from character count */
 function getStepDwell(step: KioskStep): number {
   if (step.dwell !== undefined) return step.dwell
+
+  // Auto-compute from narrator body length when present
+  if (step.narrator?.body) {
+    const charDwell = step.narrator.body.length * TIMING.NARRATOR_MS_PER_CHAR
+    return charDwell + TIMING.NARRATOR_DWELL_PADDING
+  }
+
   switch (step.type) {
     case 'navigate': return TIMING.ROUTE_SETTLE + TIMING.CAPTION_READ
     case 'dispatch': return TIMING.DISPATCH_SETTLE + TIMING.CAPTION_READ
@@ -29,6 +37,7 @@ export function KioskOrchestrator() {
     currentStep: 0,
     totalSteps: KIOSK_SCRIPT.length,
     caption: '',
+    narrator: null,
     paused: false,
     done: false,
   })
@@ -40,7 +49,7 @@ export function KioskOrchestrator() {
   // Execute a single step
   const executeStep = useCallback((index: number) => {
     if (index >= KIOSK_SCRIPT.length) {
-      setState(s => ({ ...s, done: true, caption: '' }))
+      setState(s => ({ ...s, done: true, caption: '', narrator: null }))
       return
     }
 
@@ -48,8 +57,9 @@ export function KioskOrchestrator() {
     const caption = step.type === 'scene' ? step.caption
       : step.type === 'caption' ? step.text
       : step.caption ?? ''
+    const narrator = step.narrator ?? null
 
-    setState(s => ({ ...s, currentStep: index, caption }))
+    setState(s => ({ ...s, currentStep: index, caption, narrator }))
 
     // Execute the step action
     switch (step.type) {
@@ -117,7 +127,7 @@ export function KioskOrchestrator() {
         case 'Escape': {
           e.preventDefault()
           clearTimeout(timerRef.current)
-          setState(s => ({ ...s, done: true, caption: '' }))
+          setState(s => ({ ...s, done: true, caption: '', narrator: null }))
           break
         }
       }

@@ -5,4 +5,4 @@
  */
 export { KioskBridgeProvider, useKioskRegister } from './KioskBridge'
 export { KioskOrchestrator } from './KioskOrchestrator'
-export type { KioskStep, KioskState } from './kiosk-types'
+export type { KioskStep, KioskState, NarratorCaption, CaptionPosition } from './kiosk-types'
