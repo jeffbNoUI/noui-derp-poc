@@ -7,6 +7,7 @@
 import type { StageProps } from './StageProps'
 import { C, tierMeta, fmt } from '@/theme'
 import { Field } from '@/components/shared/Field'
+import { WhyPopover } from '@/components/shared/WhyPopover'
 
 // Salary period data matching BenefitWorkspace (duplicated — stable demo fixtures)
 const SALARY_ROWS: Record<string, { period: string; months: number; monthly: number }[]> = {
@@ -112,7 +113,11 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
         </div>
       )}
 
-      <Field label={`\u00F7 ${ben.ams_window_months} months`} value={fmt(ben.ams)} highlight />
+      {(() => {
+        const amsEntry = ben.audit_trail?.find(e => e.rule_id === 'RULE-AMS-001')
+        const field = <Field label={`\u00F7 ${ben.ams_window_months} months`} value={fmt(ben.ams)} highlight />
+        return amsEntry ? <WhyPopover entry={amsEntry}>{field}</WhyPopover> : field
+      })()}
 
       {/* Leave payout impact */}
       {leavePayout > 0 && (
@@ -151,10 +156,18 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
         )}
       </div>
 
-      <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} sub="RMC \u00A718-401" />
+      {(() => {
+        const multEntry = ben.audit_trail?.find(e => e.rule_id.startsWith('RULE-MULT'))
+        const field = <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} sub="RMC \u00A718-401" />
+        return multEntry ? <WhyPopover entry={multEntry}>{field}</WhyPopover> : field
+      })()}
       <Field label="AMS" value={fmt(ben.ams)} />
       <Field label="Service (for benefit)" value={`${ben.service_years_for_benefit}y`} />
-      <Field label="Gross Monthly" value={fmt(ben.gross_monthly_benefit)} />
+      {(() => {
+        const calcEntry = ben.audit_trail?.find(e => e.rule_id === 'RULE-CALC-001')
+        const field = <Field label="Gross Monthly" value={fmt(ben.gross_monthly_benefit)} />
+        return calcEntry ? <WhyPopover entry={calcEntry}>{field}</WhyPopover> : field
+      })()}
       {reductionPct > 0 && (
         <Field label="Reduction" value={`\u00D7 ${ben.reduction_factor.toFixed(2)} (\u2212${reductionPct}%)`}
           badge={{ text: `\u2212${fmt(ben.gross_monthly_benefit - ben.net_monthly_benefit)}/mo`, bg: C.dangerMuted, color: C.danger }} />

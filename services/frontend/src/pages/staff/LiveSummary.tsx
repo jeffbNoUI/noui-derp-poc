@@ -41,7 +41,7 @@ export function LiveSummary({
     : 0
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' as const, height: '100%' }}>
+    <div data-discovery="live-summary" style={{ display: 'flex', flexDirection: 'column' as const, height: '100%' }}>
       <div style={{ padding: '10px 14px', borderBottom: `1px solid ${C.borderSubtle}` }}>
         <div style={{
           color: C.text, fontSize: '9px', textTransform: 'uppercase' as const,

@@ -36,7 +36,7 @@ export function StaffWelcomeScreen() {
       </div>
 
       {/* Mode selector */}
-      <div style={{
+      <div data-discovery="mode-toggle" style={{
         display: 'flex', borderRadius: '6px', overflow: 'hidden',
         border: `1px solid ${C.border}`,
       }}>

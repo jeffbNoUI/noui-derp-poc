@@ -9,6 +9,7 @@ import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { DEMO_CASES } from '@/lib/constants'
+import { DiscoveryOverlay } from '@/discovery'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -112,6 +113,7 @@ export function StaffLayout() {
           <Outlet />
         </ErrorBoundary>
       </div>
+      <DiscoveryOverlay />
 
       {/* Case selector bottom bar */}
       <div style={{

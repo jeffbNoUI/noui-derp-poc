@@ -67,7 +67,10 @@ export type GuidedAction =
 
 // ─── Initial state factory ────────────────────────────────────
 
-export function createInitialState(viewMode: 'guided' | 'expert' = 'guided'): GuidedState {
+export function createInitialState(
+  viewMode: 'guided' | 'expert' = 'guided',
+  layers?: Partial<LayerState>,
+): GuidedState {
   return {
     currentIndex: 0,
     confirmed: new Set(),
@@ -76,7 +79,7 @@ export function createInitialState(viewMode: 'guided' | 'expert' = 'guided'): Gu
     saveError: '',
     savedCaseId: null,
     checkedItems: {},
-    layers: { onboarding: true, rules: false, checklist: true },
+    layers: { onboarding: true, rules: false, checklist: true, ...layers },
     analystInputs: {
       beneficiaryName: '',
       deathBenefitInstallments: 50,

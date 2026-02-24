@@ -18,6 +18,16 @@ export interface SummaryField {
   badgeColor?: 'success' | 'accent' | 'warn'
 }
 
+/** Pre-written "What If?" scenario for the onboarding layer */
+export interface WhatIfScenario {
+  /** The hypothetical question */
+  question: string
+  /** The pre-written answer referencing actual demo case numbers */
+  answer: string
+  /** Direction of the hypothetical change */
+  delta: 'increase' | 'decrease' | 'neutral'
+}
+
 export interface StageHelp {
   id: string
   title: string
@@ -37,6 +47,8 @@ export interface StageHelp {
   conditional?: (sc: ServiceCreditSummary | undefined, dros: DRORecord[] | undefined) => boolean
   /** Fields to display in summary (compact) mode — undefined means always full (F-1) */
   summaryFields?: SummaryField[]
+  /** Pre-written "What If?" scenarios — displayed in onboarding layer */
+  whatIf?: WhatIfScenario[]
 }
 
 export const STAGE_HELP: StageHelp[] = [
@@ -157,6 +169,18 @@ export const STAGE_HELP: StageHelp[] = [
       { label: 'Reduction', path: 'eligibility.reduction_factor', format: 'text' },
       { label: 'Rule of N', path: 'eligibility.rule_of_n_value', format: 'text' },
     ],
+    whatIf: [
+      {
+        question: 'What if Robert retired 2 years earlier at age 61?',
+        answer: 'Rule of 75 still met (61 + 26.75 = 87.75), but the leave payout window shifts. No reduction applies either way.',
+        delta: 'neutral',
+      },
+      {
+        question: 'What if Jennifer had 2 more years of earned service?',
+        answer: 'Rule of 75 would be met (55 + 20.17 = 75.17). The 30% early retirement reduction drops to 0%, increasing her benefit from $1,633/mo to $2,333/mo.',
+        delta: 'increase',
+      },
+    ],
   },
   {
     id: 'benefit-calc',
@@ -188,6 +212,13 @@ export const STAGE_HELP: StageHelp[] = [
       { label: 'AMS', path: 'benefit.ams', format: 'fmt' },
       { label: 'Service Years', path: 'benefit.service_years_for_benefit', format: 'years' },
     ],
+    whatIf: [
+      {
+        question: 'What if Robert\u2019s leave payout were $30,000 instead of $52,000?',
+        answer: 'AMS drops from $10,639/mo to ~$10,027/mo. Monthly benefit decreases from $6,118/mo to ~$5,766/mo \u2014 a $352/mo difference.',
+        delta: 'decrease',
+      },
+    ],
   },
   {
     id: 'payment-options',
@@ -214,6 +245,13 @@ export const STAGE_HELP: StageHelp[] = [
     summaryFields: [
       { label: 'Elected', path: 'electedOption', format: 'text' },
       { label: 'Monthly', path: 'benefit.net_monthly_benefit', format: 'fmt' },
+    ],
+    whatIf: [
+      {
+        question: 'What if Robert chose J&S 100% instead of Maximum?',
+        answer: 'Monthly benefit drops from $6,118/mo to ~$5,323/mo, but his beneficiary receives the same amount for life if he passes first.',
+        delta: 'decrease',
+      },
     ],
   },
   {

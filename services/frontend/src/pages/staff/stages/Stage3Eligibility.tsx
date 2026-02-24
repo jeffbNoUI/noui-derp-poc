@@ -7,6 +7,7 @@
 import type { StageProps } from './StageProps'
 import { C, tierMeta } from '@/theme'
 import { Field } from '@/components/shared/Field'
+import { WhyPopover } from '@/components/shared/WhyPopover'
 
 export function Stage3Eligibility({
   member: m, serviceCredit: sc, eligibility: elig,
@@ -49,22 +50,34 @@ export function Stage3Eligibility({
             sub={sc.purchased_service_years > 0 ? 'Purchased service excluded from eligibility' : undefined} />
 
           {/* Rule of N evaluation */}
-          <Field label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '\u2265' : '<'} ${ruleTarget}`}
-            highlight={ruleMet}
-            badge={{
-              text: ruleMet ? 'Met' : 'Not Met',
-              bg: ruleMet ? C.successMuted : C.dangerMuted,
-              color: ruleMet ? C.success : C.danger,
-            }} />
+          {(() => {
+            const ruleEntry = elig.audit_trail?.find(e => e.rule_id === 'RULE-ELIG-075' || e.rule_id === 'RULE-ELIG-085')
+            const field = (
+              <Field label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '\u2265' : '<'} ${ruleTarget}`}
+                highlight={ruleMet}
+                badge={{
+                  text: ruleMet ? 'Met' : 'Not Met',
+                  bg: ruleMet ? C.successMuted : C.dangerMuted,
+                  color: ruleMet ? C.success : C.danger,
+                }} />
+            )
+            return ruleEntry ? <WhyPopover entry={ruleEntry}>{field}</WhyPopover> : field
+          })()}
           <Field label={`Minimum Age (${m.tier === 3 ? 60 : 55})`}
             value={`${age} \u2014 Met`}
             badge={{ text: 'Met', bg: C.successMuted, color: C.success }} />
-          <Field label="Benefit Reduction"
-            value={reductionPct === 0 ? 'None (0%)' : `${reductionPct}%`}
-            highlight={reductionPct === 0}
-            badge={reductionPct > 0
-              ? { text: `${yrsUnder65}y under 65`, bg: C.dangerMuted, color: C.danger }
-              : undefined} />
+          {(() => {
+            const reduceEntry = elig.audit_trail?.find(e => e.rule_id.startsWith('RULE-REDUCE'))
+            const field = (
+              <Field label="Benefit Reduction"
+                value={reductionPct === 0 ? 'None (0%)' : `${reductionPct}%`}
+                highlight={reductionPct === 0}
+                badge={reductionPct > 0
+                  ? { text: `${yrsUnder65}y under 65`, bg: C.dangerMuted, color: C.danger }
+                  : undefined} />
+            )
+            return reduceEntry ? <WhyPopover entry={reduceEntry}>{field}</WhyPopover> : field
+          })()}
           <Field label="Leave Payout"
             value={isLeaveEligible ? 'Eligible' : 'Not eligible'}
             sub={isLeaveEligible ? 'Hired before Jan 1, 2010' : 'Hired after Jan 1, 2010 or Tier 3'} />

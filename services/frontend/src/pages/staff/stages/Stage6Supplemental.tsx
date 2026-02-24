@@ -7,6 +7,7 @@
 import type { StageProps } from './StageProps'
 import { C, fmt } from '@/theme'
 import { Field } from '@/components/shared/Field'
+import { WhyPopover } from '@/components/shared/WhyPopover'
 
 export function Stage6Supplemental({ benefit: ben }: StageProps) {
   if (!ben) {
@@ -35,8 +36,14 @@ export function Stage6Supplemental({ benefit: ben }: StageProps) {
               badge={{ text: 'Earned Only', bg: C.warmMuted, color: C.warm }} />
             <Field label="Pre-Medicare Rate (< 65)" value="$12.50/mo per year"
               sub="$150/year of earned service" />
-            <Field label="Pre-Medicare Amount" value={fmt(ben.ipr.monthly_amount)} highlight
-              sub={`$12.50 \u00D7 ${ben.ipr.eligible_service_years} years`} />
+            {(() => {
+              const iprEntry = ben.audit_trail?.find(e => e.rule_id === 'RULE-IPR-001')
+              const field = (
+                <Field label="Pre-Medicare Amount" value={fmt(ben.ipr.monthly_amount)} highlight
+                  sub={`$12.50 \u00D7 ${ben.ipr.eligible_service_years} years`} />
+              )
+              return iprEntry ? <WhyPopover entry={iprEntry}>{field}</WhyPopover> : field
+            })()}
             <Field label="Post-Medicare Rate (\u2265 65)" value="$6.25/mo per year"
               sub="$75/year of earned service" />
             <Field label="Post-Medicare Amount" value={fmt(ben.ipr.monthly_amount / 2)}
@@ -75,8 +82,14 @@ export function Stage6Supplemental({ benefit: ben }: StageProps) {
       }}>
         {ben.death_benefit ? (
           <>
-            <Field label="Amount" value={fmt(ben.death_benefit.amount)} highlight
-              sub={`Lump sum — ${ben.death_benefit.retirement_type === 'rule_of_75' || ben.death_benefit.retirement_type === 'rule_of_85' || ben.death_benefit.retirement_type === 'normal' ? 'Normal/Rule of N' : 'Early retirement'}`} />
+            {(() => {
+              const deathEntry = ben.audit_trail?.find(e => e.rule_id === 'RULE-DEATH-001')
+              const field = (
+                <Field label="Amount" value={fmt(ben.death_benefit.amount)} highlight
+                  sub={`Lump sum — ${ben.death_benefit.retirement_type === 'rule_of_75' || ben.death_benefit.retirement_type === 'rule_of_85' || ben.death_benefit.retirement_type === 'normal' ? 'Normal/Rule of N' : 'Early retirement'}`} />
+              )
+              return deathEntry ? <WhyPopover entry={deathEntry}>{field}</WhyPopover> : field
+            })()}
             <Field label="Retirement Type" value={ben.death_benefit.retirement_type}
               badge={{ text: `Tier ${ben.death_benefit.tier}`, bg: C.accentMuted, color: C.accent }} />
             {ben.death_benefit.amount < 5000 && (

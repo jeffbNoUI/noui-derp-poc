@@ -8,6 +8,7 @@ import { C } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import type { StageHelp } from './guided-help'
 import type { LayerState } from './guided-types'
+import { WhatIfSection } from './WhatIfSection'
 
 export interface LearningModuleProps {
   /** When true, expand to fill available flex space instead of fixed 320px */
@@ -56,7 +57,7 @@ export function LearningModule({
           color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
           letterSpacing: '1.5px', fontWeight: 600, marginBottom: '8px',
         }}>Learning Module</div>
-        <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' as const }}>
+        <div data-discovery="learning-toggles" style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' as const }}>
           {([
             { key: 'onboarding' as const, label: 'Onboard' },
             { key: 'rules' as const, label: 'Rules' },
@@ -89,6 +90,7 @@ export function LearningModule({
             <div style={{ color: C.text, fontSize: '12px', lineHeight: '1.55' }}>
               {stage.onboarding}
             </div>
+            {stage.whatIf && <WhatIfSection scenarios={stage.whatIf} />}
           </div>
         )}
 

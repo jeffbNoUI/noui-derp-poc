@@ -23,6 +23,7 @@ import { computeAllSignals } from './guided-signals'
 import { computeStageDepth } from './guided-depth'
 import { computeAllAutoChecks, mergeChecks } from './guided-autochecks'
 import { reducer, createInitialState } from './guided-types'
+import { readProficiency, computeLayerDefaults, recordConfirmation, recordCaseComplete } from '@/lib/proficiency'
 import type { StageProps } from './stages/StageProps'
 import { LearningModule } from './LearningModule'
 import { LiveSummary } from './LiveSummary'
@@ -58,7 +59,10 @@ const STAGE_COMPONENTS: Record<string, React.ComponentType<StageProps>> = {
 
 export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId: string; defaultMode?: 'guided' | 'expert' }) {
   const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
-  const [state, dispatch] = useReducer(reducer, createInitialState(defaultMode))
+  const [state, dispatch] = useReducer(reducer, undefined, () => {
+    const layerDefaults = computeLayerDefaults(readProficiency())
+    return createInitialState(defaultMode, layerDefaults)
+  })
   useKioskRegister('guided', dispatch as (action: Record<string, unknown>) => void)
 
   // Data hooks (same as BenefitWorkspace)
@@ -160,6 +164,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
 
   const handleConfirm = useCallback(() => {
     if (!currentStage || !canConfirm) return
+    recordConfirmation(currentStage.id)
     dispatch({ type: 'CONFIRM', stageId: currentStage.id, stageCount: stages.length })
   }, [currentStage, canConfirm, stages.length])
 
@@ -169,6 +174,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
 
   // Confirm handler for expert mode — atomic collapse + route to next unconfirmed
   const handleConfirmStage = useCallback((stageId: string) => {
+    recordConfirmation(stageId)
     if (state.viewMode === 'expert') {
       dispatch({
         type: 'CONFIRM_AND_ROUTE', stageId,
@@ -195,7 +201,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
       ipr_amount: ben.ipr?.monthly_amount,
       death_benefit_amount: ben.death_benefit?.amount,
     }, {
-      onSuccess: (result) => dispatch({ type: 'SAVE_SUCCESS', caseId: result.case_id }),
+      onSuccess: (result) => { recordCaseComplete(); dispatch({ type: 'SAVE_SUCCESS', caseId: result.case_id }) },
       onError: (err) => dispatch({ type: 'SAVE_ERROR', error: err instanceof Error ? err.message : 'Failed to save' }),
     })
   }, [memberId, retirementDate, ben, elig, state.electedOption, hasDRO, opts, dro, saveElection])

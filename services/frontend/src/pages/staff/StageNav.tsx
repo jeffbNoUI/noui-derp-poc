@@ -122,7 +122,7 @@ function ActiveCard({ stage, isDone, signal, StageComponent, stageProps, onConfi
 }) {
   return (
     /* Gradient border wrapper */
-    <div style={{
+    <div data-discovery="carousel-card" style={{
       flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' as const,
       position: 'relative' as const, zIndex: 1,
       background: isDone
