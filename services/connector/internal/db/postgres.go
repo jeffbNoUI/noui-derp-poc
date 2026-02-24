@@ -4,12 +4,15 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	_ "github.com/lib/pq"
 )
 
 // Connect establishes a connection to the PostgreSQL database using environment variables.
+// Retries up to 10 times with 2-second intervals to handle container startup ordering.
 func Connect() (*sql.DB, error) {
 	host := envOrDefault("DB_HOST", "localhost")
 	port := envOrDefault("DB_PORT", "5432")
@@ -31,8 +34,17 @@ func Connect() (*sql.DB, error) {
 	db.SetMaxOpenConns(25)
 	db.SetMaxIdleConns(5)
 
-	if err := db.Ping(); err != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	// Retry ping to handle container startup ordering
+	for attempt := 1; attempt <= 10; attempt++ {
+		if err := db.Ping(); err != nil {
+			if attempt == 10 {
+				return nil, fmt.Errorf("failed to ping database after %d attempts: %w", attempt, err)
+			}
+			log.Printf("Database not ready (attempt %d/10): %v — retrying in 2s", attempt, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		break
 	}
 
 	return db, nil

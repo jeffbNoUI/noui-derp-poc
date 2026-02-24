@@ -63,30 +63,54 @@ func monthsBetween(start, end monthKey) int {
 }
 
 // AggregateBiweeklyToMonthly groups biweekly salary records into calendar months.
-// Each biweekly record is assigned to the month of its PAY_PRD_END_DT.
-// Leave payout amounts are tracked separately.
+// Each month's pensionable pay is derived from annualized salary / 12, NOT from
+// summing biweekly amounts. This avoids 3-pay-period months inflating totals.
+// Leave payout amounts are tracked separately (added directly, not annualized).
 func AggregateBiweeklyToMonthly(records []models.SalaryRecord) []models.MonthlySalary {
-	monthly := make(map[monthKey]*models.MonthlySalary)
+	// Phase 1: collect records per month, track the latest annual salary
+	type monthAccum struct {
+		ms              *models.MonthlySalary
+		latestAnnual    float64  // most recent annl_salary for this month
+		hasAnnual       bool
+		biweeklySum     float64  // fallback: sum of biweekly pens_pay
+	}
+	monthly := make(map[monthKey]*monthAccum)
 
 	for _, r := range records {
 		k := monthKey{r.PayPeriodEnd.Year(), int(r.PayPeriodEnd.Month())}
-		ms, ok := monthly[k]
+		acc, ok := monthly[k]
 		if !ok {
-			ms = &models.MonthlySalary{Year: k.Year, Month: k.Month}
-			monthly[k] = ms
+			acc = &monthAccum{ms: &models.MonthlySalary{Year: k.Year, Month: k.Month}}
+			monthly[k] = acc
 		}
-		ms.PensionablePay += r.PensionablePay
+		// Use annualized salary when available; take the latest record's value
+		if r.AnnualSalary != nil && *r.AnnualSalary > 0 {
+			acc.latestAnnual = *r.AnnualSalary
+			acc.hasAnnual = true
+		}
+		acc.biweeklySum += r.PensionablePay
 		if r.LeavePayoutAmt != nil {
-			ms.LeavePayoutAmt += *r.LeavePayoutAmt
+			acc.ms.LeavePayoutAmt += *r.LeavePayoutAmt
 		}
-		ms.TotalPay = ms.PensionablePay + ms.LeavePayoutAmt
-		ms.RecordCount++
+		acc.ms.RecordCount++
+	}
+
+	// Phase 2: compute monthly pensionable pay
+	for _, acc := range monthly {
+		if acc.hasAnnual {
+			// Monthly salary = annualized rate / 12
+			acc.ms.PensionablePay = acc.latestAnnual / 12.0
+		} else {
+			// Fallback: sum of biweekly records (legacy records without annl_salary)
+			acc.ms.PensionablePay = acc.biweeklySum
+		}
+		acc.ms.TotalPay = acc.ms.PensionablePay + acc.ms.LeavePayoutAmt
 	}
 
 	// Sort by year-month
 	result := make([]models.MonthlySalary, 0, len(monthly))
-	for _, ms := range monthly {
-		result = append(result, *ms)
+	for _, acc := range monthly {
+		result = append(result, *acc.ms)
 	}
 	sort.Slice(result, func(i, j int) bool {
 		if result[i].Year != result[j].Year {

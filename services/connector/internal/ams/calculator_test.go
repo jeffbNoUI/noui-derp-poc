@@ -272,6 +272,39 @@ func TestLeavePayoutSeparation(t *testing.T) {
 	assertFloat(t, "total", result[0].TotalPay, 61000.00, 0.01)
 }
 
+// TestAnnualizedAggregation verifies that months with 3 biweekly records
+// use annl_salary/12 instead of summing biweekly amounts.
+// This is the fix for the $210 AMS discrepancy vs oracle.
+func TestAnnualizedAggregation(t *testing.T) {
+	annual := 105513.0
+	biweekly := annual / 26.0 // $4,058.19
+	expectedMonthly := annual / 12.0 // $8,792.75
+
+	// September 2023 had 3 biweekly payments due to calendar alignment
+	records := []models.SalaryRecord{
+		{PayPeriodEnd: date(2023, 9, 1), PensionablePay: biweekly, AnnualSalary: &annual},
+		{PayPeriodEnd: date(2023, 9, 15), PensionablePay: biweekly, AnnualSalary: &annual},
+		{PayPeriodEnd: date(2023, 9, 29), PensionablePay: biweekly, AnnualSalary: &annual},
+		// August 2023: normal 2-period month
+		{PayPeriodEnd: date(2023, 8, 4), PensionablePay: biweekly, AnnualSalary: &annual},
+		{PayPeriodEnd: date(2023, 8, 18), PensionablePay: biweekly, AnnualSalary: &annual},
+	}
+
+	result := AggregateBiweeklyToMonthly(records)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 months, got %d", len(result))
+	}
+	// Both months should use annl_salary/12, NOT sum of biweekly amounts
+	assertFloat(t, "aug_pensionable", result[0].PensionablePay, expectedMonthly, 0.01)
+	assertFloat(t, "sep_pensionable", result[1].PensionablePay, expectedMonthly, 0.01)
+
+	// Verify 3-period month does NOT produce 3x biweekly
+	threeTimesBI := biweekly * 3 // $12,174.57 — this is what the OLD code would produce
+	if result[1].PensionablePay > threeTimesBI*0.9 {
+		t.Errorf("3-period month should NOT sum to %.2f, got %.2f", threeTimesBI, result[1].PensionablePay)
+	}
+}
+
 // TestEmptyInput verifies handling of no salary records.
 func TestEmptyInput(t *testing.T) {
 	result := Calculate(nil, 36, false)
