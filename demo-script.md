@@ -2,154 +2,219 @@
 
 ## Pre-Demo Checklist
 
-- [ ] Open browser to `http://localhost:3000?demo`
-- [ ] Verify demo mode banner appears ("Demo Mode — Using cached fixture data")
+- [ ] Docker containers running: `docker ps` shows postgres, connector (8081), intelligence (8082) all healthy
+- [ ] Frontend dev server running on `http://localhost:5175`
+- [ ] Open browser to `http://localhost:5175` — Platform Showcase landing page loads
+- [ ] Demo mode is active by default (no query param needed). Add `?live` to hit real database.
 - [ ] Clear browser cache if needed
-- [ ] Have architecture diagram accessible
 - [ ] Have this script open on second screen
 
-## Demo Flow (25-30 minutes)
+---
 
-### Opening (2 minutes)
+## Demo Flow (35-40 minutes)
 
-**Key message:** "This is a proof of concept showing how AI can transform pension administration — not by replacing human judgment, but by making the right information available at the right time."
+### Act 1: Platform Overview (3 minutes)
+
+**Start at:** `http://localhost:5175` — the Platform Showcase landing page
 
 **Say:**
-> "What you're about to see is a retirement application workspace for the Denver Employees Retirement Plan. The platform does three things:
-> 1. It reads member data from the legacy database
-> 2. A deterministic rules engine calculates benefits using certified plan provisions
-> 3. AI composes the workspace — deciding what information to show based on each member's situation
+> "This is the NoUI platform for the Denver Employees Retirement Plan. What you're seeing is a proof of concept that demonstrates how AI can transform pension administration — not by replacing human judgment, but by making the right information available at the right time.
 >
-> Let me be clear about what the AI does and does NOT do: **AI does not calculate benefits.** Every number you see comes from a rules engine executing certified plan provisions. AI's role is to compose the workspace and accelerate rule configuration."
+> The platform has three layers:
+> 1. **Core Workspaces** — the retirement application workflow from both the staff and member perspectives
+> 2. **Productivity Services** — AI-accelerated tools that augment analyst capabilities
+> 3. **Platform Intelligence** — learning, operations, and data quality insights
+>
+> Let me be clear about what the AI does and does NOT do: **AI does not calculate benefits.** Every number comes from a deterministic rules engine executing certified plan provisions. AI composes the workspace — deciding what to show based on each member's situation — and accelerates rule configuration. Humans certify and approve."
+
+**Point out:** The 9 capability cards organized into 3 sections. Each one is a functional demonstration.
+
+**Click:** "Staff Portal" card
 
 ---
 
-### Case 1: Robert Martinez — The Happy Path (5 minutes)
+### Act 2: Staff Workspace — Expert Mode (20 minutes)
 
-**Click:** Demo Card "Robert Martinez" (Case 1)
+**Landing:** Staff Welcome Screen with mode toggle and 4 demo case cards
 
-**Walk through:**
-1. **Member Banner** — "Here's Robert: Tier 1, hired in 1997, age 63. The workspace already shows his service credit: 28.75 years earned."
+**Say:**
+> "This is where a benefits analyst works. They choose a processing mode — Expert for experienced analysts, Guided for newer staff — and select a case. We'll use Expert mode to walk through all four demo cases."
 
-2. **Alerts** — "Notice the system identified he's eligible for leave payout — hired before 2010 with sick/vacation leave. The workspace composed this alert because it's relevant to his situation."
+**Ensure Expert mode is selected** (default).
 
-3. **Select retirement date:** April 1, 2026
+---
 
-4. **Eligibility Panel** — "The rules engine evaluated Robert against every eligibility rule. Rule of 75: age 63 plus 28.75 years of service equals 91.75 — well above the 75 threshold. No reduction."
+#### Case 1: Robert Martinez — The Happy Path (5 minutes)
 
-5. **Benefit Calculation** — "Here's where transparency matters. You can see every step:
-   - AMS: $10,639.45 — that's his highest 36 consecutive months including the $52,000 leave payout
+**Click:** "Robert Martinez" Case 1 card → loads `/staff/case/10001`
+
+**Walk through the 3D carousel:**
+> "The expert workspace uses a carousel layout. The active stage is center — full content, fully interactive. Previous and next stages peek in from the sides, angled like cards on a drum. The pill navigation at the bottom shows all 9 stages with confirmation status."
+
+1. **Member Banner** — "Robert Martinez: Tier 1, hired 1997, age 63. 28.75 years earned service."
+
+2. **Application Intake stage** — "Document checklist, application timeline, payment cutoff — this is the analyst's starting point."
+
+3. **Navigate to Eligibility** (click pill or next card) — "Rule of 75: age 63 plus 28.75 years = 91.75 — well above 75. No reduction. Every rule evaluated is shown with its RMC citation."
+
+4. **Navigate to Benefit Calculation** — "Here's where transparency matters:
+   - AMS: $10,639.45 — highest 36 consecutive months including $52,000 leave payout
    - Multiplier: 2.0% for Tier 1
    - Service: 28.75 years
-   - Result: $6,117.68 per month
+   - Result: **$6,117.68 per month**
 
-   Every calculation shows its formula, inputs, and source reference to the Revised Municipal Code."
+   Every step shows formula, inputs, and source reference."
 
-6. **Payment Options** — "Robert has four options. His 75% J&S pays $5,597.68 with $4,198.26 going to Elena if he predeceases her."
+5. **Live Summary sidebar** (right panel) — "The Live Calculation sidebar updates in real time. Hero benefit amount, line item breakdown, confirmation progress. When all stages are confirmed, Save & Submit activates."
 
-7. **Audit Trail** — "Every rule applied is logged with its RMC citation. This isn't just a number — it's a verifiable calculation."
+6. **Payment Options stage** — "Four options. His 75% J&S pays $5,597.68 with $4,198.26 for Elena as survivor."
 
-**Key talking point:** "Notice what's NOT here: there's no DRO panel, because Robert doesn't have a domestic relations order. The workspace only shows what's relevant."
+7. **Confirm a stage** — Click the confirm button to show how stages get marked done, pills update with checkmarks, and progress advances.
 
----
-
-### Case 2: Jennifer Kim — Purchased Service & Early Retirement (5 minutes)
-
-**Click:** Demo Card "Jennifer Kim" (Case 2)
-
-**Walk through:**
-1. **Service Credit** — "Jennifer has 21.17 total years, but notice: 18.17 earned, 3.00 purchased. This distinction is CRITICAL."
-
-2. **Purchased Service Alert** — "The system immediately flags the purchased service. Purchased credit counts toward the benefit amount but is excluded from the Rule of 75 and IPR. Getting this wrong would overpay or underpay benefits."
-
-3. **Select retirement date:** May 1, 2026
-
-4. **Eligibility** — "Rule of 75: the system correctly uses earned service only — 55 + 18.17 = 73.17, which is below 75. Jennifer gets a 30% early retirement reduction: 3% per year for 10 years under age 65."
-
-5. **Benefit Calculation** — "Watch the formula: $7,347.62 × 1.5% × 21.17 years = $2,332.96 unreduced. Then × 0.70 reduction = $1,633.07. The purchased service IS included in the benefit calculation — it increases her benefit from what it would otherwise be."
-
-6. **Death Benefit** — "$2,500 — reduced from $5,000 base by $250 per year under age 65."
-
-**Key talking point:** "This is the kind of rule interaction that causes real-world errors. Purchased service counts here but not there. The rules engine handles it consistently every time because it's executing certified plan provisions, not making judgment calls."
+**Key talking point:**
+> "Notice what's NOT here — no DRO panel. Robert doesn't have a domestic relations order. The workspace only shows what's relevant to this member's situation."
 
 ---
 
-### Case 3: David Washington — Tier 3 Differences (3 minutes)
+#### Case 2: Jennifer Kim — The Edge Case (5 minutes)
 
-**Click:** Demo Card "David Washington" (Case 3)
+**Navigate back:** Click browser back or navigate to `/staff` then select Case 2
 
-**Walk through:**
-1. **Tier 3 differences** — "David is Tier 3 — hired after July 1, 2011. Everything is different:
-   - 60-month AMS window instead of 36
-   - Rule of 85 instead of 75
-   - Minimum age 60 for early retirement instead of 55
-   - 6% reduction per year instead of 3%
+**Click:** "Jennifer Kim" Case 2 card → `/staff/case/10002`
+
+1. **Service Credit stage** — "Jennifer has 21.17 total years: 18.17 earned, 3.00 purchased. This distinction is CRITICAL."
+
+2. **Alert** — "The system flags the purchased service. Purchased credit counts toward the benefit amount but is excluded from the Rule of 75 and IPR. Getting this wrong would overpay or underpay benefits."
+
+3. **Eligibility stage** — "Rule of 75 uses earned service only — 55 + 18.17 = 73.17, below 75. Jennifer gets a 30% early retirement reduction: 3% per year for 10 years under age 65."
+
+4. **Benefit Calculation** — "$7,347.62 AMS x 1.5% x 21.17 years = $2,332.96 unreduced. Then x 0.70 = **$1,633.07**. Purchased service IS included in the benefit formula — it increases her benefit."
+
+5. **Supplemental Benefits** — "Death benefit: $2,500 — reduced from $5,000 by $250/year under 65. IPR uses earned service only: 18.17 years."
+
+**Key talking point:**
+> "This is the kind of rule interaction that causes real-world errors. Purchased service counts HERE but not THERE. The rules engine handles it consistently every time — certified plan provisions, not judgment calls."
+
+---
+
+#### Case 3: David Washington — Tier 3 Differences (3 minutes)
+
+**Navigate to:** `/staff` → Case 3 card → `/staff/case/10003`
+
+1. **Tier differences** — "David is Tier 3 — hired after July 1, 2011. EVERYTHING is different:
+   - 60-month AMS window (not 36)
+   - Rule of 85 (not 75)
+   - Minimum early retirement age 60 (not 55)
+   - 6% reduction per year (not 3%)
    - No leave payout eligibility"
 
-2. **Select retirement date:** April 1, 2026
+2. **Quick walkthrough** — Rule of 85: 63 + 13.58 = 76.58 < 85. 12% reduction. 60-month AMS includes a 2021 salary dip. Death benefit: $4,000 ($500/year reduction for Tier 3 vs $250 for Tiers 1-2).
 
-3. **Quick walkthrough** — Point out the Rule of 85 evaluation (76.58 < 85), the 12% reduction, the 60-month AMS, and the $4,000 death benefit ($500/year reduction for Tier 3).
-
-**Key talking point:** "The workspace automatically adjusts for tier. Every Tier 3 calculation uses the right parameters — no human has to remember which rules apply to which tier."
-
----
-
-### Case 4: Robert Martinez with DRO (5 minutes)
-
-**Click:** Demo Card "Robert Martinez" (Case 4)
-
-**Walk through:**
-1. **DRO Alert** — "Same Robert Martinez, but now with a domestic relations order. The workspace composed a DRO alert and the DRO Impact panel."
-
-2. **Select retirement date:** April 1, 2026
-
-3. **DRO Impact Panel** — "The DRO calculation:
-   - Marriage: 1999 to 2017 = 18.25 years of service during marriage
-   - Marital fraction: 18.25 / 28.75 = 0.6348
-   - Marital share: $6,117.68 × 0.6348 = $3,883.10
-   - Patricia's 40%: $1,553.24
-   - Robert keeps: $4,564.44"
-
-4. **Payment Options** — "Notice these are calculated on the post-DRO amount — $4,564.44, not $6,117.68. The DRO split happens BEFORE the payment option selection. Getting this sequence wrong would be a compliance violation."
-
-**Key talking point:** "The order of operations matters: DRO split first, then payment option. The rules engine enforces this sequence. It's not something a caseworker has to remember."
+**Key talking point:**
+> "Same interface, completely different rules. The workspace automatically adjusts for tier — no human has to remember which parameters apply."
 
 ---
 
-### AI-Accelerated Change Management (3 minutes)
+#### Case 4: Robert Martinez with DRO (5 minutes)
+
+**Navigate to:** `/staff` → Case 4 card → `/staff/case/10004`
+
+1. **DRO Alert** — "Same Robert Martinez, but now with a Domestic Relations Order. The workspace composed a DRO panel that wasn't present in Case 1."
+
+2. **DRO stage** — "The calculation sequence:
+   - Marriage: 1999-2017 = 18.25 years during DERP employment
+   - Marital fraction: 18.25 / 28.75 = 0.6348 (63.48%)
+   - Marital share: $6,117.68 x 0.6348 = $3,883.10
+   - Patricia's 40%: **$1,553.24/month**
+   - Robert's net: **$4,564.44/month**"
+
+3. **Payment Options** — "Payment option applies to the post-DRO amount — $4,564.44, NOT the original $6,117.68. DRO split first, then option election. Getting this sequence wrong is a compliance violation."
+
+**Key talking point:**
+> "The order of operations is enforced by the rules engine. It's not something a caseworker has to remember — the system applies DRO before payment options, every time."
+
+---
+
+### Act 3: Guided Mode — Learning Module (3 minutes)
+
+**Navigate to:** `/staff` → Toggle to **Guided** mode → Case 1 card → `/staff/case/10001/guided`
 
 **Say:**
-> "Let me show you what happens when a rule changes. The board approves a contribution rate increase from 8.45% to 9.00%. Here's the AI-accelerated workflow:
-> 1. AI reads the board resolution and identifies 3 affected rules
-> 2. AI drafts the changes — but a human SME reviews against the actual RMC language
-> 3. The system generates regression tests from the reviewed definitions
-> 4. Tests execute — failures are defects, never auto-resolved
-> 5. A human certifies the complete package
-> 6. Changes deploy on the effective date; prior rules are preserved
->
-> No rule reaches production without human approval."
+> "Guided mode is designed for newer staff or complex cases where step-by-step verification matters."
+
+1. **Sequential flow** — "Stages advance one at a time. The analyst must confirm each stage before moving on."
+
+2. **Learning Module sidebar** — "Three independent layers:
+   - **Onboarding** — teaching narrative explaining what this stage does and why
+   - **Rules Reference** — statutory citations from the Revised Municipal Code
+   - **Verification Checklist** — interactive checks that guide the analyst through confirmation
+
+   Each layer toggles independently. As analysts demonstrate proficiency, the system could reduce onboarding content — earning trust over time."
+
+3. **Checklist gates** — "Checklist items must be completed before the stage can be confirmed. This ensures consistency across all analysts."
+
+**Key talking point:**
+> "Expert mode trusts the analyst. Guided mode teaches and verifies. Same underlying data and calculations — different workspace composition based on who's using it."
 
 ---
 
-### Data Quality (2 minutes)
+### Act 4: Member Portal (5 minutes)
+
+**Navigate to:** `http://localhost:5175` → "Member Portal" card → `/portal`
 
 **Say:**
-> "The system also identifies data quality issues in the legacy database. It found:
-> - 12 active members with termination dates — contradictory status
-> - 5 beneficiaries with allocations that don't sum to 100%
-> - 3 contribution balance mismatches
->
-> Each finding has a proposed resolution, but in Phase 1, every correction requires human review. There is no auto-resolve. The system shows its work and presents findings for human verification."
+> "Now let's see the same retirement process from the member's perspective."
+
+1. **Member Dashboard** — "Robert Martinez logged in. He sees his basic info, current application status, quick actions."
+
+2. **Start Application** → `/portal/apply/...` — "The member walks through a 7-step wizard:
+   - Confirm personal info and beneficiary
+   - Select retirement date
+   - View benefit estimate (from the same rules engine — member never calculates)
+   - Choose payment option
+   - Elect death benefit installments
+   - Review insurance and tax withholding
+   - Final review and submit"
+
+3. **Application Status** → "After submission, the member tracks their application through the pipeline. Documents received, expected first payment date, messages from staff."
+
+**Key talking point:**
+> "The member portal reads from the same rules engine as the staff workspace. The member sees their estimate; the analyst sees the full audit trail. One source of truth, two views."
 
 ---
 
-### Closing (3 minutes)
+### Act 5: Platform Capabilities (5 minutes)
+
+**Navigate to:** `http://localhost:5175` (landing page)
+
+**Quick tour through 3-4 productivity demos:**
+
+1. **Knowledge Assistant** (`/demos/knowledge-assistant`) — "Search DERP provisions by topic. Returns statutory citations with RMC section references. Can operate standalone or connected to a specific member's situation."
+
+2. **Correspondence Composer** (`/demos/correspondence`) — "Assemble retirement letters from structured content blocks. Every paragraph has provenance — the analyst sees exactly what content came from where."
+
+3. **Workflow Dashboard** (`/demos/workflow`) — "Supervisor view: processing pipeline, caseload heatmap by analyst, deadline risk monitoring, case reassignment."
+
+4. **Data Quality** (`/demos/data-quality`) — "Migration findings from the legacy database — severity-classified, with proposed corrections. Every correction requires human review. The system identifies; humans approve."
+
+**Key talking point:**
+> "These are all AI-augmented tools, not AI-automated tools. The Knowledge Assistant finds provisions — it doesn't interpret them. The Correspondence Composer assembles letters — the analyst reviews before sending. Data Quality proposes corrections — humans approve them."
+
+---
+
+### Closing (2 minutes)
 
 **Key messages:**
-1. "AI does not execute business rules. The rules engine does."
-2. "Every calculation shows its formula, inputs, and governing document reference."
-3. "The system earns trust through transparency, not automation."
-4. "AI accelerates rule configuration and composes workspaces — humans certify and approve."
+
+1. "**AI does not execute business rules.** The deterministic rules engine does — executing certified plan provisions with full audit trails."
+
+2. "**Every calculation shows its work.** Formula, inputs, intermediate steps, governing document reference. Trust through transparency."
+
+3. "**The workspace adapts to the situation.** DRO panels appear only when a DRO exists. Tier 3 rules apply only to Tier 3 members. Purchased service warnings appear only when relevant."
+
+4. "**Same rules engine, multiple views.** Staff expert mode, staff guided mode, and member portal — all reading from the same source of truth."
+
+5. "**AI accelerates, humans certify.** Rule configuration, workspace composition, data quality findings — AI proposes, humans approve. No rule reaches production without human certification."
 
 ---
 
@@ -173,8 +238,14 @@
 ### "What's the timeline to production?"
 **Answer:** "This is a proof of concept. Production would require: actual DERP actuarial tables (we're using placeholder J&S factors), integration testing against the real legacy database, security hardening, and the full change management certification process. The architecture and rules engine are ready; the configuration certification is the gating item."
 
-### "What happens if the AI service goes down during a session?"
+### "What happens if the AI service goes down?"
 **Answer:** "The rules engine and all calculations are independent of the AI service. Workspace composition falls back to showing all available panels rather than the optimized layout. Data quality findings are still generated. The only degraded capability is the AI-composed workspace ordering — and that's a convenience feature, not a compliance requirement."
+
+### "How does Expert mode differ from Guided mode?"
+**Answer:** "Expert mode shows a carousel with all stages accessible in any order — designed for experienced analysts who know the process. Guided mode walks through stages sequentially with a learning module that includes onboarding narratives, rule citations, and verification checklists. Same calculations, different workspace composition based on analyst proficiency."
+
+### "What does the member see vs the analyst?"
+**Answer:** "The member portal reads from the same rules engine but presents a simplified view — benefit estimates, payment option selection, application status tracking. The staff workspace shows the full audit trail, rule evaluations, and edge case alerts. One source of truth, two perspectives."
 
 ---
 
@@ -182,15 +253,17 @@
 
 If the demo environment has issues:
 
-1. **Frontend won't load:** Use `?demo` parameter to activate demo mode, which serves cached fixtures with no backend dependency
-2. **Calculations seem wrong:** All demo mode values are pre-verified against hand calculations (18 automated tests confirm this)
-3. **Browser issues:** Chrome recommended; Safari and Firefox also work. Clear cache and reload.
-4. **Network issues:** Demo mode is fully self-contained — no API calls needed
+1. **Frontend won't load:** Ensure dev server is running (`npm run dev` from `services/frontend/`). App serves on port 5175.
+2. **Backend services down:** Demo mode uses cached fixtures with no backend dependency — the app works fully offline.
+3. **Calculations seem wrong:** All demo mode values are pre-verified against hand calculations with automated tests.
+4. **Browser issues:** Chrome recommended; Safari and Firefox also work. Clear cache and reload.
 
 ## Technical Details (if asked)
 
-- **Technology:** Go backend, React + TypeScript frontend, PostgreSQL database
-- **Testing:** 71 Go tests + 23 frontend tests = 94 total, all passing
+- **Technology:** Go backend, React 19 + TypeScript 5.9 frontend, PostgreSQL 16
+- **Build:** Vite 7.3, production build < 650KB gzipped
 - **Rules:** 52 business rules defined in YAML with RMC citations
-- **Architecture:** Connector (data) → Intelligence (rules) → Frontend (workspace)
+- **Architecture:** Connector (data access) → Intelligence (rules engine) → Frontend (workspace composition)
+- **Testing:** Go unit tests + frontend Vitest tests, all passing. 4 demo cases verified penny-accurate to hand calculations.
 - **Governed artifacts:** Rule definitions, lookup tables, test fixtures — all version-controlled
+- **Dual mode:** Demo (default, offline) or Live (`?live`, hits real PostgreSQL through connector + intelligence services)
