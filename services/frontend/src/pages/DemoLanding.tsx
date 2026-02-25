@@ -1,12 +1,12 @@
 /**
  * Demo landing page — focused entry point for live demonstrations to DERP leadership.
- * Shows 4 case cards, DQ Dashboard link, and role selector (visual demo prop).
+ * Shows case cards across three process types: retirement, refund, death & survivor.
  * Consumed by: router.tsx (/demo route)
- * Depends on: DEMO_CASES (constants), react-router-dom, tierMeta (theme)
+ * Depends on: DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES (constants), react-router-dom, tierMeta (theme)
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DEMO_CASES } from '@/lib/constants'
+import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
 import { tierMeta } from '@/theme'
 
 const TIER_COLORS: Record<number, string> = { 1: '#1565c0', 2: '#e65100', 3: '#2e7d32' }
@@ -27,6 +27,22 @@ const CASE_DETAILS: Record<string, { desc: string; features: string[] }> = {
   '10004': {
     desc: 'Rule of 75 retirement with active Domestic Relations Order',
     features: ['DRO split (40%)', 'Marital fraction 63.48%', 'DRO before J&S', 'Fixed alternate payee amount'],
+  },
+  '10007': {
+    desc: 'Non-vested termination with contribution refund and interest calculation',
+    features: ['Non-vested (3.83yr)', '$18,639 gross', 'Interest compounding', 'Tax withholding options'],
+  },
+  '10008': {
+    desc: 'Vested member choosing between refund and deferred pension benefit',
+    features: ['Vested (7.08yr)', 'Forfeiture decision', 'Deferred comparison', 'Rollover options'],
+  },
+  '10009': {
+    desc: 'Retired member death with 75% J&S survivor benefit continuation',
+    features: ['75% J&S election', '$2,436/mo survivor', 'Overpayment review', 'Installment continuation'],
+  },
+  '10010': {
+    desc: 'Active non-vested member death with contribution refund to beneficiary',
+    features: ['Active member', 'Non-vested', 'Contribution refund', 'Beneficiary determination'],
   },
 }
 
@@ -107,65 +123,67 @@ export function DemoLanding() {
         <div style={{
           fontSize: 24, fontWeight: 700, color: '#1a2e2e',
           fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 8,
-        }}>Retirement Application Workspace</div>
+        }}>Staff Processing Workspaces</div>
         <div style={{
           fontSize: 13, color: '#4a6363', marginBottom: 40, maxWidth: 560,
           textAlign: 'center' as const, lineHeight: 1.6,
         }}>
-          Built from DERP governing documents — 52 business rules traced to the Revised Municipal Code.
-          The rules engine calculates; the workspace shows the right information for each situation.
+          Three process types — retirement, contribution refund, and death &amp; survivor — each with
+          transparent, stage-by-stage processing. 52 business rules traced to the Revised Municipal Code.
         </div>
 
-        {/* Case cards */}
+        {/* ── Retirement Application ── */}
+        <SectionLabel title="Retirement Application" count={4} color="#00796b" />
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
           gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
         }}>
-          {DEMO_CASES.map((c, i) => {
-            const details = CASE_DETAILS[c.id]
-            const color = TIER_COLORS[c.tier]
-            const tm = tierMeta[c.tier]
-            return (
-              <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}/guided`)} style={{
-                padding: 20, background: '#fff',
-                border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: `4px solid ${color}`,
-                cursor: 'pointer', textAlign: 'left' as const,
-                boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
-                transition: 'all 0.2s', fontFamily: 'inherit',
-              }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'
-                  e.currentTarget.style.transform = 'translateY(-2px)'
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'
-                  e.currentTarget.style.transform = 'translateY(0)'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>CASE {i + 1}</span>
-                  <span style={{
-                    fontSize: 10, fontWeight: 700, color, background: tm.muted,
-                    padding: '2px 8px', borderRadius: 4,
-                  }}>Tier {c.tier}</span>
-                </div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>
-                  {c.name}{c.id === '10004' ? ' + DRO' : ''}
-                </div>
-                <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>
-                  {details.desc}
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
-                  {details.features.map(f => (
-                    <span key={f} style={{
-                      fontSize: 9.5, color: '#5a7878', background: '#f0f5f5',
-                      padding: '2px 7px', borderRadius: 3,
-                    }}>{f}</span>
-                  ))}
-                </div>
-              </button>
-            )
-          })}
+          {DEMO_CASES.map((c, i) => (
+            <CaseCard
+              key={c.id}
+              caseNum={i + 1}
+              name={`${c.name}${c.id === '10004' ? ' + DRO' : ''}`}
+              details={CASE_DETAILS[c.id]}
+              tier={c.tier}
+              onClick={() => navigate(`/staff/case/${c.id}/guided`)}
+            />
+          ))}
+        </div>
+
+        {/* ── Contribution Refund ── */}
+        <SectionLabel title="Contribution Refund" count={2} color="#e65100" />
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
+        }}>
+          {DEMO_REFUND_CASES.map((c, i) => (
+            <CaseCard
+              key={c.id}
+              caseNum={i + 7}
+              name={c.name}
+              details={CASE_DETAILS[c.id]}
+              tier={c.tier}
+              onClick={() => navigate(`/staff/refund/${c.id}`)}
+            />
+          ))}
+        </div>
+
+        {/* ── Death & Survivor Benefits ── */}
+        <SectionLabel title="Death & Survivor Benefits" count={2} color="#c62828" />
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
+        }}>
+          {DEMO_DEATH_CASES.map((c, i) => (
+            <CaseCard
+              key={c.id}
+              caseNum={i + 9}
+              name={c.name}
+              details={CASE_DETAILS[c.id]}
+              tier={c.tier}
+              onClick={() => navigate(`/staff/death/${c.id}`)}
+            />
+          ))}
         </div>
 
         {/* Secondary links */}
@@ -228,5 +246,69 @@ export function DemoLanding() {
         </div>
       </div>
     </div>
+  )
+}
+
+// ─── Section Label ─────────────────────────────────────────────────────
+
+function SectionLabel({ title, count, color }: { title: string; count: number; color: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: 8,
+      width: '100%', maxWidth: 720, marginBottom: 12,
+    }}>
+      <div style={{ width: 3, height: 18, borderRadius: 2, background: color }} />
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a2e2e' }}>{title}</span>
+      <span style={{
+        fontSize: 10, color, fontWeight: 600,
+        background: `${color}15`, padding: '2px 8px', borderRadius: 4,
+      }}>{count} Cases</span>
+    </div>
+  )
+}
+
+// ─── Case Card ──────────────────────────────────────────────────────────
+
+function CaseCard({ caseNum, name, details, tier, onClick }: {
+  caseNum: number; name: string; details: { desc: string; features: string[] }
+  tier: number; onClick: () => void
+}) {
+  const color = TIER_COLORS[tier]
+  const tm = tierMeta[tier]
+  return (
+    <button onClick={onClick} style={{
+      padding: 20, background: '#fff',
+      border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: `4px solid ${color}`,
+      cursor: 'pointer', textAlign: 'left' as const,
+      boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
+      transition: 'all 0.2s', fontFamily: 'inherit',
+    }}
+      onMouseEnter={e => {
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'
+        e.currentTarget.style.transform = 'translateY(-2px)'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'
+        e.currentTarget.style.transform = 'translateY(0)'
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>CASE {caseNum}</span>
+        <span style={{
+          fontSize: 10, fontWeight: 700, color, background: tm.muted,
+          padding: '2px 8px', borderRadius: 4,
+        }}>Tier {tier}</span>
+      </div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>{name}</div>
+      <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>{details.desc}</div>
+      <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
+        {details.features.map(f => (
+          <span key={f} style={{
+            fontSize: 9.5, color: '#5a7878', background: '#f0f5f5',
+            padding: '2px 7px', borderRadius: 3,
+          }}>{f}</span>
+        ))}
+      </div>
+    </button>
   )
 }

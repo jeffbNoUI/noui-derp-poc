@@ -2182,3 +2182,65 @@ The NoUI DERP POC is complete across 7 build sessions.
 | `/demos/operational` | Population Analysis |
 
 ### Tagged: `v0.1.0-demo`
+
+---
+
+## Phase 2: Multi-Process Domain Expansion
+
+### Session 7: Contribution Refund Domain (worktree)
+- Built 6 refund stage components: RefundEligibility, ContributionSummary, InterestCalculation, RefundOptions, VestedDecisionMoment, RefundReview
+- Types: `src/types/Refund.ts` — RefundCalculation, RefundEligibility, ContributionAccumulation, InterestSchedule, TaxOption, DeferredComparison
+- Demo data: `src/api/refund-demo-data.ts` — Cases 7 (Maria Santos, non-vested) & 8 (Thomas Chen, vested)
+- 27 tests covering both refund cases, interest calculations, vested vs non-vested paths
+
+### Session 8: Death & Survivor Domain (worktree)
+- Built 6 death stage components: DeathNotification, SurvivorDetermination, SurvivorBenefitCalc, OverpaymentReview, DeathBenefitContinuation, DeathProcessingReview
+- Types: `src/types/DeathSurvivor.ts` — DeathRecord, SurvivorClaim, DeathBenefitElection, DeathBenefitStatus, DeathProcessingSummary
+- Unified `DeathStageProps` interface — all death components accept same prop shape
+- Demo data: `src/api/death-survivor-demo-data.ts` — Cases 9 (Margaret Thompson, retired) & 10 (James Rivera, active)
+- 21 tests covering death status retrieval, survivor claim processing, overpayment detection
+
+### Session 9: Service Purchase Domain (worktree)
+- Built purchase explorer and calculator: `src/lib/purchase-calculator.ts`, `src/pages/PurchaseExplorer.tsx`
+- 22 tests for purchase cost calculations
+- Routed at `/demos/purchase-explorer`
+
+### Session 10: Integration Merge
+- Merged all three worktrees into master branch
+- Fixed IEEE 754 rounding: added `round2()` utility to prevent floating-point drift
+- Fixed WriteError/WriteJSON API signatures in Go services
+- Fixed theme imports (legacy `C` object from barrel export)
+- Final state: 209 tests pass, 0 TypeScript errors, production build succeeds
+
+### Workspace Wiring (Post-Merge)
+
+Phase 2 components were built in isolated worktrees but not wired into navigable workspaces. This session connected them.
+
+#### Files Created
+- `src/pages/staff/DeathWorkspace.tsx` — 6-stage death processing workspace (notification → survivor → benefit calc → overpayment → installments → review)
+- `src/pages/staff/RefundWorkspace.tsx` — 5-6 stage refund workspace (eligibility → contributions → interest → options → [vested decision] → review). VestedDecisionMoment stage conditional on member vesting status.
+- `src/pages/StaffDeathView.tsx` — Route bridge: reads `:memberId` from URL, renders DeathWorkspace
+- `src/pages/StaffRefundView.tsx` — Route bridge: reads `:memberId` from URL, renders RefundWorkspace
+
+#### Files Modified
+- `src/router.tsx` — Added routes: `/staff/death/:memberId`, `/staff/refund/:memberId`
+- `src/lib/constants.ts` — Added `ProcessType`, `DEMO_REFUND_CASES`, `DEMO_DEATH_CASES`
+- `src/pages/StaffWelcomeScreen.tsx` — Rewritten with three process type sections (Retirement 4 cases, Refund 2 cases, Death 2 cases)
+- `src/pages/DemoLanding.tsx` — Expanded with refund and death sections (8 total case cards across 3 process types)
+
+#### Design Decisions
+- **Separate workspaces** rather than integrating into GuidedWorkspace: Death uses `DeathStageProps` (unified), Refund uses per-component props — both fundamentally different from retirement's `StageProps`
+- **ComparisonView stays retirement-only**: Compares AMS, multipliers, reduction factors — fields that don't exist in refund/death data models
+- **CaseCard / SectionHeader extracted** in both StaffWelcomeScreen and DemoLanding for DRY
+
+#### Updated Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/staff/refund/:memberId` | Refund workspace (Cases 7-8) |
+| `/staff/death/:memberId` | Death workspace (Cases 9-10) |
+
+#### Verification
+- TypeScript: 0 errors
+- Tests: 209/209 pass (13 test files)
+- Production build: 224 modules, succeeds

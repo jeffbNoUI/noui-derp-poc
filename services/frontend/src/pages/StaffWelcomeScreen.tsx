@@ -1,13 +1,15 @@
 /**
- * Staff welcome screen — grid of 4 demo case cards for selection.
+ * Staff welcome screen — process type sections with demo case cards.
+ * Three sections: Retirement Application (Cases 1-4), Contribution Refund (Cases 7-8),
+ * Death & Survivor Benefits (Cases 9-10). Each routes to its dedicated workspace.
  * Consumed by: router.tsx (index route under /staff)
- * Depends on: Badge, DEMO_CASES, theme (C, tierMeta), react-router-dom
+ * Depends on: Badge, DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES, theme (C, tierMeta)
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
-import { DEMO_CASES } from '@/lib/constants'
+import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
 
 
 export function StaffWelcomeScreen() {
@@ -16,105 +18,180 @@ export function StaffWelcomeScreen() {
 
   return (
     <div style={{
-      flex: 1, display: 'flex', flexDirection: 'column' as const,
-      alignItems: 'center', justifyContent: 'center', gap: '16px',
-      height: '100%',
+      flex: 1, overflow: 'auto', padding: '24px 16px',
     }}>
       <div style={{
-        fontSize: '11px', color: C.accent, textTransform: 'uppercase' as const,
-        letterSpacing: '2px', fontWeight: 600,
-      }}>Phase 1: Transparent</div>
-      <div style={{ color: C.text, fontSize: '18px', fontWeight: 700 }}>
-        Retirement Application Workspace
-      </div>
-      <div style={{
-        color: C.textSecondary, fontSize: '12px', maxWidth: '400px',
-        textAlign: 'center' as const, lineHeight: '1.5',
+        maxWidth: '640px', margin: '0 auto',
+        display: 'flex', flexDirection: 'column' as const, gap: '20px',
       }}>
-        Select a mode and demo case below to load a member's retirement workspace.
-        Every calculation is transparent and verifiable.
-      </div>
+        {/* Header */}
+        <div style={{ textAlign: 'center' as const }}>
+          <div style={{
+            fontSize: '11px', color: C.accent, textTransform: 'uppercase' as const,
+            letterSpacing: '2px', fontWeight: 600,
+          }}>Phase 1: Transparent</div>
+          <div style={{ color: C.text, fontSize: '18px', fontWeight: 700, marginTop: '4px' }}>
+            Staff Workspace
+          </div>
+          <div style={{
+            color: C.textSecondary, fontSize: '12px', maxWidth: '400px',
+            margin: '4px auto 0', lineHeight: '1.5',
+          }}>
+            Select a process type and demo case. Every calculation is transparent and verifiable.
+          </div>
+        </div>
 
-      {/* Mode selector */}
-      <div data-discovery="mode-toggle" style={{
-        display: 'flex', borderRadius: '6px', overflow: 'hidden',
-        border: `1px solid ${C.border}`,
-      }}>
-        <button onClick={() => setMode('expert')} style={{
-          padding: '6px 16px', border: 'none', cursor: 'pointer',
-          fontSize: '11px', fontWeight: mode === 'expert' ? 600 : 400,
-          color: mode === 'expert' ? C.accent : C.textMuted,
-          background: mode === 'expert' ? C.accentMuted : 'transparent',
-          letterSpacing: '0.5px',
-        }}>Expert</button>
-        <button onClick={() => setMode('guided')} style={{
-          padding: '6px 16px', border: 'none', borderLeft: `1px solid ${C.border}`,
-          cursor: 'pointer', fontSize: '11px', fontWeight: mode === 'guided' ? 600 : 400,
-          color: mode === 'guided' ? C.accent : C.textMuted,
-          background: mode === 'guided' ? C.accentMuted : 'transparent',
-          letterSpacing: '0.5px',
-        }}>Guided</button>
-      </div>
-      <div style={{ color: C.textDim, fontSize: '10px', maxWidth: '350px', textAlign: 'center' as const }}>
-        {mode === 'expert'
-          ? 'All panels visible. Click to expand, confirm in any order.'
-          : 'Step-by-step processing with contextual help and rule citations.'}
-      </div>
-      <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '8px', marginTop: '8px', width: '480px', maxWidth: '95vw',
-      }}>
-        {DEMO_CASES.map(c => {
-          const t = tierMeta[c.tier]
-          return (
-            <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}${mode === 'guided' ? '/guided' : ''}`)} style={{
-              padding: '14px', background: C.surface,
-              border: `1px solid ${C.borderSubtle}`, borderRadius: '8px',
-              cursor: 'pointer', textAlign: 'left' as const,
-              transition: 'border-color 0.15s',
-            }}
-              onMouseEnter={e => (e.currentTarget.style.borderColor = t.color)}
-              onMouseLeave={e => (e.currentTarget.style.borderColor = C.borderSubtle)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>{c.name}</span>
-                <Badge text={`T${c.tier}`} bg={t.muted} color={t.color} />
-              </div>
-              <div style={{ color: C.textMuted, fontSize: '10px' }}>
-                Case {c.id === '10004' ? '4' : Number(c.id) - 10000}
-              </div>
-              <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>{c.label}</div>
-            </button>
-          )
-        })}
-      </div>
-      {/* Quick actions */}
-      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
-        <button onClick={() => navigate('/staff/compare')} style={{
-          padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
-          border: `1px solid ${C.border}`, background: 'transparent',
-          color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
-          transition: 'all 0.15s',
-        }}
-          onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
-          onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSecondary }}
-        >{'\u2194\uFE0F'} Compare Cases</button>
-        <button onClick={() => {
-          window.dispatchEvent(new CustomEvent('noui:start-walkthrough', { detail: 'full-case-processing' }))
-        }} style={{
-          padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
-          border: `1px solid ${C.accent}`, background: C.accentMuted,
-          color: C.accent, cursor: 'pointer', fontWeight: 600,
-          transition: 'all 0.15s',
-        }}>{'\uD83C\uDF93'} Start Guided Tour</button>
-      </div>
-      <div style={{
-        color: C.textDim, fontSize: '10px', maxWidth: '350px',
-        textAlign: 'center' as const, marginTop: '8px',
-      }}>
-        The rules engine is configured with certified plan provisions.
-        AI composes the workspace; the rules engine determines the numbers.
+        {/* ── Retirement Application Section ── */}
+        <div>
+          <SectionHeader title="Retirement Application" badge="4 Cases" color={C.accent} />
+          {/* Mode selector */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <div data-discovery="mode-toggle" style={{
+              display: 'flex', borderRadius: '6px', overflow: 'hidden',
+              border: `1px solid ${C.border}`,
+            }}>
+              <button onClick={() => setMode('expert')} style={{
+                padding: '5px 14px', border: 'none', cursor: 'pointer',
+                fontSize: '10px', fontWeight: mode === 'expert' ? 600 : 400,
+                color: mode === 'expert' ? C.accent : C.textMuted,
+                background: mode === 'expert' ? C.accentMuted : 'transparent',
+                letterSpacing: '0.5px',
+              }}>Expert</button>
+              <button onClick={() => setMode('guided')} style={{
+                padding: '5px 14px', border: 'none', borderLeft: `1px solid ${C.border}`,
+                cursor: 'pointer', fontSize: '10px', fontWeight: mode === 'guided' ? 600 : 400,
+                color: mode === 'guided' ? C.accent : C.textMuted,
+                background: mode === 'guided' ? C.accentMuted : 'transparent',
+                letterSpacing: '0.5px',
+              }}>Guided</button>
+            </div>
+            <span style={{ color: C.textDim, fontSize: '9px' }}>
+              {mode === 'expert' ? 'All panels visible' : 'Step-by-step processing'}
+            </span>
+          </div>
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
+          }}>
+            {DEMO_CASES.map(c => (
+                <CaseCard
+                  key={c.id}
+                  name={c.name}
+                  caseNum={c.id === '10004' ? '4' : String(Number(c.id) - 10000)}
+                  label={c.label}
+                  tier={c.tier}
+                  onClick={() => navigate(`/staff/case/${c.id}${mode === 'guided' ? '/guided' : ''}`)}
+                />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Contribution Refund Section ── */}
+        <div>
+          <SectionHeader title="Contribution Refund" badge="2 Cases" color={C.warm} />
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
+          }}>
+            {DEMO_REFUND_CASES.map(c => (
+              <CaseCard
+                key={c.id}
+                name={c.name}
+                caseNum={String(Number(c.id) - 10000)}
+                label={c.label}
+                tier={c.tier}
+                onClick={() => navigate(`/staff/refund/${c.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* ── Death & Survivor Section ── */}
+        <div>
+          <SectionHeader title="Death & Survivor Benefits" badge="2 Cases" color={C.danger} />
+          <div style={{
+            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
+          }}>
+            {DEMO_DEATH_CASES.map(c => (
+              <CaseCard
+                key={c.id}
+                name={c.name}
+                caseNum={String(Number(c.id) - 10000)}
+                label={c.label}
+                tier={c.tier}
+                onClick={() => navigate(`/staff/death/${c.id}`)}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Quick actions */}
+        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+          <button onClick={() => navigate('/staff/compare')} style={{
+            padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
+            border: `1px solid ${C.border}`, background: 'transparent',
+            color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
+            transition: 'all 0.15s',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = C.accent; e.currentTarget.style.color = C.accent }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = C.border; e.currentTarget.style.color = C.textSecondary }}
+          >{'\u2194\uFE0F'} Compare Cases</button>
+          <button onClick={() => {
+            window.dispatchEvent(new CustomEvent('noui:start-walkthrough', { detail: 'full-case-processing' }))
+          }} style={{
+            padding: '7px 14px', borderRadius: '6px', fontSize: '10.5px',
+            border: `1px solid ${C.accent}`, background: C.accentMuted,
+            color: C.accent, cursor: 'pointer', fontWeight: 600,
+            transition: 'all 0.15s',
+          }}>{'\uD83C\uDF93'} Start Guided Tour</button>
+        </div>
+        <div style={{
+          color: C.textDim, fontSize: '10px', maxWidth: '350px',
+          textAlign: 'center' as const, margin: '0 auto',
+        }}>
+          The rules engine is configured with certified plan provisions.
+          AI composes the workspace; the rules engine determines the numbers.
+        </div>
       </div>
     </div>
+  )
+}
+
+// ─── Section Header ────────────────────────────────────────────────────
+
+function SectionHeader({ title, badge, color }: { title: string; badge: string; color: string }) {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', gap: '8px',
+      marginBottom: '8px', paddingBottom: '4px',
+      borderBottom: `1px solid ${C.borderSubtle}`,
+    }}>
+      <span style={{ color: C.text, fontWeight: 600, fontSize: '13px' }}>{title}</span>
+      <Badge text={badge} bg={`${color}20`} color={color} />
+    </div>
+  )
+}
+
+// ─── Case Card ─────────────────────────────────────────────────────────
+
+function CaseCard({ name, caseNum, label, tier, onClick }: {
+  name: string; caseNum: string; label: string; tier: number; onClick: () => void
+}) {
+  const t = tierMeta[tier]
+  return (
+    <button onClick={onClick} style={{
+      padding: '14px', background: C.surface,
+      border: `1px solid ${C.borderSubtle}`, borderRadius: '8px',
+      cursor: 'pointer', textAlign: 'left' as const,
+      transition: 'border-color 0.15s',
+    }}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = t.color)}
+      onMouseLeave={e => (e.currentTarget.style.borderColor = C.borderSubtle)}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+        <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>{name}</span>
+        <Badge text={`T${tier}`} bg={t.muted} color={t.color} />
+      </div>
+      <div style={{ color: C.textMuted, fontSize: '10px' }}>Case {caseNum}</div>
+      <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>{label}</div>
+    </button>
   )
 }

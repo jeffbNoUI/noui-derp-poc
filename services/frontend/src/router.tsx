@@ -13,6 +13,8 @@ import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
 import { ComparisonView } from '@/pages/staff/ComparisonView'
 import { StaffCaseView } from '@/pages/StaffCaseView'
 import { StaffGuidedView } from '@/pages/StaffGuidedView'
+import { StaffDeathView } from '@/pages/StaffDeathView'
+import { StaffRefundView } from '@/pages/StaffRefundView'
 import { MemberDashboard } from '@/pages/portal/MemberDashboard'
 import { ApplicationWizard } from '@/pages/portal/ApplicationWizard'
 import { ApplicationStatus } from '@/pages/portal/ApplicationStatus'
@@ -44,6 +46,8 @@ export const router = createBrowserRouter([
       { index: true, element: <StaffWelcomeScreen /> },
       { path: 'case/:memberId', element: <StaffCaseView /> },
       { path: 'case/:memberId/guided', element: <StaffGuidedView /> },
+      { path: 'death/:memberId', element: <StaffDeathView /> },
+      { path: 'refund/:memberId', element: <StaffRefundView /> },
       { path: 'compare', element: <ComparisonView /> },
     ],
   },
