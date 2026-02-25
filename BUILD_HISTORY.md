@@ -2041,3 +2041,144 @@ Target was 124+ Go test functions — achieved **166 Go test functions** (130 in
 | `Makefile` | Created | 74 |
 | `docs/sync/SYNC_MANIFEST.md` | Modified | Session 6 entry |
 | `BUILD_HISTORY.md` | Modified | Session 6 documentation |
+
+---
+
+### Session 7: Polish, Deployment, and Demo Prep (FINAL)
+
+**BUILD_PLAN mapping:** Days 13–15 (Polish + Demo Environment + Rehearsal)
+**Input:** `docs/sync/session-7-starter-prompt.md`
+
+#### Phase 1: Controlled Terminology Audit
+
+Full scan of all user-visible strings in `services/frontend/src/` for prohibited terms.
+
+**Result: CLEAN.** Zero instances of prohibited terms:
+- No "self-heal", "auto-resolved", "AI calculated", "AI knows", "machine learning" (benefit context), "prediction" (benefit context), "AI-detected", "AI Audit", "AI Benefit"
+- "AI-composed" used correctly in 2 places (kiosk demo closing — approved term)
+- "automatically" used in 4 places, all compliant (UX auto-save, workspace composition descriptions, internal code comment)
+
+#### Phase 2: Visual Polish — Print Stylesheet
+
+Added comprehensive `@media print` CSS rules to `src/index.css`:
+- Hides interactive chrome (nav, buttons, inputs, search)
+- Forces all expandable sections open
+- Resets to black text on white background
+- Adds table borders for print clarity
+- Page layout: letter size, 0.75in margins
+- Page breaks: avoids breaking inside tables, keeps headings with content
+- Monospace for monetary values
+- Footer with "NoUI — Denver Employees Retirement Plan" and print date
+- Shows URLs for external links
+
+#### Phase 3: Demo Landing Page
+
+**Created:** `src/pages/DemoLanding.tsx` — focused demo entry point at `/demo` route.
+
+Features:
+- DERP teal header bar with "N" logo and "Denver Employees Retirement Plan"
+- Role selector dropdown (Benefits Analyst, CSR, Counselor, Supervisor) — visual demo prop with toast notification "Workspace recomposed for {role}"
+- 4 case cards with tier badge, description, and feature tags:
+  - Case 1: Robert Martinez — Rule of 75, leave payout, 75% J&S
+  - Case 2: Jennifer Kim — Early retirement, purchased service, threshold proximity
+  - Case 3: David Washington — Tier 3, 60-month AMS, 6% reduction
+  - Case 4: Robert Martinez + DRO — DRO split, marital fraction, fixed alternate payee
+- Secondary links: Data Quality, Population Analysis, Full Platform
+- Approved terminology in footer
+
+**Router updated:** Added `/demo` route in `router.tsx`.
+
+#### Phase 4: Deployment Scripts
+
+**Created:** `deploy.sh` — single-command deployment:
+- `./deploy.sh compose` — docker compose build + up, waits for PostgreSQL, health checks connector + intelligence, runs Case 1 verification ($6,117.68)
+- `./deploy.sh k8s` — helm upgrade/install
+
+**Created:** `scripts/test.sh` — full test suite runner:
+- Connector tests → Intelligence tests → TypeScript check → Frontend tests
+- Pass/fail summary with exit code
+
+Both scripts are executable (`chmod +x`).
+
+#### Phase 5: Demo Materials
+
+**Created:** `docs/ARCHITECTURE_ONEPAGER.md` — single-page architecture summary for non-technical stakeholders:
+- Four-layer architecture explanation
+- "What AI Does and Does Not Do" table
+- "Built From Your Documents" metrics table
+- "Trust Through Transparency" section
+
+**Existing:** `demo-script.md` (16KB) — comprehensive demo script with 35-40 minute flow covering all 4 cases, DQ dashboard, and Q&A.
+
+#### Phase 6: Final Verification
+
+Full test suite run — all passing:
+- Connector: 2 packages, 36 test functions
+- Intelligence: 7 packages, 130 test functions (including 262 YAML subtests)
+- Frontend: TypeScript clean, 10 test files, 139 tests
+- Production build: 201 modules, successful
+
+**Total: 305 test functions, all passing.**
+
+#### Files Created/Modified
+
+| File | Action | Description |
+|------|--------|-------------|
+| `services/frontend/src/index.css` | Modified | Print stylesheet (@media print) |
+| `services/frontend/src/pages/DemoLanding.tsx` | Created | Demo landing page with 4 case cards + role selector |
+| `services/frontend/src/router.tsx` | Modified | Added /demo route |
+| `deploy.sh` | Created | Single-command deployment script |
+| `scripts/test.sh` | Created | Full test suite runner |
+| `docs/ARCHITECTURE_ONEPAGER.md` | Created | Architecture summary for stakeholders |
+| `BUILD_HISTORY.md` | Modified | Session 7 documentation |
+| `docs/sync/SYNC_MANIFEST.md` | Modified | Session 7 marked INTEGRATED |
+
+---
+
+## POC Completion Summary
+
+The NoUI DERP POC is complete across 7 build sessions.
+
+### Seven Success Criteria
+
+| # | Criterion | Evidence |
+|---|-----------|----------|
+| 1 | "The system knows our rules" | 52 rules from RMC §18-391 through §18-430.7, 4 cases verified to the penny |
+| 2 | "Workers see what they need" | Workspace composition adapts per tier, retirement type, DRO status |
+| 3 | "The math is transparent" | CalculationTrace component shows formula, inputs, steps, RMC references |
+| 4 | "It was built from our governing documents" | All rules reference Revised Municipal Code sections |
+| 5 | "It tests itself" | 305 test functions generated from rule definitions and demo case oracles |
+| 6 | "It finds problems we didn't know about" | DQ engine with 6 detector types across 45+ embedded issues |
+| 7 | "It learns from history" | Population analysis, eligibility projections, workload forecasting |
+
+### Architecture
+
+| Layer | Service | Status | Tests |
+|-------|---------|--------|-------|
+| Data Connector | `services/connector` | Operational | 36 |
+| Business Intelligence | `services/intelligence` | Operational | 130 |
+| Workspace Composition | Rules engine in frontend | Operational | 5 |
+| Dynamic Workspace | `services/frontend` | Operational | 139 |
+
+### Demo Cases
+
+| Case | Member | Tier | Type | Benefit | Status |
+|------|--------|------|------|---------|--------|
+| 1 | Robert Martinez | 1 | Rule of 75 | $6,117.68/mo | Verified to penny |
+| 2 | Jennifer Kim | 2 | Early | $1,633.07/mo | Verified to penny |
+| 3 | David Washington | 3 | Early | $1,198.03/mo | Verified to penny |
+| 4 | Robert Martinez + DRO | 1 | Rule of 75 | $4,564.44/mo (after DRO) | Verified to penny |
+
+### Key Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Platform showcase (PortalSwitcher) |
+| `/demo` | Demo landing — 4 case cards + DQ + Analysis |
+| `/staff` | Staff workspace selection |
+| `/staff/case/:id/guided` | Guided workspace for demo case |
+| `/portal` | Member portal |
+| `/demos/data-quality` | Data Quality Dashboard |
+| `/demos/operational` | Population Analysis |
+
+### Tagged: `v0.1.0-demo`

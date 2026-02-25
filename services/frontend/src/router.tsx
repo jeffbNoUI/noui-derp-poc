@@ -25,11 +25,16 @@ import { ALMELearningEngine } from '@/pages/demos/ALMELearningEngine'
 import { WorkflowDashboard } from '@/pages/demos/WorkflowDashboard'
 import { OperationalDashboardPage } from '@/pages/demos/OperationalDashboardPage'
 import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage'
+import { DemoLanding } from '@/pages/DemoLanding'
 
 export const router = createBrowserRouter([
   {
     path: '/',
     element: <PortalSwitcher />,
+  },
+  {
+    path: '/demo',
+    element: <DemoLanding />,
   },
   {
     path: '/staff',

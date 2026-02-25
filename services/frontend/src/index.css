@@ -11,3 +11,109 @@ body {
 ::-webkit-scrollbar { width: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 3px; }
+
+/* Print stylesheet — calculation worksheets for DERP staff filing */
+@media print {
+  /* Hide interactive chrome */
+  nav, header, footer,
+  [data-print="hide"],
+  .no-print,
+  button:not([data-print="show"]),
+  input, select,
+  [role="navigation"],
+  [role="search"] {
+    display: none !important;
+  }
+
+  /* Force all expandable sections open */
+  [data-collapsed="true"],
+  [aria-expanded="false"] + [data-collapsible] {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+
+  /* Reset to print-friendly colors */
+  body {
+    background: white !important;
+    color: #1a1a1a !important;
+    font-size: 11pt;
+    line-height: 1.4;
+  }
+
+  * {
+    background: transparent !important;
+    color: #1a1a1a !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Preserve meaningful background colors for badges/status indicators */
+  [data-print="badge"] {
+    border: 1px solid #666 !important;
+    padding: 1px 6px !important;
+  }
+
+  /* Tables: visible borders for print */
+  table {
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+  th, td {
+    border: 1px solid #ccc !important;
+    padding: 4px 8px !important;
+    text-align: left !important;
+  }
+
+  /* Page layout */
+  @page {
+    margin: 0.75in;
+    size: letter;
+  }
+
+  /* Page breaks */
+  h2, h3 {
+    page-break-after: avoid;
+  }
+  table, figure, pre {
+    page-break-inside: avoid;
+  }
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  /* Monospace for all monetary values */
+  [data-monetary] {
+    font-family: 'JetBrains Mono', 'Courier New', monospace !important;
+  }
+
+  /* Footer on each printed page */
+  body::after {
+    content: "NoUI — Denver Employees Retirement Plan • Printed " attr(data-print-date);
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 8pt;
+    color: #666 !important;
+    border-top: 1px solid #ccc;
+    padding-top: 4px;
+  }
+
+  /* Full width layout */
+  main, section, article, div {
+    width: 100% !important;
+    max-width: 100% !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* Links: show URL in print */
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 9pt;
+    color: #666 !important;
+  }
+}
