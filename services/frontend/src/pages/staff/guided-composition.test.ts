@@ -148,4 +148,47 @@ describe('guided-composition', () => {
       }
     })
   })
+
+  describe('edge cases', () => {
+    it('handles undefined service credit — still returns base stages', () => {
+      const ids = composeStageIds(undefined, undefined)
+      expect(ids).toEqual(ALL_BASE_STAGES)
+    })
+
+    it('handles undefined service credit with DRO — includes DRO stage', () => {
+      const ids = composeStageIds(undefined, case4DROs)
+      expect(ids).toEqual(ALL_STAGES_WITH_DRO)
+    })
+
+    it('zero service credit values — still returns base stages', () => {
+      const zeroSC: ServiceCreditSummary = {
+        total_service_years: 0,
+        earned_service_years: 0,
+        purchased_service_years: 0,
+        military_service_years: 0,
+        total_for_eligibility: 0,
+        total_for_benefit: 0,
+      }
+      const ids = composeStageIds(zeroSC, undefined)
+      expect(ids).toEqual(ALL_BASE_STAGES)
+    })
+
+    it('review-certify is always last stage regardless of DRO', () => {
+      const withDRO = composeStageIds(case4SC, case4DROs)
+      const withoutDRO = composeStageIds(case1SC, undefined)
+      expect(withDRO[withDRO.length - 1]).toBe('review-certify')
+      expect(withoutDRO[withoutDRO.length - 1]).toBe('review-certify')
+    })
+
+    it('application-intake is always first stage', () => {
+      const ids = composeStageIds(case1SC, undefined)
+      expect(ids[0]).toBe('application-intake')
+    })
+
+    it('composeStages returns same count as composeStageIds', () => {
+      const ids = composeStageIds(case2SC, undefined)
+      const stages = composeStages(case2SC, undefined)
+      expect(stages.length).toBe(ids.length)
+    })
+  })
 })

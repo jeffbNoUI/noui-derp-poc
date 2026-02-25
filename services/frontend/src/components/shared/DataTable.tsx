@@ -26,7 +26,8 @@ const DEFAULT_COLORS = {
   text: '#0f172a', accent: '#3b82f6', hoverBg: '#f8fafc',
 }
 
-export function DataTable<T extends Record<string, unknown>>({
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function DataTable<T extends Record<string, any>>({
   columns, data, onRowClick, emptyMessage = 'No data available',
   colors = DEFAULT_COLORS,
 }: DataTableProps<T>) {

@@ -16,6 +16,11 @@ describe('Demo Data Verification', () => {
       expect(m.first_name).toBe('Robert')
       expect(m.last_name).toBe('Martinez')
       expect(m.tier).toBe(1)
+      expect(m.member_id).toBe('10001')
+      expect(m.date_of_birth).toBe('1963-03-08')
+      expect(m.hire_date).toBe('1997-06-15')
+      expect(m.status).toBe('Active')
+      expect(m.department).toBe('Public Works')
     })
 
     it('eligibility is Rule of 75', async () => {
@@ -29,23 +34,44 @@ describe('Demo Data Verification', () => {
     it('benefit matches hand calculation', async () => {
       const b = await demoApi.calculateBenefit('10001', '2026-04-01')
       expectClose(b.ams, 10639.45, 'AMS')
+      expect(b.ams_window_months).toBe(36)
       expect(b.multiplier).toBe(0.02)
       expectClose(b.service_years_for_benefit, 28.75, 'service_years')
+      expectClose(b.gross_monthly_benefit, 6117.68, 'gross_benefit')
+      expect(b.reduction_factor).toBe(1.0)
       expectClose(b.net_monthly_benefit, 6117.68, 'net_benefit')
+      expect(b.retirement_type).toBe('rule_of_75')
       expect(b.death_benefit!.amount).toBe(5000)
+      expect(b.death_benefit!.tier).toBe(1)
     })
 
-    it('payment options are correct', async () => {
+    it('payment options have all 4 types', async () => {
       const p = await demoApi.calculatePaymentOptions('10001', '2026-04-01')
       expectClose(p.base_monthly_benefit, 6117.68, 'base')
+      expect(p.options).toHaveLength(4)
+      const types = p.options.map(o => o.option_type)
+      expect(types).toContain('maximum')
+      expect(types).toContain('j&s_100')
+      expect(types).toContain('j&s_75')
+      expect(types).toContain('j&s_50')
+      // Verify specific amounts
+      const max = p.options.find(o => o.option_type === 'maximum')!
+      expectClose(max.monthly_amount, 6117.68, 'maximum')
+      const js100 = p.options.find(o => o.option_type === 'j&s_100')!
+      expectClose(js100.monthly_amount, 5414.15, 'j&s_100')
       const js75 = p.options.find(o => o.option_type === 'j&s_75')!
       expectClose(js75.monthly_amount, 5597.68, 'j&s_75')
+      const js50 = p.options.find(o => o.option_type === 'j&s_50')!
+      expectClose(js50.monthly_amount, 5781.21, 'j&s_50')
     })
 
     it('IPR correct', async () => {
       const b = await demoApi.calculateBenefit('10001', '2026-04-01')
       expect(b.ipr).toBeDefined()
       expectClose(b.ipr!.monthly_amount, 359.38, 'ipr_monthly')
+      expectClose(b.ipr!.annual_amount, 4312.50, 'ipr_annual')
+      expectClose(b.ipr!.rate_per_year, 150.00, 'ipr_rate')
+      expectClose(b.ipr!.eligible_service_years, 28.75, 'ipr_years')
     })
   })
 

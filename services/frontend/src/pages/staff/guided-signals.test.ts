@@ -247,6 +247,64 @@ describe('guided-signals', () => {
     })
   })
 
+  describe('missing data edge cases', () => {
+    it('application-intake: amber when no intake data', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('application-intake', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('not loaded')
+    })
+
+    it('service-credit: amber when no service credit data', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('service-credit', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('not loaded')
+    })
+
+    it('eligibility: amber when no eligibility data', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('eligibility', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('not evaluated')
+    })
+
+    it('benefit-calc: amber when no benefit data', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('benefit-calc', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('not calculated')
+    })
+
+    it('supplemental: amber when benefit has no death_benefit', () => {
+      const noDeath = { ...CASE1_BENEFIT, death_benefit: undefined } as unknown as BenefitResult
+      const ctx: SignalContext = { benefit: noDeath, electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('supplemental', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('not calculated')
+    })
+
+    it('unknown stage ID returns green OK', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('nonexistent-stage', ctx)
+      expect(signal.level).toBe('green')
+      expect(signal.reason).toBe('OK')
+    })
+
+    it('payment-options: green when no intake (cannot determine marital status)', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('payment-options', ctx)
+      expect(signal.level).toBe('green')
+    })
+
+    it('review-certify: amber with zero confirmations', () => {
+      const ctx: SignalContext = { electedOption: 'maximum', leavePayout: 0, confirmed: new Set(), stageCount: 8 }
+      const signal = computeStageSignal('review-certify', ctx)
+      expect(signal.level).toBe('amber')
+      expect(signal.reason).toContain('7 stage(s) not yet confirmed')
+    })
+  })
+
   describe('computeAllSignals', () => {
     it('returns signals for all stage IDs', () => {
       const stageIds = ['application-intake', 'member-verify', 'service-credit', 'eligibility', 'benefit-calc', 'payment-options', 'supplemental', 'review-certify']

@@ -1,6 +1,6 @@
 /**
  * Central route definitions — maps URLs to layouts and page components.
- * Routes: / (platform showcase), /staff/* (staff workspace), /portal/* (member portal), /demos/* (prototype demos).
+ * Routes: / (platform showcase), /staff/*, /portal/*, /employer/*, /vendor/*, /demos/*.
  * Consumed by: main.tsx (via RouterProvider)
  * Depends on: all layout and page components, react-router-dom
  */
@@ -8,6 +8,8 @@ import { createBrowserRouter } from 'react-router-dom'
 import { StaffLayout } from '@/layouts/StaffLayout'
 import { MemberLayout } from '@/layouts/MemberLayout'
 import { DemoLayout } from '@/layouts/DemoLayout'
+import { EmployerLayout } from '@/layouts/EmployerLayout'
+import { VendorLayout } from '@/layouts/VendorLayout'
 import { PortalSwitcher } from '@/pages/PortalSwitcher'
 import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
 import { ComparisonView } from '@/pages/staff/ComparisonView'
@@ -20,6 +22,14 @@ import { ApplicationWizard } from '@/pages/portal/ApplicationWizard'
 import { ApplicationStatus } from '@/pages/portal/ApplicationStatus'
 import { MessagesPage } from '@/pages/portal/MessagesPage'
 import { DocumentsPage } from '@/pages/portal/DocumentsPage'
+import { EmployerDashboard } from '@/pages/employer/EmployerDashboard'
+import { EmployeeRoster } from '@/pages/employer/EmployeeRoster'
+import { ContributionReporting } from '@/pages/employer/ContributionReporting'
+import { RetirementCoordination } from '@/pages/employer/RetirementCoordination'
+import { EmployerReports } from '@/pages/employer/EmployerReports'
+import { VendorDashboard } from '@/pages/vendor/VendorDashboard'
+import { VendorMemberDetail } from '@/pages/vendor/VendorMemberDetail'
+import { VendorReports } from '@/pages/vendor/VendorReports'
 import { KnowledgeAssistant } from '@/pages/demos/KnowledgeAssistant'
 import { CorrespondenceComposer } from '@/pages/demos/CorrespondenceComposer'
 import { DataEntryValidator } from '@/pages/demos/DataEntryValidator'
@@ -29,10 +39,6 @@ import { OperationalDashboardPage } from '@/pages/demos/OperationalDashboardPage
 import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage'
 import { DemoLanding } from '@/pages/DemoLanding'
 import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
-
-// Placeholder layouts for employer/vendor — replaced by full implementations in Phase 3.1
-function EmployerPlaceholder() { return <div style={{ padding: 40, textAlign: 'center' }}>Employer Portal — loading...</div> }
-function VendorPlaceholder() { return <div style={{ padding: 40, textAlign: 'center' }}>Vendor Portal — loading...</div> }
 
 export const router = createBrowserRouter([
   {
@@ -68,11 +74,23 @@ export const router = createBrowserRouter([
   },
   {
     path: '/employer',
-    element: <EmployerPlaceholder />,
+    element: <EmployerLayout />,
+    children: [
+      { index: true, element: <EmployerDashboard /> },
+      { path: 'roster', element: <EmployeeRoster /> },
+      { path: 'contributions', element: <ContributionReporting /> },
+      { path: 'retirements', element: <RetirementCoordination /> },
+      { path: 'reports', element: <EmployerReports /> },
+    ],
   },
   {
     path: '/vendor',
-    element: <VendorPlaceholder />,
+    element: <VendorLayout />,
+    children: [
+      { index: true, element: <VendorDashboard /> },
+      { path: 'member/:memberId', element: <VendorMemberDetail /> },
+      { path: 'reports', element: <VendorReports /> },
+    ],
   },
   {
     path: '/demos',
