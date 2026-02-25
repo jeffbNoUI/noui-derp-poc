@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { BenefitResult } from '@/types/Member'
 import { formatCurrency, formatPercent } from '@/lib/utils'
-import { Calculator, FileCheck } from 'lucide-react'
+import { Calculator, ChevronDown, ChevronRight } from 'lucide-react'
+import { CalculationTrace } from './CalculationTrace'
 
 interface BenefitCalculationPanelProps {
   result: BenefitResult
@@ -8,6 +10,7 @@ interface BenefitCalculationPanelProps {
 
 export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps) {
   const isReduced = result.reduction_factor < 1.0
+  const [showTrace, setShowTrace] = useState(false)
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm p-6">
@@ -112,22 +115,29 @@ export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps
         </div>
       )}
 
-      {/* Audit Trail */}
+      {/* Calculation Trace — expandable */}
       {result.audit_trail && result.audit_trail.length > 0 && (
         <div className="mt-4 pt-4 border-t border-border">
-          <div className="flex items-center gap-2 mb-2">
-            <FileCheck className="w-4 h-4 text-muted" />
-            <h3 className="text-sm font-semibold text-gray-900">Calculation Audit Trail</h3>
-          </div>
-          <div className="space-y-1 text-xs">
-            {result.audit_trail.map((entry, i) => (
-              <div key={i} className="flex gap-2">
-                <span className="text-muted font-mono shrink-0">{entry.rule_id}</span>
-                <span className="text-gray-600">{entry.description}</span>
-                <span className="font-semibold ml-auto shrink-0">{entry.result}</span>
-              </div>
-            ))}
-          </div>
+          <button
+            onClick={() => setShowTrace(!showTrace)}
+            className="flex items-center gap-2 text-sm font-semibold text-primary hover:underline mb-2"
+          >
+            {showTrace
+              ? <ChevronDown className="w-4 h-4" />
+              : <ChevronRight className="w-4 h-4" />
+            }
+            {showTrace ? 'Hide' : 'Show'} Calculation Trace
+          </button>
+          {showTrace && (
+            <CalculationTrace
+              entries={result.audit_trail}
+              title="Benefit Calculation Trace"
+              assumptions={[
+                '[Q-CALC-01] Banker\'s rounding (round half to even) on final amounts only',
+                '[Q-CALC-04] J&S factors are illustrative placeholders pending actuarial tables',
+              ]}
+            />
+          )}
         </div>
       )}
     </div>

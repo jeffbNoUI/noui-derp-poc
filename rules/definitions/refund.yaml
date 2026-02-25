@@ -1,0 +1,661 @@
+# ===========================================================================
+# NoUI DERP Phase 2 — Contribution Refund Rules
+# ===========================================================================
+# Category 9: Refund processing for terminated members. Covers vesting
+# gate, waiting period, contribution accumulation, interest calculation,
+# tax withholding, and re-employment restoration.
+# Evaluation order: 9 (after all eligibility and calculation rules)
+# ===========================================================================
+
+file_metadata:
+  category: refund
+  description: "Contribution refund eligibility, calculation, and processing rules for terminated members."
+  evaluation_order: 9
+  rule_count: 8
+  governing_authority: "RMC §18-406(b), §18-407(f), §18-408(e)"
+  schema_version: "1.0"
+  phase: "Phase 2"
+
+# ===========================================================================
+rules:
+
+  # =========================================================================
+  # RULE-REFUND-ELIGIBILITY
+  # =========================================================================
+  - rule_id: RULE-REFUND-ELIGIBILITY
+    rule_name: "Refund Eligibility Determination"
+    category: refund
+    description: >
+      Determines whether a terminated member is eligible to request a
+      refund of accumulated contributions. Non-vested members are eligible
+      after the 90-day separation waiting period. Vested members may also
+      elect a refund but forfeit their pension right permanently.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.status
+        operator: eq
+        value: "terminated"
+        notes: "Member must have terminated covered employment"
+      - field: member.hasPendingDisabilityClaim
+        operator: eq
+        value: false
+        notes: "No pending disability claim"
+      - field: member.hasPendingSurvivorClaim
+        operator: eq
+        value: false
+        notes: "No pending survivor/death claim"
+
+    result:
+      type: determination
+      output_fields:
+        - name: isRefundEligible
+          type: boolean
+          description: "Whether member can request a refund"
+        - name: isVestedRefund
+          type: boolean
+          description: "If true, member is vested and must acknowledge pension forfeiture"
+        - name: requiresWaitingPeriod
+          type: boolean
+          description: "Whether 90-day waiting period applies"
+        - name: earliestRefundDate
+          type: date
+          description: "First date a refund application can be accepted"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-408(e)(1), §18-408(e)(3)"
+      verification: CONFIRMED
+      notes: "Non-vested: §18-408(e)(1). Vested deferred: §18-408(e)(2). Non-vested options: §18-408(e)(3)."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-VESTING
+      - RULE-REFUND-WAITING-PERIOD
+
+    test_cases:
+      - id: TC-REFUND-ELIG-01
+        description: "Santos — non-vested, terminated, no pending claims"
+        type: happy_path
+        inputs:
+          member.status: "terminated"
+          member.hasPendingDisabilityClaim: false
+          member.hasPendingSurvivorClaim: false
+          serviceCredit.totalForEligibility: 3.8333
+        expected:
+          isRefundEligible: true
+          isVestedRefund: false
+
+      - id: TC-REFUND-ELIG-02
+        description: "Vested member termination — eligible but requires forfeiture acknowledgment"
+        type: boundary
+        inputs:
+          member.status: "terminated"
+          member.hasPendingDisabilityClaim: false
+          member.hasPendingSurvivorClaim: false
+          serviceCredit.totalForEligibility: 7.5
+        expected:
+          isRefundEligible: true
+          isVestedRefund: true
+
+      - id: TC-REFUND-ELIG-03
+        description: "Active member — NOT eligible for refund"
+        type: negative
+        inputs:
+          member.status: "active"
+          serviceCredit.totalForEligibility: 3.0
+        expected:
+          isRefundEligible: false
+
+      - id: TC-REFUND-ELIG-04
+        description: "Terminated with pending disability claim — NOT eligible"
+        type: negative
+        inputs:
+          member.status: "terminated"
+          member.hasPendingDisabilityClaim: true
+          serviceCredit.totalForEligibility: 2.0
+        expected:
+          isRefundEligible: false
+
+  # =========================================================================
+  # RULE-REFUND-WAITING-PERIOD
+  # =========================================================================
+  - rule_id: RULE-REFUND-WAITING-PERIOD
+    rule_name: "90-Day Separation Waiting Period"
+    category: refund
+    description: >
+      A terminated member must wait 90 days from their last day of
+      employment before submitting a refund application. The refund
+      shall be issued within 90 days of receipt of a properly completed
+      form.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: refundApplication.receivedDate
+        operator: gte
+        value: "member.terminationDate + 90 days"
+        notes: "Application cannot be accepted before 90-day waiting period expires"
+
+    result:
+      type: validation
+      output_fields:
+        - name: waitingPeriodSatisfied
+          type: boolean
+        - name: waitingPeriodEndDate
+          type: date
+          description: "terminationDate + 90 calendar days"
+        - name: refundIssuanceDeadline
+          type: date
+          description: "applicationReceivedDate + 90 calendar days (statutory processing window)"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-408(e)(1)"
+      verification: CONFIRMED
+      notes: "Refund issued within 90 days from receipt of properly completed form."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-REFUND-ELIGIBILITY
+
+    test_cases:
+      - id: TC-REFUND-WAIT-01
+        description: "Santos — application May 5, separation Jan 31, 90 days = May 1. Satisfied."
+        type: happy_path
+        inputs:
+          member.terminationDate: "2026-01-31"
+          refundApplication.receivedDate: "2026-05-05"
+        expected:
+          waitingPeriodSatisfied: true
+          waitingPeriodEndDate: "2026-05-01"
+
+      - id: TC-REFUND-WAIT-02
+        description: "Application received on exactly day 90 — satisfied"
+        type: boundary
+        inputs:
+          member.terminationDate: "2026-01-31"
+          refundApplication.receivedDate: "2026-05-01"
+        expected:
+          waitingPeriodSatisfied: true
+
+      - id: TC-REFUND-WAIT-03
+        description: "Application received day 89 — NOT satisfied"
+        type: boundary
+        inputs:
+          member.terminationDate: "2026-01-31"
+          refundApplication.receivedDate: "2026-04-30"
+        expected:
+          waitingPeriodSatisfied: false
+
+  # =========================================================================
+  # RULE-REFUND-CONTRIB-ACCUMULATION
+  # =========================================================================
+  - rule_id: RULE-REFUND-CONTRIB-ACCUMULATION
+    rule_name: "Contribution Accumulation Calculation"
+    category: refund
+    description: >
+      Calculates the total accumulated employee contributions for a
+      terminated member. Contributions are 8.45% of pensionable
+      compensation per payroll period. Only employee contributions
+      are refundable — employer contributions remain in the trust.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.status
+        operator: in
+        value: ["terminated", "refund_pending"]
+        notes: "Only terminated members"
+
+    result:
+      type: calculation
+      formula: "SUM(monthly_salary × 0.0845) for each month of covered employment"
+      output_fields:
+        - name: totalContributions
+          type: decimal
+          precision: 2
+          description: "Sum of all employee contributions deposited"
+        - name: contributionMonths
+          type: integer
+          description: "Number of months contributions were made"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-407(f)(1)"
+      verification: CONFIRMED
+      notes: "Employee contribution rate 8.45% effective Jan 1, 2023. Pre-tax per IRC §414(h)."
+
+    effective_date: "2023-01-01"
+    end_date: null
+
+    depends_on: []
+
+    assumptions:
+      - id: CONTRIB-RATE-01
+        description: "8.45% rate assumed for all POC members. Historical rates may differ."
+        impact: "Pre-2023 contributions may have used different rate"
+        status: ACCEPTED
+        reference: "Q-HISTORICAL-RATES"
+
+    test_cases:
+      - id: TC-REFUND-ACCUM-01
+        description: "Santos — 46 months of contributions at 8.45%"
+        type: happy_path
+        inputs:
+          salary_history:
+            - { period: "2022-04/2022-12", monthly: 4333.33, months: 9 }
+            - { period: "2023-01/2023-12", monthly: 4506.67, months: 12 }
+            - { period: "2024-01/2024-12", monthly: 4686.93, months: 12 }
+            - { period: "2025-01/2025-12", monthly: 4874.41, months: 12 }
+            - { period: "2026-01/2026-01", monthly: 5069.39, months: 1 }
+        expected:
+          totalContributions: 17988.89
+          contributionMonths: 46
+
+  # =========================================================================
+  # RULE-REFUND-INTEREST
+  # =========================================================================
+  - rule_id: RULE-REFUND-INTEREST
+    rule_name: "Interest on Accumulated Contributions"
+    category: refund
+    description: >
+      Interest on accumulated contributions is credited at a rate of
+      1-3% per annum as set by the board, compounded annually as of
+      June 30 of each year. Interest applies to the balance as of the
+      previous June 30 plus any contributions received since then.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: contribution.accumulatedBalance
+        operator: gt
+        value: 0
+        notes: "Must have contributions to earn interest"
+
+    result:
+      type: calculation
+      formula: >
+        For each June 30 during employment:
+          new_balance = (prior_balance + contributions_since_last_june30) × (1 + rate)
+        After final June 30:
+          final = last_june30_balance + contributions_after_last_june30
+      output_fields:
+        - name: totalInterest
+          type: decimal
+          precision: 2
+          description: "Total interest credited across all compounding periods"
+        - name: accumulatedBalance
+          type: decimal
+          precision: 2
+          description: "Total contributions + total interest"
+        - name: interestCredits
+          type: array
+          description: "Array of {date, balanceBefore, interest, balanceAfter} for each June 30"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-407(f)(2)"
+      verification: CONFIRMED
+      notes: "Rate 1-3% set by board. Compounded annually June 30."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-REFUND-CONTRIB-ACCUMULATION
+
+    assumptions:
+      - id: INTEREST-RATE-01
+        description: "2% rate assumed. Actual rate set annually by DERP board."
+        impact: "HIGH — directly affects refund amount"
+        status: ASSUMED
+        reference: "Q-INTEREST-RATE"
+      - id: INTEREST-COMPOUND-01
+        description: "Interest compounds on June 30 only, not monthly or daily"
+        impact: "Confirmed by statute — compounded annually as of June 30"
+        status: CONFIRMED
+
+    test_cases:
+      - id: TC-REFUND-INT-01
+        description: "Santos — 4 compounding periods at 2%, total interest $650.14"
+        type: happy_path
+        inputs:
+          interestRate: 0.02
+          contributionHistory:
+            - { period: "2022-04/2022-06", total: 1098.51 }
+            - { period: "2022-07/2023-06", total: 4481.88 }
+            - { period: "2023-07/2024-06", total: 4661.16 }
+            - { period: "2024-07/2025-06", total: 4847.64 }
+            - { period: "2025-07/2026-01", total: 2899.70 }
+        expected:
+          interestCredits:
+            - { date: "2022-06-30", balanceBefore: 1098.51, interest: 21.97, balanceAfter: 1120.48 }
+            - { date: "2023-06-30", balanceBefore: 5602.36, interest: 112.05, balanceAfter: 5714.41 }
+            - { date: "2024-06-30", balanceBefore: 10375.57, interest: 207.51, balanceAfter: 10583.08 }
+            - { date: "2025-06-30", balanceBefore: 15430.72, interest: 308.61, balanceAfter: 15739.33 }
+          totalInterest: 650.14
+          accumulatedBalance: 18639.03
+
+      - id: TC-REFUND-INT-02
+        description: "Member terminates before first June 30 — no interest credited"
+        type: boundary
+        inputs:
+          hireDate: "2026-01-15"
+          terminationDate: "2026-04-30"
+          interestRate: 0.02
+        expected:
+          totalInterest: 0.00
+
+  # =========================================================================
+  # RULE-REFUND-TAX-WITHHOLDING
+  # =========================================================================
+  - rule_id: RULE-REFUND-TAX-WITHHOLDING
+    rule_name: "Mandatory Tax Withholding on Refund"
+    category: refund
+    description: >
+      Refund distributions that are eligible rollover distributions
+      are subject to mandatory 20% federal income tax withholding
+      unless the member elects a direct rollover to an IRA or
+      qualified plan. Partial rollovers: 20% withholding applies
+      only to the non-rolled-over portion.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: refund.election
+        operator: in
+        value: ["direct_payment", "partial_rollover"]
+        notes: "Withholding applies to any portion not rolled over"
+
+    result:
+      type: calculation
+      formula: >
+        direct_payment: withholding = gross × 0.20; net = gross - withholding
+        full_rollover: withholding = 0; rollover_amount = gross
+        partial_rollover: withholding = (gross - rollover_portion) × 0.20; net = gross - rollover_portion - withholding
+      output_fields:
+        - name: grossRefund
+          type: decimal
+          precision: 2
+        - name: federalWithholding
+          type: decimal
+          precision: 2
+        - name: rolloverAmount
+          type: decimal
+          precision: 2
+        - name: netPayment
+          type: decimal
+          precision: 2
+
+    source_reference:
+      document: "IRC"
+      section: "§402(c), §3405(c)"
+      verification: CONFIRMED
+      notes: "Federal law, not DERP-specific. 20% mandatory withholding on eligible rollover distributions."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-REFUND-INTEREST
+
+    test_cases:
+      - id: TC-REFUND-TAX-01
+        description: "Santos — direct payment, 20% withholding"
+        type: happy_path
+        inputs:
+          grossRefund: 18639.03
+          election: "direct_payment"
+        expected:
+          federalWithholding: 3727.81
+          netPayment: 14911.22
+          rolloverAmount: 0.00
+
+      - id: TC-REFUND-TAX-02
+        description: "Full rollover — no withholding"
+        type: happy_path
+        inputs:
+          grossRefund: 18639.03
+          election: "full_rollover"
+        expected:
+          federalWithholding: 0.00
+          netPayment: 0.00
+          rolloverAmount: 18639.03
+
+      - id: TC-REFUND-TAX-03
+        description: "Partial rollover — $10,000 rolled over, remainder direct"
+        type: happy_path
+        inputs:
+          grossRefund: 18639.03
+          election: "partial_rollover"
+          rolloverPortion: 10000.00
+        expected:
+          rolloverAmount: 10000.00
+          federalWithholding: 1727.81
+          netPayment: 6911.22
+
+  # =========================================================================
+  # RULE-REFUND-VESTED-FORFEITURE
+  # =========================================================================
+  - rule_id: RULE-REFUND-VESTED-FORFEITURE
+    rule_name: "Vested Member Refund Forfeiture"
+    category: refund
+    description: >
+      A vested member who elects a refund permanently forfeits their
+      right to a deferred pension benefit. This election is irrevocable.
+      System must present a Decision Moment comparing refund value to
+      projected deferred benefit before accepting the election. Spouse
+      notification may be required.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.isVested
+        operator: eq
+        value: true
+      - field: refund.election
+        operator: eq
+        value: "refund"
+        notes: "Vested member chose refund over deferred benefit"
+
+    result:
+      type: determination
+      output_fields:
+        - name: forfeitsDeferred
+          type: boolean
+          description: "Always true for vested member refund"
+        - name: requiresSignedAcknowledgment
+          type: boolean
+          description: "Member must sign forfeiture acknowledgment"
+        - name: requiresSpouseNotification
+          type: boolean
+          description: "If married, spouse must be notified"
+        - name: irrevocable
+          type: boolean
+          description: "Always true — cannot reverse once processed"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-408(e)(2), §18-408(f)"
+      verification: CONFIRMED
+      notes: "Forfeited benefits per §18-408(f) cannot increase other benefits."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-VESTING
+      - RULE-REFUND-ELIGIBILITY
+
+    test_cases:
+      - id: TC-REFUND-FORFEIT-01
+        description: "Vested member (7 years) elects refund — forfeiture required"
+        type: happy_path
+        inputs:
+          member.isVested: true
+          serviceCredit.totalForEligibility: 7.0
+          refund.election: "refund"
+        expected:
+          forfeitsDeferred: true
+          requiresSignedAcknowledgment: true
+          irrevocable: true
+
+      - id: TC-REFUND-FORFEIT-02
+        description: "Non-vested member — forfeiture not applicable"
+        type: not_applicable
+        inputs:
+          member.isVested: false
+          serviceCredit.totalForEligibility: 3.0
+        expected:
+          forfeitsDeferred: false
+          requiresSignedAcknowledgment: false
+
+  # =========================================================================
+  # RULE-REFUND-LEAVE-IN-TRUST
+  # =========================================================================
+  - rule_id: RULE-REFUND-LEAVE-IN-TRUST
+    rule_name: "Leave Contributions in Trust Option"
+    category: refund
+    description: >
+      A non-vested terminated member may leave their accumulated
+      contributions in the trust fund. If the member does not return
+      to employment before their normal retirement date, the accumulated
+      contributions as of the normal retirement date are paid to the
+      member. If the member dies before that date, contributions are
+      paid to the designated beneficiary.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.isVested
+        operator: eq
+        value: false
+      - field: refund.election
+        operator: eq
+        value: "leave_in_trust"
+
+    result:
+      type: determination
+      output_fields:
+        - name: fundsRemainInTrust
+          type: boolean
+        - name: payoutTrigger
+          type: string
+          description: "'normal_retirement_date' or 'death'"
+        - name: interestContinues
+          type: boolean
+          description: "Contributions continue to earn interest while in trust"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-408(e)(3)"
+      verification: CONFIRMED
+      notes: "Non-vested member option to leave contributions for possible return to service."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-REFUND-ELIGIBILITY
+
+    test_cases:
+      - id: TC-REFUND-TRUST-01
+        description: "Non-vested member elects to leave in trust"
+        type: happy_path
+        inputs:
+          member.isVested: false
+          refund.election: "leave_in_trust"
+        expected:
+          fundsRemainInTrust: true
+          interestContinues: true
+
+  # =========================================================================
+  # RULE-REFUND-REEMPLOYMENT-RESTORATION
+  # =========================================================================
+  - rule_id: RULE-REFUND-REEMPLOYMENT-RESTORATION
+    rule_name: "Service Credit Restoration Upon Re-employment"
+    category: refund
+    description: >
+      A non-vested member who returns to City employment within 24
+      months may restore prior service credit by repaying the refunded
+      contributions plus 3% annual interest compounded June 30. If the
+      member left contributions in trust (did not take refund), prior
+      service automatically restores upon re-employment.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.priorTermination
+        operator: eq
+        value: true
+      - field: member.reemploymentDate
+        operator: lte
+        value: "member.priorTerminationDate + 24 months"
+        notes: "Must return within 24 months for restoration eligibility"
+
+    result:
+      type: determination
+      output_fields:
+        - name: restorationEligible
+          type: boolean
+        - name: repaymentRequired
+          type: boolean
+          description: "True if member took refund; false if left in trust"
+        - name: repaymentAmount
+          type: decimal
+          precision: 2
+          description: "Refunded amount + 3% annual interest compounded June 30"
+        - name: restoredServiceYears
+          type: decimal
+          description: "Prior service credit restored upon repayment"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-406(b)"
+      verification: CONFIRMED
+      notes: "Breaks in service — 24-month window, 3% repayment interest."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-REFUND-ELIGIBILITY
+
+    assumptions:
+      - id: RESTORE-INTEREST-01
+        description: "Repayment interest is 3% per annum regardless of the board-set credited rate"
+        impact: "Repayment cost is predictable"
+        status: CONFIRMED
+        reference: "RMC §18-406(b)"
+
+    test_cases:
+      - id: TC-REFUND-RESTORE-01
+        description: "Santos returns 12 months later — eligible for restoration"
+        type: happy_path
+        inputs:
+          member.priorTerminationDate: "2026-01-31"
+          member.reemploymentDate: "2027-01-15"
+          refund.wasTaken: true
+          refund.amountRefunded: 18639.03
+        expected:
+          restorationEligible: true
+          repaymentRequired: true
+          restoredServiceYears: 3.8333
+
+      - id: TC-REFUND-RESTORE-02
+        description: "Member returns after 25 months — NOT eligible"
+        type: boundary
+        inputs:
+          member.priorTerminationDate: "2026-01-31"
+          member.reemploymentDate: "2028-03-01"
+        expected:
+          restorationEligible: false
+
+      - id: TC-REFUND-RESTORE-03
+        description: "Member left contributions in trust — no repayment needed"
+        type: happy_path
+        inputs:
+          member.priorTerminationDate: "2026-01-31"
+          member.reemploymentDate: "2027-06-01"
+          refund.wasTaken: false
+        expected:
+          restorationEligible: true
+          repaymentRequired: false

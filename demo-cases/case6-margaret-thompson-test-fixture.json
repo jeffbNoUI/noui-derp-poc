@@ -1,0 +1,268 @@
+{
+  "case_id": "case6-margaret-thompson",
+  "case_name": "Margaret Thompson — Retiree Death, J&S 75% Survivor Benefit Continuation",
+  "description": "Retired Tier 1 member dies mid-month; surviving spouse receives 75% J&S continuation plus remaining death benefit installments",
+  "phase": "Phase 2",
+  "process_domain": "death_survivor",
+
+  "inputs": {
+    "member": {
+      "member_id": "M-100006",
+      "first_name": "Margaret",
+      "last_name": "Thompson",
+      "date_of_birth": "1957-11-22",
+      "hire_date": "1993-08-15",
+      "retirement_date": "2024-01-01",
+      "date_of_death": "2026-03-15",
+      "status": "R",
+      "tier": 1,
+      "department": "City Attorney",
+      "position": "Senior Paralegal"
+    },
+    "retirement_record": {
+      "retirement_type": "rule_of_75",
+      "age_at_retirement": 66,
+      "service_years": 30.375,
+      "rule_of_75_sum": 96.375,
+      "early_retirement_reduction": 0.0,
+      "ams_period_months": 36,
+      "maximum_benefit": 3750.00,
+      "payment_option": "75_js",
+      "js_reduced_benefit": 3248.00,
+      "js_reduction_factor_note": "ASSUMED — actuarial factor for 75% J&S based on member age 66, spouse age 68 at retirement. Actual factor from Q-JS-FACTORS.",
+      "death_benefit_amount": 5000.00,
+      "death_benefit_election": "100_installments",
+      "death_benefit_monthly": 50.00,
+      "ipr_monthly": 189.84,
+      "ipr_calculation": "30.375 years × $6.25/year (Medicare-eligible at age 66)"
+    },
+    "death_event": {
+      "date_of_death": "2026-03-15",
+      "death_certificate_received": "2026-03-28",
+      "notification_received": "2026-03-20",
+      "notification_source": "spouse_phone",
+      "cause_of_death_relevant": false
+    },
+    "beneficiary": {
+      "name": "William Thompson",
+      "relationship": "spouse",
+      "date_of_birth": "1955-06-03",
+      "age_at_member_death": 70,
+      "is_js_beneficiary": true,
+      "is_death_benefit_beneficiary": true,
+      "survivor_benefit_application_received": "2026-03-28"
+    },
+    "dro": null,
+    "cola_history": []
+  },
+
+  "expected_outputs": {
+    "death_processing": {
+      "last_valid_member_payment_date": "2026-03-01",
+      "last_valid_member_payment_amount": 3248.00,
+      "last_valid_death_installment_date": "2026-03-01",
+      "last_valid_death_installment_amount": 50.00,
+      "member_died_before_next_payment": true,
+      "overpayment_amount": 0.00,
+      "overpayment_recovery_required": false,
+      "benefit_suspension_date": "2026-03-20"
+    },
+    "survivor_benefit": {
+      "survivor_name": "William Thompson",
+      "benefit_type": "js_75_continuation",
+      "member_benefit_at_death": 3248.00,
+      "survivor_percentage": 0.75,
+      "monthly_survivor_benefit": 2436.00,
+      "first_survivor_payment_date": "2026-05-01",
+      "benefit_duration": "lifetime",
+      "cola_eligible": true,
+      "cola_eligibility_basis": "2024-01-01",
+      "cola_eligibility_note": "Based on Margaret's retirement date, not survivor benefit start date"
+    },
+    "death_benefit_continuation": {
+      "total_death_benefit": 5000.00,
+      "election": "100_installments",
+      "monthly_installment": 50.00,
+      "months_paid_to_member": 27,
+      "amount_paid_to_member": 1350.00,
+      "months_remaining": 73,
+      "amount_remaining": 3650.00,
+      "payee": "William Thompson",
+      "first_continuation_payment_date": "2026-05-01"
+    },
+    "ipr": {
+      "member_ipr_monthly": 189.84,
+      "ipr_continues_to_survivor": false,
+      "ipr_termination_note": "ASSUMED — IPR terminates at member death. See Q-IPR-SURVIVOR."
+    },
+    "payment_summary": {
+      "william_initial_monthly_total": 2486.00,
+      "william_initial_breakdown": {
+        "survivor_benefit": 2436.00,
+        "death_benefit_installment": 50.00
+      },
+      "william_monthly_after_installments_exhaust": 2436.00,
+      "installments_exhaust_date": "2032-05-01",
+      "installments_exhaust_note": "73 months from May 2026"
+    },
+    "record_transitions": {
+      "member_status_before": "retired",
+      "member_status_after": "deceased",
+      "member_benefit_terminated": true,
+      "member_ipr_terminated": true,
+      "survivor_status_before": "beneficiary_inactive",
+      "survivor_status_after": "survivor_active",
+      "survivor_record_created": true
+    }
+  },
+
+  "calculation_trace": {
+    "steps": [
+      {
+        "step": 1,
+        "name": "verify_retirement_record",
+        "inputs": { "member_id": "M-100006", "status": "retired" },
+        "rule": "SYSTEM",
+        "calculation": "Retrieve retirement record: Tier 1, Rule of 75, 75% J&S, benefit $3,248.00/month",
+        "result": { "retirement_verified": true, "payment_option": "75_js", "monthly_benefit": 3248.00 }
+      },
+      {
+        "step": 2,
+        "name": "last_payment_determination",
+        "inputs": { "date_of_death": "2026-03-15", "last_payment_date": "2026-03-01" },
+        "rule": "SYSTEM",
+        "calculation": "March payment deposited March 1 (before March 15 death). Payment valid. No April payment generated (notification received March 20).",
+        "result": { "overpayment": 0.00 }
+      },
+      {
+        "step": 3,
+        "name": "survivor_benefit_calculation",
+        "inputs": { "member_benefit": 3248.00, "js_percentage": 0.75 },
+        "rule": "RULE-JS-75",
+        "calculation": "$3,248.00 × 0.75 = $2,436.00",
+        "result": { "monthly_survivor_benefit": 2436.00 }
+      },
+      {
+        "step": 4,
+        "name": "death_benefit_continuation",
+        "inputs": { "total": 5000.00, "election": "100_installments", "months_paid": 27 },
+        "rule": "RULE-DEATH-ELECTION",
+        "calculation": "100 - 27 = 73 remaining installments; 73 × $50.00 = $3,650.00",
+        "result": { "months_remaining": 73, "amount_remaining": 3650.00, "monthly": 50.00 }
+      },
+      {
+        "step": 5,
+        "name": "ipr_termination",
+        "inputs": { "member_ipr": 189.84, "member_deceased": true },
+        "rule": "RULE-IPR",
+        "calculation": "IPR is a member benefit — assumed to terminate at death",
+        "result": { "ipr_continues": false }
+      },
+      {
+        "step": 6,
+        "name": "payment_summary",
+        "inputs": { "survivor_benefit": 2436.00, "death_installment": 50.00 },
+        "rule": "SYSTEM",
+        "calculation": "$2,436.00 + $50.00 = $2,486.00 total monthly (for 73 months), then $2,436.00",
+        "result": { "initial_total": 2486.00, "eventual_total": 2436.00 }
+      }
+    ]
+  },
+
+  "data_quality_checks": [
+    {
+      "check": "survivor_benefit_math",
+      "description": "Verify survivor benefit = member_benefit × js_percentage exactly",
+      "expected": 2436.00,
+      "tolerance": 0.00
+    },
+    {
+      "check": "death_installment_count",
+      "description": "Verify months_paid + months_remaining = total installments elected",
+      "expected_sum": 100,
+      "tolerance": 0
+    },
+    {
+      "check": "death_installment_amount",
+      "description": "Verify amount_paid + amount_remaining = total death benefit",
+      "expected_sum": 5000.00,
+      "tolerance": 0.00
+    },
+    {
+      "check": "overpayment_detection",
+      "description": "Verify correct overpayment calculation based on death date vs last payment date",
+      "death_day_of_month": 15,
+      "last_payment_day_of_month": 1,
+      "expected_overpayment": 0.00
+    }
+  ],
+
+  "assumptions": [
+    {
+      "id": "A-DEATH-01",
+      "description": "Margaret's Maximum benefit is $3,750.00 and J&S 75% reduced benefit is $3,248.00",
+      "impact": "All survivor calculations flow from this number",
+      "risk": "HIGH",
+      "reference": "Q-JS-FACTORS — need DERP actuarial reduction tables"
+    },
+    {
+      "id": "A-DEATH-02",
+      "description": "IPR terminates upon member death, does not continue to survivor",
+      "impact": "Affects survivor total compensation by $189.84/month",
+      "risk": "MEDIUM",
+      "reference": "Q-IPR-SURVIVOR"
+    },
+    {
+      "id": "A-DEATH-03",
+      "description": "No COLA applied between Margaret's retirement and death",
+      "impact": "Simplifies case; actual survivor benefit would reflect any COLAs",
+      "risk": "LOW",
+      "reference": "Board-discretionary COLA"
+    },
+    {
+      "id": "A-DEATH-04",
+      "description": "Death benefit installments continue to named beneficiary after member death",
+      "impact": "Determines whether William receives dual payment streams",
+      "risk": "LOW",
+      "reference": "Consistent with irrevocable election per RMC §18-411(d)"
+    },
+    {
+      "id": "A-DEATH-05",
+      "description": "Benefits deposited on first business day of month; March 1, 2026 is a business day",
+      "impact": "Determines overpayment status",
+      "risk": "LOW",
+      "reference": "Standard pension payment practice"
+    }
+  ],
+
+  "edge_case_variants": [
+    {
+      "variant": "delayed_notification",
+      "description": "Death notification not received until April 5, after April 1 payment deposited",
+      "overpayment": 3298.00,
+      "recovery_from": "survivor_benefit_offset"
+    },
+    {
+      "variant": "maximum_election",
+      "description": "If Margaret had elected Maximum (no J&S), benefit ceases at death. Only death installments continue.",
+      "survivor_benefit": 0.00,
+      "death_installments_continue": true
+    },
+    {
+      "variant": "beneficiary_predeceased",
+      "description": "If William had died before Margaret, her benefit pops up to Maximum ($3,750.00)",
+      "popup_benefit": 3750.00,
+      "popup_increase": 502.00
+    },
+    {
+      "variant": "with_dro",
+      "description": "If Margaret had a DRO, alternate payee benefit treatment depends on DRO terms",
+      "ap_benefit_continues_or_ceases": "per_order_terms"
+    },
+    {
+      "variant": "js_100",
+      "description": "100% J&S: William would receive $3,248.00 (if same actuarial factor) or the 100% J&S amount from retirement",
+      "note": "100% J&S has a different actuarial reduction factor than 75% J&S"
+    }
+  ]
+}

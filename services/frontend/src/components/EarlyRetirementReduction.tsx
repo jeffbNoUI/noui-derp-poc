@@ -90,6 +90,46 @@ export function EarlyRetirementReduction({ eligibility, benefit }: EarlyRetireme
           </div>
         </div>
       </div>
+
+      {/* Statutory Reduction Table — member's age highlighted */}
+      <div className="mt-4 border border-border rounded-lg overflow-hidden">
+        <div className="px-3 py-2 bg-gray-50 border-b border-border">
+          <p className="text-xs font-semibold text-gray-700">
+            Statutory Reduction Table — Tier {tier <= 2 ? '1 & 2' : '3'} (RMC §18-409(b))
+          </p>
+        </div>
+        <div className="grid grid-cols-6 gap-0 text-xs text-center">
+          {(tier <= 2
+            ? [55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65]
+            : [60, 61, 62, 63, 64, 65]
+          ).map(age => {
+            const ratePerYear = tier === 3 ? 6 : 3
+            const yrsUnder = 65 - age
+            const factor = (100 - ratePerYear * yrsUnder) / 100
+            const isActive = Math.floor(eligibility.age_at_retirement) === age
+            return (
+              <div
+                key={age}
+                className={`py-2 border-b border-r border-border last:border-r-0 ${
+                  isActive
+                    ? 'bg-amber-100 ring-2 ring-amber-400 ring-inset font-bold'
+                    : age === 65
+                    ? 'bg-green-50'
+                    : ''
+                }`}
+              >
+                <div className="text-muted">Age {age}</div>
+                <div className="font-mono mt-0.5">
+                  {yrsUnder > 0 ? `${(yrsUnder * ratePerYear)}%` : '0%'}
+                </div>
+                <div className="font-mono text-gray-500 mt-0.5">
+                  ×{factor.toFixed(2)}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }

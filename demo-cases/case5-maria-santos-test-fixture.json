@@ -1,0 +1,218 @@
+{
+  "case_id": "case5-maria-santos",
+  "case_name": "Maria Santos — Tier 3, Non-Vested Termination, Contribution Refund",
+  "description": "Non-vested Tier 3 member terminates employment, requests contribution refund after 90-day waiting period",
+  "phase": "Phase 2",
+  "process_domain": "contribution_refund",
+
+  "inputs": {
+    "member": {
+      "member_id": "M-100005",
+      "first_name": "Maria",
+      "last_name": "Santos",
+      "date_of_birth": "1990-08-10",
+      "hire_date": "2022-04-01",
+      "termination_date": "2026-01-31",
+      "termination_type": "voluntary_resignation",
+      "status": "T",
+      "tier": 3,
+      "department": "Parks & Recreation",
+      "position": "Program Coordinator",
+      "marital_status": "single"
+    },
+    "refund_request": {
+      "application_received": "2026-05-05",
+      "election": "direct_payment",
+      "rollover_institution": null,
+      "rollover_account": null
+    },
+    "salary_history": [
+      { "effective_date": "2022-04-01", "annual_salary": 52000.00, "monthly_salary": 4333.33 },
+      { "effective_date": "2023-01-01", "annual_salary": 54080.00, "monthly_salary": 4506.67 },
+      { "effective_date": "2024-01-01", "annual_salary": 56243.20, "monthly_salary": 4686.93 },
+      { "effective_date": "2025-01-01", "annual_salary": 58492.93, "monthly_salary": 4874.41 },
+      { "effective_date": "2026-01-01", "annual_salary": 60832.65, "monthly_salary": 5069.39 }
+    ],
+    "contribution_history": [
+      { "period": "2022-04/2022-12", "months": 9, "monthly_amount": 366.17, "total": 3295.53 },
+      { "period": "2023-01/2023-12", "months": 12, "monthly_amount": 380.81, "total": 4569.72 },
+      { "period": "2024-01/2024-12", "months": 12, "monthly_amount": 396.05, "total": 4752.60 },
+      { "period": "2025-01/2025-12", "months": 12, "monthly_amount": 411.89, "total": 4942.68 },
+      { "period": "2026-01/2026-01", "months": 1, "monthly_amount": 428.36, "total": 428.36 }
+    ],
+    "interest_rate": 0.02,
+    "interest_rate_note": "ASSUMED — 2% within board-set 1-3% range. Actual rate from Q-INTEREST-RATE.",
+    "service_credit": {
+      "employment_months": 46,
+      "employment_years": 3.8333,
+      "purchased_years": 0,
+      "total_years": 3.8333
+    },
+    "beneficiary": {
+      "name": null,
+      "relationship": null,
+      "date_of_birth": null,
+      "note": "No beneficiary relevant for refund. If member dies before refund, contributions paid to designated beneficiary per RMC §18-408(e)(3)."
+    }
+  },
+
+  "expected_outputs": {
+    "tier_determination": {
+      "tier": 3,
+      "rule": "RULE-TIER-3",
+      "source": "RMC §18-409(a)(3)",
+      "reasoning": "Hire date 2022-04-01 is on/after 2011-07-01"
+    },
+    "vesting": {
+      "is_vested": false,
+      "years_required": 5.0,
+      "years_earned": 3.8333,
+      "shortfall_years": 1.1667,
+      "shortfall_description": "1 year, 2 months",
+      "vesting_date_if_stayed": "2027-04-01",
+      "rule": "RULE-VESTING",
+      "source": "RMC §18-402(31)"
+    },
+    "waiting_period": {
+      "separation_date": "2026-01-31",
+      "waiting_period_days": 90,
+      "earliest_refund_eligible": "2026-05-01",
+      "application_received": "2026-05-05",
+      "waiting_period_satisfied": true,
+      "source": "RMC §18-408(e)(1)"
+    },
+    "contribution_accumulation": {
+      "total_contributions_deposited": 17988.89,
+      "interest_credits": [
+        { "date": "2022-06-30", "balance_before": 1098.51, "interest": 21.97, "balance_after": 1120.48 },
+        { "date": "2023-06-30", "balance_before": 5602.36, "interest": 112.05, "balance_after": 5714.41 },
+        { "date": "2024-06-30", "balance_before": 10375.57, "interest": 207.51, "balance_after": 10583.08 },
+        { "date": "2025-06-30", "balance_before": 15430.72, "interest": 308.61, "balance_after": 15739.33 }
+      ],
+      "total_interest": 650.14,
+      "accumulated_balance": 18639.03
+    },
+    "refund_calculation": {
+      "gross_refund": 18639.03,
+      "direct_payment": {
+        "federal_withholding_rate": 0.20,
+        "federal_withholding_amount": 3727.81,
+        "state_withholding_amount": 0.00,
+        "net_payment": 14911.22
+      },
+      "rollover": {
+        "rollover_amount": 18639.03,
+        "withholding_amount": 0.00
+      }
+    },
+    "reemployment_considerations": {
+      "restoration_window_months": 24,
+      "restoration_window_end": "2028-01-31",
+      "repayment_interest_rate": 0.03,
+      "repayment_amount_note": "Full refunded amount plus 3% annual interest compounded June 30"
+    },
+    "process_outcome": {
+      "status": "refund_eligible",
+      "member_status_after": "terminated_refunded",
+      "service_credit_after": 0,
+      "benefit_entitlement_after": "none",
+      "record_action": "close"
+    }
+  },
+
+  "calculation_trace": {
+    "steps": [
+      {
+        "step": 1,
+        "name": "tier_determination",
+        "inputs": { "hire_date": "2022-04-01" },
+        "rule": "RULE-TIER-3",
+        "calculation": "hire_date >= 2011-07-01 → Tier 3",
+        "result": { "tier": 3 }
+      },
+      {
+        "step": 2,
+        "name": "service_credit",
+        "inputs": { "hire_date": "2022-04-01", "termination_date": "2026-01-31" },
+        "rule": "RULE-SVC-EARNED",
+        "calculation": "Apr 2022 to Jan 2026 = 46 months = 3.8333 years",
+        "result": { "months": 46, "years": 3.8333 }
+      },
+      {
+        "step": 3,
+        "name": "vesting_check",
+        "inputs": { "service_years": 3.8333, "vesting_requirement": 5.0 },
+        "rule": "RULE-VESTING",
+        "calculation": "3.8333 < 5.0 → NOT VESTED",
+        "result": { "is_vested": false }
+      },
+      {
+        "step": 4,
+        "name": "waiting_period_check",
+        "inputs": { "separation_date": "2026-01-31", "application_date": "2026-05-05" },
+        "rule": "RMC §18-408(e)(1)",
+        "calculation": "2026-01-31 + 90 days = 2026-05-01; 2026-05-05 >= 2026-05-01 → SATISFIED",
+        "result": { "waiting_period_satisfied": true }
+      },
+      {
+        "step": 5,
+        "name": "contribution_accumulation",
+        "inputs": { "contribution_rate": 0.0845, "interest_rate": 0.02, "compounding": "annual_june_30" },
+        "rule": "RULE-CONTRIB-EE, RMC §18-407(f)(2)",
+        "calculation": "Sum monthly contributions with annual interest compounding on June 30",
+        "result": { "total_contributions": 17988.89, "total_interest": 650.14, "accumulated_balance": 18639.03 }
+      },
+      {
+        "step": 6,
+        "name": "refund_calculation",
+        "inputs": { "accumulated_balance": 18639.03, "election": "direct_payment" },
+        "rule": "RMC §18-408(e)(1), IRC §3405(c)",
+        "calculation": "gross = 18639.03; withholding = 18639.03 × 0.20 = 3727.81; net = 18639.03 - 3727.81 = 14911.22",
+        "result": { "gross": 18639.03, "withholding": 3727.81, "net": 14911.22 }
+      }
+    ]
+  },
+
+  "data_quality_checks": [
+    {
+      "check": "contribution_reconciliation",
+      "description": "Verify total contributions match sum of monthly payroll deductions",
+      "expected_total": 17988.89,
+      "tolerance": 0.01
+    },
+    {
+      "check": "interest_compounding",
+      "description": "Verify interest compounds only on June 30 of each year, not monthly",
+      "compounding_dates": ["2022-06-30", "2023-06-30", "2024-06-30", "2025-06-30"]
+    },
+    {
+      "check": "salary_contribution_match",
+      "description": "Verify each month contribution = monthly_salary × 0.0845 (to penny)",
+      "tolerance": 0.01
+    }
+  ],
+
+  "assumptions": [
+    {
+      "id": "A-REFUND-01",
+      "description": "Interest rate of 2% per annum assumed within board-set 1-3% range",
+      "impact": "Directly affects refund amount — $650.14 at 2%; would be ~$325 at 1% or ~$975 at 3%",
+      "risk": "HIGH",
+      "reference": "Q-INTEREST-RATE"
+    },
+    {
+      "id": "A-REFUND-02",
+      "description": "No Colorado state mandatory withholding on refund distributions",
+      "impact": "Affects net payment amount",
+      "risk": "MEDIUM",
+      "reference": "Verify with DERP"
+    },
+    {
+      "id": "A-REFUND-03",
+      "description": "Contributions begin first full month after hire (April 2022 for April 1 hire)",
+      "impact": "Affects total contribution count",
+      "risk": "LOW",
+      "reference": "Standard payroll practice"
+    }
+  ]
+}

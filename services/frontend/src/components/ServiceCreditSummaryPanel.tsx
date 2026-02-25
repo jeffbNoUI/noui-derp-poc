@@ -57,18 +57,55 @@ export function ServiceCreditSummaryPanel({ serviceCredit, tier }: ServiceCredit
       </div>
 
       {hasPurchased && (
-        <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
-          <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
-          <div className="text-xs text-amber-800">
-            <p className="font-semibold">Purchased Service Credit Distinction</p>
-            <p className="mt-1">
-              Purchased service credit of {serviceCredit.purchased_service_years.toFixed(2)} years
-              counts toward the <strong>benefit calculation</strong> (increases the benefit amount)
-              but is <strong>excluded</strong> from Rule of {ruleOfN} eligibility and IPR calculation.
-            </p>
-            <p className="mt-1 text-amber-600">Source: RMC §18-407</p>
+        <>
+          {/* "Where each type counts" matrix */}
+          <div className="mt-4 border border-border rounded-lg overflow-hidden">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="bg-gray-50 border-b border-border">
+                  <th className="text-left px-3 py-2 font-semibold text-gray-700">Calculation</th>
+                  <th className="text-center px-3 py-2 font-semibold text-gray-700">Earned</th>
+                  <th className="text-center px-3 py-2 font-semibold text-gray-700">Purchased</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                <tr>
+                  <td className="px-3 py-2 text-gray-900">Benefit formula</td>
+                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
+                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 text-gray-900">Rule of {ruleOfN}</td>
+                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
+                  <td className="px-3 py-2 text-center text-red-500 font-semibold">&#10007;</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 text-gray-900">Vesting (5 years)</td>
+                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
+                  <td className="px-3 py-2 text-center text-red-500 font-semibold">&#10007;</td>
+                </tr>
+                <tr>
+                  <td className="px-3 py-2 text-gray-900">IPR</td>
+                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
+                  <td className="px-3 py-2 text-center text-red-500 font-semibold">&#10007;</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
-        </div>
+
+          <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+            <AlertTriangle className="w-4 h-4 text-amber-600 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-800">
+              <p className="font-semibold">Purchased Service Credit Distinction</p>
+              <p className="mt-1">
+                Purchased service credit of {serviceCredit.purchased_service_years.toFixed(2)} years
+                counts toward the <strong>benefit calculation</strong> (increases the benefit amount)
+                but is <strong>excluded</strong> from Rule of {ruleOfN} eligibility and IPR calculation.
+              </p>
+              <p className="mt-1 text-amber-600">Source: RMC §18-407</p>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Visual bar */}

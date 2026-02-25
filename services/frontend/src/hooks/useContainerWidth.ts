@@ -5,13 +5,14 @@
  */
 import { useRef, useState, useEffect } from 'react'
 
-export type WidthTier = 'compact' | 'standard' | 'wide' | 'ultra'
+// Tier names align with the Responsive Workspace Design Framework (§2.2)
+export type WidthTier = 'compact' | 'standard' | 'expanded' | 'full'
 
 function getTier(width: number): WidthTier {
   if (width < 960) return 'compact'
-  if (width < 1200) return 'standard'
-  if (width < 1600) return 'wide'
-  return 'ultra'
+  if (width < 1280) return 'standard'
+  if (width < 1600) return 'expanded'
+  return 'full'
 }
 
 export function useContainerWidth(): {

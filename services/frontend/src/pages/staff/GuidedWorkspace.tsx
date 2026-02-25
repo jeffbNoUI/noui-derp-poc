@@ -310,17 +310,17 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     : currentStage?.id
   const focusedStage = stages.find(s => s.id === focusedStageId) ?? currentStage
 
-  // Show profile rail on wide+ tiers (unless kiosk mode)
-  const showProfileRail = !isKiosk && (tier === 'wide' || tier === 'ultra')
-  // Show utility rail on ultra tier (unless kiosk mode)
-  const showUtilityRail = !isKiosk && tier === 'ultra'
+  // Show profile rail at expanded+ breakpoint (Z3 Context zone — §2.2)
+  const showProfileRail = !isKiosk && (tier === 'expanded' || tier === 'full')
+  // Show utility rail at full breakpoint (Z5 Actions zone — §2.2)
+  const showUtilityRail = !isKiosk && tier === 'full'
   // Compact tier hides LearningModule / LiveSummary inline, shows overlay toggle
   const isCompact = tier === 'compact'
 
-  // Content maxWidth scales with tier — wider layouts have more side-panel context
+  // Content maxWidth scales with breakpoint — wider layouts have more side-panel context
   const contentMaxWidth = tier === 'compact' ? undefined
     : tier === 'standard' ? '780px'
-    : tier === 'wide' ? '900px' : '1000px'
+    : tier === 'expanded' ? '900px' : '1000px'
 
   // Shared utility rail props
   const utilityRailProps = {
