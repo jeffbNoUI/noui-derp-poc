@@ -1820,3 +1820,224 @@ All discrepancies arise from using Connector's rounded AMS vs computing from raw
 | `internal/eligibility/evaluator_test.go` | Added Case 4, trace, paths tests |
 | `internal/eligibility/boundary_test.go` | Added 4 boundary tests |
 | `main.go` | Wired rule loader at startup |
+
+---
+
+## Session 5: Frontend Foundation + Core Components
+
+**Date:** 2026-02-24 / 2026-02-25
+**BUILD_PLAN mapping:** Days 6–7
+
+### Overview
+
+Session 5 targeted building all 12 production components wired to live APIs. The frontend was found to be ~75% complete from prior sessions — the main gaps were the CalculationTrace component and specific component enhancements called out in the session-5 starter prompt. The Context-Aware Knowledge Panel was also completed during this session.
+
+### Phase 1: CalculationTrace Component (NEW)
+
+Created `src/components/CalculationTrace.tsx` — the core transparency component that renders every step of the calculation audit trail:
+- Expandable/collapsible steps with rule name, source reference (RMC §), description, result
+- Color-coded PASS/FAIL/ELIGIBLE results
+- "Expand all / Collapse all" toggle
+- Assumptions section with amber styling and IDs
+- Footer reinforcing traceability to the Revised Municipal Code
+- Integrated into BenefitCalculationPanel with "Show/Hide Calculation Trace" toggle
+
+### Phase 2: Component Enhancements
+
+**ServiceCreditSummaryPanel:**
+- Added "where each type counts" matrix table (Session 5 requirement)
+- Matrix shows earned ✓/✗ vs purchased ✓/✗ for benefit formula, Rule of N, vesting, IPR
+- Only displayed when purchased service exists
+- Callout explaining purchased service exclusion with RMC §18-407 citation
+
+**EarlyRetirementReduction:**
+- Added statutory reduction table with all ages from min early retirement to 65
+- Member's current age highlighted with amber ring
+- Each age shows reduction %, factor (×0.XX)
+- Tier-specific: T1/2 shows ages 55-65 (3%/yr), T3 shows ages 60-65 (6%/yr)
+- Statutory reference: RMC §18-409(b)
+
+### Phase 3: Context-Aware Knowledge Panel
+
+Created `src/lib/knowledge-enhancements.ts` — pure logic module:
+- `getMemberEnhancement()`: Dynamically computes member-specific analysis for each provision
+- `getStageRelevantIds()`: Maps stage IDs to relevant provision IDs
+- Status badges: met (green), not-met (red), caution (amber), info (blue)
+- Covers all 14 provisions with real typed data (not hardcoded per member)
+
+Updated `src/pages/staff/KnowledgeMiniPanel.tsx`:
+- Two modes: General (no member) and Connected (member loaded)
+- Connected mode: provisions sorted by stage relevance, member-specific enhancement below each
+- "Showing for: {member name}" indicator
+- Stage-relevant provisions highlighted with blue left border
+- Section dividers: "Relevant to this stage" / "All provisions"
+
+Updated `src/pages/staff/UtilityRail.tsx`:
+- Added `serviceCredit?: ServiceCreditSummary` to props
+- Passes all member data to KnowledgeMiniPanel
+
+Updated `src/pages/staff/GuidedWorkspace.tsx`:
+- Added `serviceCredit: sc` to utilityRailProps
+
+### Verification
+
+- `npx tsc -b --noEmit` — zero TypeScript errors ✓
+- `npx vitest run` — all 139 tests pass ✓
+- `npx vite build` — production build succeeds ✓
+
+### All 12 Production Components Present
+
+| # | Component | File | Status |
+|---|-----------|------|--------|
+| 1 | MemberBanner | `src/components/MemberBanner.tsx` | Complete |
+| 2 | AlertBar | `src/components/AlertBar.tsx` | Complete |
+| 3 | EmploymentTimeline | `src/components/EmploymentTimeline.tsx` | Complete |
+| 4 | SalaryTable | `src/components/SalaryTable.tsx` | Complete |
+| 5 | BenefitCalculationPanel | `src/components/BenefitCalculationPanel.tsx` | Enhanced — CalculationTrace integrated |
+| 6 | PaymentOptionsComparison | `src/components/PaymentOptionsComparison.tsx` | Complete |
+| 7 | IPRPanel | `src/components/IPRPanel.tsx` | Complete |
+| 8 | DROImpactPanel | `src/components/DROImpactPanel.tsx` | Complete |
+| 9 | ScenarioModeler | `src/components/ScenarioModeler.tsx` | Complete |
+| 10 | LeavePayoutInfo | `src/components/LeavePayoutInfo.tsx` | Complete |
+| 11 | EarlyRetirementReduction | `src/components/EarlyRetirementReduction.tsx` | Enhanced — statutory reduction table |
+| 12 | ServiceCreditSummaryPanel | `src/components/ServiceCreditSummaryPanel.tsx` | Enhanced — "where each type counts" matrix |
+
+### Demo Case Composition Verification
+
+| Case | Expected Components | Verified |
+|------|-------------------|----------|
+| Case 1 (Robert Martinez) | 7 base + LeavePayoutInfo | ✓ (5 composition tests + 24 demo-verify tests) |
+| Case 2 (Jennifer Kim) | 7 base + ServiceCreditSummary + EarlyRetirementReduction + ScenarioModeler | ✓ |
+| Case 3 (David Washington) | 7 base + EarlyRetirementReduction | ✓ |
+| Case 4 (Robert Martinez + DRO) | 7 base + LeavePayoutInfo + DROImpactPanel | ✓ |
+
+### Files Created/Modified
+
+| File | Change |
+|------|--------|
+| `src/components/CalculationTrace.tsx` | NEW — expandable audit trail component |
+| `src/components/BenefitCalculationPanel.tsx` | Integrated CalculationTrace with toggle |
+| `src/components/ServiceCreditSummaryPanel.tsx` | Added "where each type counts" matrix |
+| `src/components/EarlyRetirementReduction.tsx` | Added statutory reduction table |
+| `src/lib/knowledge-enhancements.ts` | NEW — member-specific knowledge enhancements |
+| `src/pages/staff/KnowledgeMiniPanel.tsx` | Context-aware connected mode |
+| `src/pages/staff/UtilityRail.tsx` | Added serviceCredit prop, pass to KnowledgeMiniPanel |
+| `src/pages/staff/GuidedWorkspace.tsx` | Added serviceCredit to utilityRailProps |
+
+### Test Count (Frontend)
+
+| Test File | Count | Description |
+|-----------|-------|-------------|
+| demo-verify.test.ts | 24 | All 4 cases: member, eligibility, benefit, payment, IPR, DRO, scenarios |
+| guided-signals.test.ts | 18 | Confidence signals for all stages |
+| guided-autochecks.test.ts | 15 | Auto-verification items |
+| portal-demo-data.test.ts | 12 | Portal data fixtures |
+| constants.test.ts | 10 | Shared constants |
+| guided-composition.test.ts | 9 | Stage composition (DRO conditional) |
+| theme/index.test.ts | 7 | Theme exports and formatting |
+| composition/rules.test.ts | 5 | Workspace composition rules for all 4 cases |
+| api/mappers.test.ts | 20 | API data mappers |
+| wizard.test.ts | 19 | Portal wizard steps |
+| **Total** | **139** | |
+
+---
+
+## Build Day 5 — February 24, 2026
+
+### Session 6: Data Quality Engine + Comprehensive Testing
+
+**BUILD_PLAN mapping:** Days 9–12 (Data Quality + Testing)
+**Input:** `docs/sync/session-6-starter-prompt.md`
+
+#### Phase 1: Data Quality Detection Engine — Gap Fill
+
+**State at session start:** DQ engine existed in intelligence service (`internal/dataquality/checker.go`) with 4 of 6 detector types (DQ-001, DQ-003, DQ-004, DQ-005) and 18 test functions. Missing DQ-002 (salary gaps) and DQ-006 (tier misclassification).
+
+**Changes:**
+
+1. **DQ-002: Salary Gap Detection** — Added `SalaryGapRecord` struct and `CheckSalaryGaps()` function to `checker.go`. Flags members with 2+ consecutive missing pay periods. Severity escalates to Critical when gap falls within potential AMS window (could affect benefit calculation). 4 new tests.
+
+2. **DQ-006: Tier Misclassification Detection** — Added `TierRecord` struct, `ComputeTierFromHireDate()`, and `CheckTierMismatch()` to `checker.go`. Computes correct tier from hire date (Before Sept 1 2004 → Tier 1, Sept 1 2004–June 30 2011 → Tier 2, On/after July 1 2011 → Tier 3) and compares against stored tier. Wrong tier = wrong multiplier + wrong AMS window + wrong eligibility rules → Critical severity. 9 new tests (6 tier computation boundary tests, 3 mismatch detection tests).
+
+3. **Negative Balance Test** — Added `TestCheckContributionBalance_NegativeBalance` for negative stored balance detection. 1 new test.
+
+4. **Updated `CheckInput` struct** — Added `SalaryGaps []SalaryGapRecord` and `TierRecords []TierRecord` fields.
+
+5. **Updated `RunAllChecks()`** — Invokes `CheckSalaryGaps` and `CheckTierMismatch` in the pipeline.
+
+**DQ test count:** 18 → 32 (14 new tests added)
+
+#### Phase 2: DQ API Endpoint
+
+**Added to intelligence service (`internal/api/`):**
+
+1. **`handlers.go`** — New `CheckDataQuality` handler with demo data exercising all 6 detector types. Returns DQ report via `WriteJSON`.
+
+2. **`router.go`** — New `/api/v1/data-quality/` route handling GET requests to `summary` endpoint.
+
+**API endpoint:** `GET /api/v1/data-quality/summary` → returns full DQ report with findings, severity counts, and timestamps.
+
+**Frontend routing:** Already existed from prior session — `DataQualityDashboardPage` at `/demos/data-quality` with hardcoded findings for demo. The Tailwind `DataQualityDashboard` component also exists at `src/components/DataQualityDashboard.tsx`.
+
+#### Phase 3: YAML-Derived Test Runner
+
+**Created:** `services/intelligence/internal/rules/yaml_test.go` (~434 lines)
+
+Self-testing capability that reads `rules/definitions/*.yaml` files and generates table-driven subtests from inline `test_cases`.
+
+| Test Function | Purpose |
+|--------------|---------|
+| `TestYAML_AllFilesParseSuccessfully` | Parses all YAML files, validates 200+ test cases exist |
+| `TestYAML_AllTestCasesHaveRequiredFields` | Every test case has ID, description, type, inputs |
+| `TestYAML_TierDetermination` | Evaluates RULE-TIER-1/2/3 against `computeTierFromDate()` |
+| `TestYAML_ReductionFactors` | Evaluates RULE-EARLY-REDUCE-T12/T3 against `ReductionFactor()` |
+| `TestYAML_DeathBenefit` | Evaluates RULE-DEATH-NORMAL/EARLY-T12/T3 against `DeathBenefitAmount()` |
+| `TestYAML_Vesting` | Evaluates RULE-VESTING against 5-year threshold |
+| `TestYAML_BenefitMultiplier` | Evaluates RULE-BENEFIT-T1/T2/T3 against `Multiplier()` |
+
+**YAML parsing:** 10 files parsed successfully, 67 rules, **262 inline test cases** (exceeds 257 target). `schema.yaml` gracefully skipped (different YAML structure).
+
+#### Phase 4: Makefile
+
+**Created:** `Makefile` at project root with targets:
+- `test-all` — runs `test-backend` + `test-frontend`
+- `test-backend` — runs `test-connector` + `test-intelligence`
+- `test-connector` / `test-intelligence` — individual service tests
+- `test-yaml` — YAML-derived tests only (verbose)
+- `test-frontend` — Vitest suite
+- `build` — builds all services
+- `lint` — TypeScript type checking
+- `clean` — removes build artifacts
+
+**Note:** `make` is not installed in this WSL environment. Makefile is valid for CI/CD and environments with GNU Make.
+
+#### Test Coverage Summary
+
+| Layer | Test Files | Test Functions | Status |
+|-------|-----------|---------------|--------|
+| **Connector** | 3 | 36 | All pass |
+| **Intelligence — acceptance** | 1 | 34 | All pass |
+| **Intelligence — dataquality** | 1 | 32 | All pass |
+| **Intelligence — eligibility** | 3 | 26 | All pass |
+| **Intelligence — benefit** | 2 | 18 | All pass |
+| **Intelligence — rules/tables** | 1 | 8 | All pass |
+| **Intelligence — rules/yaml** | 1 | 7 (262 subtests) | All pass |
+| **Intelligence — dro** | 1 | 4 | All pass |
+| **Intelligence — changemanagement** | 1 | 1 | All pass |
+| **Frontend** | 10 | 139 | All pass |
+| **TOTAL** | **24** | **305** | **ALL PASS** |
+
+Target was 124+ Go test functions — achieved **166 Go test functions** (130 intelligence + 36 connector) plus 262 YAML-derived subtests.
+
+#### Files Created/Modified
+
+| File | Action | Lines |
+|------|--------|-------|
+| `services/intelligence/internal/dataquality/checker.go` | Modified | +66 (DQ-002, DQ-006) |
+| `services/intelligence/internal/dataquality/checker_test.go` | Modified | +14 tests |
+| `services/intelligence/internal/api/handlers.go` | Modified | +CheckDataQuality handler |
+| `services/intelligence/internal/api/router.go` | Modified | +/api/v1/data-quality/ route |
+| `services/intelligence/internal/rules/yaml_test.go` | Created | 434 |
+| `Makefile` | Created | 74 |
+| `docs/sync/SYNC_MANIFEST.md` | Modified | Session 6 entry |
+| `BUILD_HISTORY.md` | Modified | Session 6 documentation |

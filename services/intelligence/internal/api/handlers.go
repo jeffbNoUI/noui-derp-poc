@@ -19,6 +19,7 @@ import (
 
 	"github.com/noui-derp-poc/intelligence/internal/benefit"
 	"github.com/noui-derp-poc/intelligence/internal/connector"
+	"github.com/noui-derp-poc/intelligence/internal/dataquality"
 	drocalc "github.com/noui-derp-poc/intelligence/internal/dro"
 	"github.com/noui-derp-poc/intelligence/internal/eligibility"
 	"github.com/noui-derp-poc/intelligence/internal/models"
@@ -836,6 +837,53 @@ func (h *Handlers) RetirementEstimate(w http.ResponseWriter, r *http.Request) {
 
 	WriteJSON(w, r, http.StatusOK, result)
 }
+
+// CheckDataQuality runs data quality checks and returns a report.
+// GET /api/v1/data-quality/summary — returns aggregate DQ report with demo findings.
+// For the POC, this returns demo DQ findings illustrating the detection engine
+// without requiring a live database connection.
+func (h *Handlers) CheckDataQuality(w http.ResponseWriter, r *http.Request) {
+	// POC: build demo DQ data that exercises all 6 detector types
+	dqInput := dataquality.CheckInput{
+		// DQ-001: Active members with termination date
+		Members: []dataquality.MemberRecord{
+			{MemberID: "M-200001", StatusCode: "A", TermDate: timePtr(time.Date(2025, 3, 15, 0, 0, 0, 0, time.UTC))},
+			{MemberID: "M-200002", StatusCode: "A", TermDate: timePtr(time.Date(2024, 12, 1, 0, 0, 0, 0, time.UTC))},
+			{MemberID: "M-200003", StatusCode: "T", TermDate: nil}, // terminated, no date
+		},
+		// DQ-002: Salary gaps
+		SalaryGaps: []dataquality.SalaryGapRecord{
+			{MemberID: "M-200004", GapStartDate: time.Date(2024, 6, 1, 0, 0, 0, 0, time.UTC), GapEndDate: time.Date(2024, 9, 1, 0, 0, 0, 0, time.UTC), MissingPeriods: 6, WithinAMSWindow: true},
+			{MemberID: "M-200005", GapStartDate: time.Date(2020, 3, 1, 0, 0, 0, 0, time.UTC), GapEndDate: time.Date(2020, 5, 1, 0, 0, 0, 0, time.UTC), MissingPeriods: 4, WithinAMSWindow: false},
+		},
+		// DQ-003: Contribution mismatches
+		Contributions: []dataquality.ContributionRecord{
+			{MemberID: "M-200006", StoredBalance: 68421.30, ComputedBalance: 68379.13},
+		},
+		// DQ-004: Beneficiary allocation errors
+		BeneficiaryAllocations: []dataquality.BeneficiaryAllocation{
+			{MemberID: "M-200007", Beneficiaries: []dataquality.BeneficiaryRecord{
+				{Name: "Spouse", AllocationPct: 60.0},
+				{Name: "Child 1", AllocationPct: 25.0},
+			}},
+		},
+		// DQ-005: Benefit calculation mismatches
+		BenefitVerifications: []dataquality.BenefitVerificationRecord{
+			{MemberID: "M-200008", StoredBenefit: 3456.78, RecalculatedBenefit: 3525.00, RetirementType: "early", Tier: 2},
+		},
+		// DQ-006: Tier misclassification
+		TierRecords: []dataquality.TierRecord{
+			{MemberID: "M-200009", StoredTier: 2, HireDate: time.Date(1997, 6, 15, 0, 0, 0, 0, time.UTC)},  // should be Tier 1
+			{MemberID: "M-200010", StoredTier: 1, HireDate: time.Date(2008, 3, 1, 0, 0, 0, 0, time.UTC)},   // should be Tier 2
+			{MemberID: "M-200011", StoredTier: 2, HireDate: time.Date(2015, 3, 1, 0, 0, 0, 0, time.UTC)},   // should be Tier 3
+		},
+	}
+
+	report := dataquality.RunAllChecks(dqInput)
+	WriteJSON(w, r, http.StatusOK, report)
+}
+
+func timePtr(t time.Time) *time.Time { return &t }
 
 // Unused import guard
 var _ = fmt.Sprintf

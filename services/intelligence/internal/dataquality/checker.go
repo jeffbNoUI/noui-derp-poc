@@ -84,12 +84,30 @@ type BenefitVerificationRecord struct {
 	Tier                int
 }
 
+// SalaryGapRecord represents a member with missing salary periods.
+type SalaryGapRecord struct {
+	MemberID       string
+	GapStartDate   time.Time
+	GapEndDate     time.Time
+	MissingPeriods int
+	WithinAMSWindow bool // true if the gap falls within potential AMS window
+}
+
+// TierRecord holds a member's stored tier and hire date for mismatch detection.
+type TierRecord struct {
+	MemberID   string
+	StoredTier int
+	HireDate   time.Time
+}
+
 // CheckInput aggregates all data needed for a full quality check.
 type CheckInput struct {
 	Members                []MemberRecord
 	BeneficiaryAllocations []BeneficiaryAllocation
 	Contributions          []ContributionRecord
 	BenefitVerifications   []BenefitVerificationRecord
+	SalaryGaps             []SalaryGapRecord
+	TierRecords            []TierRecord
 }
 
 var findingSeq int
@@ -260,14 +278,82 @@ func CheckBenefitCalculation(records []BenefitVerificationRecord) []Finding {
 	return findings
 }
 
+// CheckSalaryGaps flags members with gaps in their salary history.
+// Severity depends on whether the gap falls within the potential AMS window.
+func CheckSalaryGaps(gaps []SalaryGapRecord) []Finding {
+	var findings []Finding
+	for _, g := range gaps {
+		if g.MissingPeriods < 2 {
+			continue // only flag gaps of 2+ consecutive missing periods
+		}
+		sev := SeverityWarning
+		if g.WithinAMSWindow {
+			sev = SeverityCritical // gap within AMS window could affect benefit calculation
+		}
+		findings = append(findings, newFinding(
+			CategoryStructural, sev, g.MemberID,
+			fmt.Sprintf("Salary history gap: %d missing pay periods from %s to %s",
+				g.MissingPeriods, g.GapStartDate.Format("2006-01-02"), g.GapEndDate.Format("2006-01-02")),
+			"Investigate missing pay periods. If leave of absence, record LOA. If payroll error, obtain records from employer.",
+			map[string]string{
+				"gap_start":       g.GapStartDate.Format("2006-01-02"),
+				"gap_end":         g.GapEndDate.Format("2006-01-02"),
+				"missing_periods": fmt.Sprintf("%d", g.MissingPeriods),
+				"within_ams":      fmt.Sprintf("%t", g.WithinAMSWindow),
+			},
+		))
+	}
+	return findings
+}
+
+// ComputeTierFromHireDate determines the correct tier based on hire date.
+// Before Sept 1, 2004 → Tier 1; Sept 1, 2004 through June 30, 2011 → Tier 2; On or after July 1, 2011 → Tier 3.
+func ComputeTierFromHireDate(hireDate time.Time) int {
+	tier2Start := time.Date(2004, 9, 1, 0, 0, 0, 0, time.UTC)
+	tier3Start := time.Date(2011, 7, 1, 0, 0, 0, 0, time.UTC)
+
+	if hireDate.Before(tier2Start) {
+		return 1
+	}
+	if hireDate.Before(tier3Start) {
+		return 2
+	}
+	return 3
+}
+
+// CheckTierMismatch flags members whose stored tier doesn't match the tier
+// computed from their hire date. Wrong tier = wrong multiplier, AMS window, and eligibility rules.
+func CheckTierMismatch(records []TierRecord) []Finding {
+	var findings []Finding
+	for _, r := range records {
+		computed := ComputeTierFromHireDate(r.HireDate)
+		if r.StoredTier != computed {
+			findings = append(findings, newFinding(
+				CategoryStructural, SeverityCritical, r.MemberID,
+				fmt.Sprintf("Tier mismatch: stored Tier %d but hire date %s indicates Tier %d",
+					r.StoredTier, r.HireDate.Format("2006-01-02"), computed),
+				fmt.Sprintf("CRITICAL: Wrong tier means wrong benefit multiplier and eligibility rules. Update to Tier %d.", computed),
+				map[string]string{
+					"stored_tier":  fmt.Sprintf("%d", r.StoredTier),
+					"computed_tier": fmt.Sprintf("%d", computed),
+					"hire_date":    r.HireDate.Format("2006-01-02"),
+				},
+			))
+		}
+	}
+	return findings
+}
+
 // RunAllChecks executes all data quality checks and returns an aggregated report.
 func RunAllChecks(input CheckInput) Report {
 	var all []Finding
 
 	all = append(all, CheckContradictoryStatus(input.Members)...)
+	all = append(all, CheckSalaryGaps(input.SalaryGaps)...)
 	all = append(all, CheckBeneficiaryAllocation(input.BeneficiaryAllocations)...)
 	all = append(all, CheckContributionBalance(input.Contributions)...)
 	all = append(all, CheckBenefitCalculation(input.BenefitVerifications)...)
+	all = append(all, CheckTierMismatch(input.TierRecords)...)
 
 	var critical, warning, info int
 	for _, f := range all {

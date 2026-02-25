@@ -219,6 +219,142 @@ func TestCheckBenefitCalculation_IncludesDetails(t *testing.T) {
 	}
 }
 
+// --- Salary Gaps ---
+
+func TestCheckSalaryGaps_NoGaps(t *testing.T) {
+	findings := CheckSalaryGaps([]SalaryGapRecord{})
+	if len(findings) != 0 {
+		t.Fatalf("expected 0 findings, got %d", len(findings))
+	}
+}
+
+func TestCheckSalaryGaps_SmallGapIgnored(t *testing.T) {
+	findings := CheckSalaryGaps([]SalaryGapRecord{
+		{MemberID: "M001", GapStartDate: date(2024, 1, 1), GapEndDate: date(2024, 1, 14), MissingPeriods: 1, WithinAMSWindow: false},
+	})
+	if len(findings) != 0 {
+		t.Fatalf("expected 0 findings for single missing period, got %d", len(findings))
+	}
+}
+
+func TestCheckSalaryGaps_GapOutsideAMS(t *testing.T) {
+	findings := CheckSalaryGaps([]SalaryGapRecord{
+		{MemberID: "M001", GapStartDate: date(2020, 1, 1), GapEndDate: date(2020, 3, 1), MissingPeriods: 4, WithinAMSWindow: false},
+	})
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+	if findings[0].Severity != SeverityWarning {
+		t.Errorf("expected warning for gap outside AMS, got %s", findings[0].Severity)
+	}
+}
+
+func TestCheckSalaryGaps_GapWithinAMS(t *testing.T) {
+	findings := CheckSalaryGaps([]SalaryGapRecord{
+		{MemberID: "M001", GapStartDate: date(2025, 6, 1), GapEndDate: date(2025, 9, 1), MissingPeriods: 6, WithinAMSWindow: true},
+	})
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+	if findings[0].Severity != SeverityCritical {
+		t.Errorf("expected critical for gap within AMS window, got %s", findings[0].Severity)
+	}
+}
+
+// --- Tier Mismatch ---
+
+func TestComputeTierFromHireDate_Tier1(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(1997, 6, 15))
+	if tier != 1 {
+		t.Errorf("expected Tier 1 for 1997-06-15, got %d", tier)
+	}
+}
+
+func TestComputeTierFromHireDate_Tier1Boundary(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(2004, 8, 31))
+	if tier != 1 {
+		t.Errorf("expected Tier 1 for 2004-08-31 (last day before T2), got %d", tier)
+	}
+}
+
+func TestComputeTierFromHireDate_Tier2Start(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(2004, 9, 1))
+	if tier != 2 {
+		t.Errorf("expected Tier 2 for 2004-09-01, got %d", tier)
+	}
+}
+
+func TestComputeTierFromHireDate_Tier2End(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(2011, 6, 30))
+	if tier != 2 {
+		t.Errorf("expected Tier 2 for 2011-06-30 (last day of T2), got %d", tier)
+	}
+}
+
+func TestComputeTierFromHireDate_Tier3Start(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(2011, 7, 1))
+	if tier != 3 {
+		t.Errorf("expected Tier 3 for 2011-07-01, got %d", tier)
+	}
+}
+
+func TestComputeTierFromHireDate_Tier3(t *testing.T) {
+	tier := ComputeTierFromHireDate(date(2015, 3, 1))
+	if tier != 3 {
+		t.Errorf("expected Tier 3 for 2015-03-01, got %d", tier)
+	}
+}
+
+func TestCheckTierMismatch_Correct(t *testing.T) {
+	findings := CheckTierMismatch([]TierRecord{
+		{MemberID: "M001", StoredTier: 1, HireDate: date(1997, 6, 15)},
+		{MemberID: "M002", StoredTier: 2, HireDate: date(2008, 3, 1)},
+		{MemberID: "M003", StoredTier: 3, HireDate: date(2015, 3, 1)},
+	})
+	if len(findings) != 0 {
+		t.Fatalf("expected 0 findings for correct tiers, got %d", len(findings))
+	}
+}
+
+func TestCheckTierMismatch_WrongTier(t *testing.T) {
+	findings := CheckTierMismatch([]TierRecord{
+		{MemberID: "M001", StoredTier: 2, HireDate: date(1997, 6, 15)}, // should be Tier 1
+	})
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+	if findings[0].Severity != SeverityCritical {
+		t.Errorf("expected critical, got %s", findings[0].Severity)
+	}
+	if findings[0].Details["stored_tier"] != "2" || findings[0].Details["computed_tier"] != "1" {
+		t.Errorf("unexpected details: %v", findings[0].Details)
+	}
+}
+
+func TestCheckTierMismatch_BatchMixed(t *testing.T) {
+	findings := CheckTierMismatch([]TierRecord{
+		{MemberID: "M001", StoredTier: 1, HireDate: date(1997, 6, 15)},  // correct
+		{MemberID: "M002", StoredTier: 1, HireDate: date(2008, 3, 1)},   // wrong — should be 2
+		{MemberID: "M003", StoredTier: 2, HireDate: date(2015, 3, 1)},   // wrong — should be 3
+		{MemberID: "M004", StoredTier: 3, HireDate: date(2012, 9, 1)},   // correct
+	})
+	if len(findings) != 2 {
+		t.Fatalf("expected 2 findings, got %d", len(findings))
+	}
+}
+
+func TestCheckContributionBalance_NegativeBalance(t *testing.T) {
+	findings := CheckContributionBalance([]ContributionRecord{
+		{MemberID: "M001", StoredBalance: -500.00, ComputedBalance: 45000.00},
+	})
+	if len(findings) != 1 {
+		t.Fatalf("expected 1 finding, got %d", len(findings))
+	}
+	if findings[0].Severity != SeverityCritical {
+		t.Errorf("expected critical for negative balance, got %s", findings[0].Severity)
+	}
+}
+
 // --- RunAllChecks Integration ---
 
 func TestRunAllChecks_CombinesFindings(t *testing.T) {

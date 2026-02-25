@@ -130,6 +130,22 @@ func NewRouter(h *Handlers) http.Handler {
 		WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Use GET /api/v1/retirement-estimate/{memberId}")
 	})
 
+	// Data Quality: GET /api/v1/data-quality/summary
+	mux.HandleFunc("/api/v1/data-quality/", func(w http.ResponseWriter, r *http.Request) {
+		path := strings.TrimPrefix(r.URL.Path, "/api/v1/data-quality/")
+
+		if r.Method == http.MethodGet {
+			if path == "summary" || path == "summary/" || path == "" {
+				h.CheckDataQuality(w, r)
+				return
+			}
+			WriteError(w, r, http.StatusNotFound, "NOT_FOUND", "Unknown data-quality endpoint: "+path)
+			return
+		}
+
+		WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Use GET /api/v1/data-quality/summary")
+	})
+
 	// Apply middleware chain: CORS → Request ID → Logging
 	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
 }
