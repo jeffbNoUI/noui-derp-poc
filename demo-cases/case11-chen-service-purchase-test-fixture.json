@@ -1,0 +1,167 @@
+{
+  "case_id": "case11-lisa-chen",
+  "case_name": "Lisa Chen — Tier 2, Service Purchase (3 Years Governmental)",
+  "description": "Tier 2 member purchasing 3 years of prior governmental service. Demonstrates actuarial cost calculation, payment options, benefit impact analysis, and the critical exclusion of purchased service from Rule of 75 eligibility.",
+  "domain": "service_purchase",
+  "fidelity_tier": "B",
+
+  "inputs": {
+    "member": {
+      "member_id": "M-100011",
+      "first_name": "Lisa",
+      "last_name": "Chen",
+      "date_of_birth": "1978-06-22",
+      "hire_date": "2005-10-01",
+      "termination_date": null,
+      "status": "A",
+      "tier": 2,
+      "department": "Finance",
+      "position": "Senior Financial Analyst",
+      "current_annual_salary": 78000.00,
+      "current_monthly_salary": 6500.00
+    },
+    "service_credit": {
+      "earned_service_years": 20.33,
+      "earned_service_months": 244,
+      "purchased_service_years": 0,
+      "total_for_benefit": 20.33,
+      "total_for_eligibility": 20.33
+    },
+    "purchase_request": {
+      "service_type": "governmental",
+      "years_requested": 3.0,
+      "prior_employer": "State of Colorado, Department of Revenue",
+      "prior_employment_start": "2002-08-15",
+      "prior_employment_end": "2005-09-25",
+      "documentation_provided": true,
+      "documentation_type": "employer_certification"
+    },
+    "quote": {
+      "quote_date": "2026-02-15",
+      "member_age_at_quote": 48
+    }
+  },
+
+  "expected_results": {
+    "eligibility": {
+      "is_purchase_eligible": true,
+      "is_vested": true,
+      "purchase_type_valid": true,
+      "max_purchasable_years": 5.0,
+      "documentation_required": true
+    },
+
+    "cost_calculation": {
+      "cost_factor": 0.0860,
+      "current_annual_salary": 78000.00,
+      "years_purchased": 3.0,
+      "cost_per_year": 6708.00,
+      "total_cost": 20124.00,
+      "governing_rule": "RULE-PURCHASE-COST-FACTOR"
+    },
+
+    "payment_options": {
+      "lump_sum": {
+        "amount": 20124.00,
+        "interest": 0.00,
+        "total": 20124.00
+      },
+      "payroll_deduction": {
+        "monthly_payment": 361.60,
+        "number_of_payments": 60,
+        "annual_interest_rate": 0.03,
+        "total_paid": 21696.00,
+        "interest_cost": 1572.00
+      },
+      "rollover": {
+        "amount": 20124.00,
+        "tax_impact": "none"
+      },
+      "governing_rule": "RULE-PURCHASE-PAYMENT-OPTIONS"
+    },
+
+    "benefit_impact": {
+      "service_credit_after": {
+        "earned": 20.33,
+        "purchased": 3.00,
+        "total_for_benefit": 23.33,
+        "total_for_eligibility": 20.33
+      },
+      "benefit_without_purchase": {
+        "formula": "1.5% × $6,500.00 × 20.33",
+        "monthly": 1982.18
+      },
+      "benefit_with_purchase": {
+        "formula": "1.5% × $6,500.00 × 23.33",
+        "monthly": 2274.68
+      },
+      "monthly_increase": 292.50,
+      "annual_increase": 3510.00,
+      "breakeven_months": 69,
+      "breakeven_years": 5.8,
+      "eligibility_impact": "none",
+      "ipr_impact": "none",
+      "governing_rule": "RULE-PURCHASE-BENEFIT-IMPACT"
+    },
+
+    "eligibility_exclusion_check": {
+      "rule_of_75_sum_without_purchase": 68.33,
+      "rule_of_75_sum_with_purchase": 68.33,
+      "purchased_years_excluded": true,
+      "governing_reference": "RMC §18-415(a)"
+    },
+
+    "quote_validity": {
+      "issue_date": "2026-02-15",
+      "expiration_date": "2026-05-16",
+      "valid": true,
+      "governing_rule": "RULE-PURCHASE-QUOTE-VALIDITY"
+    },
+
+    "irrevocability": {
+      "irrevocable_once_paid": true,
+      "cancellation_during_installments": true,
+      "refund_of_payments": false,
+      "governing_rule": "RULE-PURCHASE-IRREVOCABLE"
+    }
+  },
+
+  "verification_checks": [
+    {
+      "check": "Cost calculation",
+      "formula": "0.0860 × $78,000.00 × 3.0",
+      "expected": 20124.00,
+      "status": "VERIFIED"
+    },
+    {
+      "check": "Benefit without purchase",
+      "formula": "0.015 × $6,500.00 × 20.33",
+      "expected": 1982.18,
+      "status": "VERIFIED"
+    },
+    {
+      "check": "Benefit with purchase",
+      "formula": "0.015 × $6,500.00 × 23.33",
+      "expected": 2274.68,
+      "status": "VERIFIED"
+    },
+    {
+      "check": "Monthly increase",
+      "formula": "$2,274.68 - $1,982.18",
+      "expected": 292.50,
+      "status": "VERIFIED"
+    },
+    {
+      "check": "Breakeven months",
+      "formula": "$20,124.00 / $292.50",
+      "expected": 69,
+      "status": "VERIFIED"
+    },
+    {
+      "check": "Rule of 75 exclusion",
+      "formula": "Age 48 + 20.33 earned = 68.33 (purchased excluded)",
+      "expected": 68.33,
+      "status": "VERIFIED"
+    }
+  ]
+}

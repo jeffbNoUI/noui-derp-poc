@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { BenefitWorkspace } from '@/pages/BenefitWorkspace'
+import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
 import { C, tierMeta } from '@/theme'
 
 function Badge({ text, color, bg }: { text: string; color: string; bg: string }) {
@@ -12,11 +13,15 @@ function Badge({ text, color, bg }: { text: string; color: string; bg: string })
   )
 }
 
+// Purchase Explorer cases use a different workspace (not BenefitWorkspace)
+const PURCHASE_EXPLORER_IDS = new Set(['10011'])
+
 const DEMO_CASES = [
   { id: '10001', name: 'Robert Martinez', tier: 1, label: 'Tier 1 | Rule of 75 | Leave Payout' },
   { id: '10002', name: 'Jennifer Kim', tier: 2, label: 'Tier 2 | Purchased Svc | 30% Reduction' },
   { id: '10003', name: 'David Washington', tier: 3, label: 'Tier 3 | 60-Mo AMS | 12% Reduction' },
   { id: '10004', name: 'Robert Martinez', tier: 1, label: 'Tier 1 | Rule of 75 | DRO', suffix: ' +DRO' },
+  { id: '10011', name: 'Lisa Chen', tier: 2, label: 'Tier 2 | Service Purchase | Governmental', suffix: ' Purchase' },
 ] as const
 
 function App() {
@@ -49,9 +54,11 @@ function App() {
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content — route to appropriate workspace based on case type */}
       {memberId ? (
-        <BenefitWorkspace memberId={memberId} />
+        PURCHASE_EXPLORER_IDS.has(memberId)
+          ? <PurchaseExplorer memberId={memberId} />
+          : <BenefitWorkspace memberId={memberId} />
       ) : (
         <WelcomeScreen onSelect={setMemberId} />
       )}
@@ -133,7 +140,7 @@ function WelcomeScreen({ onSelect }: { onSelect: (id: string) => void }) {
                 <Badge text={`T${c.tier}`} bg={t.muted} color={t.color} />
               </div>
               <div style={{ color: C.textMuted, fontSize: '10px' }}>
-                Case {c.id === '10004' ? '4' : Number(c.id) - 10000}
+                Case {c.id === '10004' ? '4' : c.id === '10011' ? '11' : Number(c.id) - 10000}
               </div>
               <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>{c.label}</div>
             </button>

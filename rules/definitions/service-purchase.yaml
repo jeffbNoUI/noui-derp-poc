@@ -1,0 +1,855 @@
+# ===========================================================================
+# NoUI DERP Phase 2 — Service Purchase Rules
+# ===========================================================================
+# Category 11: Service credit purchase process. Covers eligibility,
+# purchasable service types, actuarial cost calculation, payment methods,
+# benefit impact analysis, and the critical exclusion from eligibility
+# determinations (Rule of 75/85 and IPR).
+# Evaluation order: 11 (after death/survivor rules)
+# ===========================================================================
+
+file_metadata:
+  category: service_purchase
+  description: "Service credit purchase eligibility, cost calculation, payment options, and benefit impact rules for active members."
+  evaluation_order: 11
+  rule_count: 8
+  governing_authority: "RMC §18-415, §18-402, §18-409(a)"
+  schema_version: "1.0"
+  phase: "Phase 2"
+
+# ===========================================================================
+rules:
+
+  # =========================================================================
+  # RULE-PURCHASE-ELIGIBILITY
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-ELIGIBILITY
+    rule_name: "Service Purchase Eligibility"
+    category: service_purchase
+    description: >
+      Determines whether an active member is eligible to purchase service
+      credit. Member must be currently active in a DERP-covered position
+      and have a qualifying gap in service. Purchased service is irrevocable
+      and non-refundable once fully paid.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.status
+        operator: eq
+        value: "active"
+        notes: "Only active members may initiate a service purchase"
+      - field: member.isVested
+        operator: eq
+        value: true
+        notes: "Must be vested (5+ years) to purchase — POC assumption"
+      - field: purchase.serviceType
+        operator: in
+        value: ["governmental", "military", "leave_of_absence", "furlough"]
+        notes: "Must be a qualifying purchase type"
+
+    result:
+      type: determination
+      output_fields:
+        - name: isPurchaseEligible
+          type: boolean
+          description: "Whether member can purchase this service type"
+        - name: maxPurchasableYears
+          type: decimal
+          description: "Maximum years available for purchase (type-dependent)"
+        - name: purchaseType
+          type: string
+          description: "Type of service being purchased"
+        - name: requiresDocumentation
+          type: boolean
+          description: "Whether supporting documents are needed (e.g., DD-214 for military)"
+        - name: requiredDocuments
+          type: array
+          description: "List of documents required for this purchase type"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(a), §18-415(b)"
+      verification: CONFIRMED
+      notes: "Purchase provisions. Active membership required. Types defined in §18-415(b)."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-VESTING
+
+    assumptions:
+      - id: Q-PURCHASE-VEST-01
+        description: "Assumed vesting is required to purchase. RMC §18-415 doesn't explicitly require vesting, but DERP practice may require it."
+        impact: "LOW — most purchasers have significant service already"
+        status: ASSUMED
+
+    test_cases:
+      - id: TC-PURCHASE-ELIG-01
+        description: "Chen — Active T2, 12 years, purchasing 3 years governmental"
+        type: happy_path
+        inputs:
+          member.status: "active"
+          member.isVested: true
+          member.tier: 2
+          serviceCredit.earnedYears: 12.0
+          purchase.serviceType: "governmental"
+          purchase.yearsRequested: 3.0
+        expected:
+          isPurchaseEligible: true
+          maxPurchasableYears: 5.0
+          purchaseType: "governmental"
+          requiresDocumentation: true
+          requiredDocuments: ["Certification of prior governmental employment", "Dates of service verification"]
+
+      - id: TC-PURCHASE-ELIG-02
+        description: "Military service purchase — requires DD-214"
+        type: happy_path
+        inputs:
+          member.status: "active"
+          member.isVested: true
+          purchase.serviceType: "military"
+          purchase.yearsRequested: 4.0
+        expected:
+          isPurchaseEligible: true
+          requiresDocumentation: true
+          requiredDocuments: ["DD-214 (Certificate of Release or Discharge)"]
+
+      - id: TC-PURCHASE-ELIG-03
+        description: "Non-active member — NOT eligible"
+        type: negative
+        inputs:
+          member.status: "terminated"
+          purchase.serviceType: "governmental"
+        expected:
+          isPurchaseEligible: false
+
+      - id: TC-PURCHASE-ELIG-04
+        description: "Non-vested member — NOT eligible (assumption)"
+        type: negative
+        inputs:
+          member.status: "active"
+          member.isVested: false
+          serviceCredit.earnedYears: 3.5
+          purchase.serviceType: "governmental"
+        expected:
+          isPurchaseEligible: false
+
+  # =========================================================================
+  # RULE-PURCHASE-COST-FACTOR
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-COST-FACTOR
+    rule_name: "Actuarial Cost Factor Determination"
+    category: service_purchase
+    description: >
+      The cost of purchasing service credit is determined by an actuarial
+      cost factor based on the member's age at the time of purchase and
+      tier. The factor represents the present value of the additional
+      lifetime benefit. Cost = factor × current annual salary × years
+      purchased. Factors are set by the DERP actuary and reviewed annually.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member.age
+        operator: gte
+        value: 25
+        notes: "Minimum age for cost factor tables"
+      - field: member.age
+        operator: lte
+        value: 64
+        notes: "Maximum age for cost factor tables"
+
+    result:
+      type: calculation
+      formula: >
+        cost_factor = COST_FACTOR_TABLE[tier][age]
+        total_cost = cost_factor × current_annual_salary × years_purchased
+      output_fields:
+        - name: costFactor
+          type: decimal
+          precision: 4
+          description: "Actuarial cost factor from published table"
+        - name: currentAnnualSalary
+          type: decimal
+          precision: 2
+          description: "Member's current annual pensionable salary"
+        - name: yearsPurchased
+          type: decimal
+          description: "Years of service being purchased"
+        - name: totalCost
+          type: decimal
+          precision: 2
+          description: "Total cost: factor × salary × years"
+        - name: costPerYear
+          type: decimal
+          precision: 2
+          description: "Cost per year of service: factor × salary"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(c)"
+      verification: CONFIRMED
+      notes: "Cost determined by actuarial tables. Tables set by DERP actuary, reviewed annually."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-ELIGIBILITY
+
+    assumptions:
+      - id: Q-COST-FACTOR-01
+        description: >
+          Cost factor tables are assumed values representative of typical
+          public pension cost factors. Actual DERP factors would come from
+          actuarial valuation. Factors increase with age (older members
+          have shorter contribution period, higher present value).
+        impact: "HIGH — directly affects purchase cost. Must be verified against actual DERP tables."
+        status: ASSUMED
+        reference: "DERP Actuarial Valuation"
+      - id: Q-COST-FACTOR-02
+        description: "Tier 1 factors are higher than Tier 2/3 due to higher multiplier (2.0% vs 1.5%)"
+        impact: "MEDIUM — reflects actual benefit value differential"
+        status: ASSUMED
+
+    # Actuarial cost factor tables — assumed values for POC
+    # Real tables would come from DERP actuarial valuation
+    cost_factor_tables:
+      tier_1:
+        # Higher factors due to 2.0% multiplier
+        25: 0.0420
+        30: 0.0520
+        35: 0.0640
+        40: 0.0790
+        45: 0.0980
+        48: 0.1120
+        50: 0.1210
+        55: 0.1590
+        60: 0.2120
+        64: 0.2680
+      tier_2:
+        # Lower factors due to 1.5% multiplier
+        25: 0.0320
+        30: 0.0400
+        35: 0.0490
+        40: 0.0610
+        45: 0.0750
+        48: 0.0860
+        50: 0.0930
+        55: 0.1220
+        60: 0.1630
+        64: 0.2060
+      tier_3:
+        # Same multiplier as Tier 2 but different AMS window (60 vs 36 months)
+        25: 0.0310
+        30: 0.0380
+        35: 0.0470
+        40: 0.0580
+        45: 0.0720
+        48: 0.0820
+        50: 0.0890
+        55: 0.1170
+        60: 0.1560
+        64: 0.1970
+
+    test_cases:
+      - id: TC-PURCHASE-COST-01
+        description: "Chen — T2, age 48, salary $78,000, purchasing 3 years"
+        type: happy_path
+        inputs:
+          member.tier: 2
+          member.age: 48
+          member.currentAnnualSalary: 78000.00
+          purchase.years: 3.0
+        expected:
+          costFactor: 0.0860
+          costPerYear: 6708.00
+          totalCost: 20124.00
+        notes: "Case 11: Chen. Cost = 0.0860 × $78,000 × 3 = $20,124.00"
+
+      - id: TC-PURCHASE-COST-02
+        description: "Older member — higher cost factor"
+        type: boundary
+        inputs:
+          member.tier: 1
+          member.age: 60
+          member.currentAnnualSalary: 95000.00
+          purchase.years: 2.0
+        expected:
+          costFactor: 0.2120
+          costPerYear: 20140.00
+          totalCost: 40280.00
+        notes: "Tier 1 at 60 — expensive purchase due to high multiplier and short remaining career"
+
+      - id: TC-PURCHASE-COST-03
+        description: "Young member — lower cost factor"
+        type: boundary
+        inputs:
+          member.tier: 2
+          member.age: 30
+          member.currentAnnualSalary: 52000.00
+          purchase.years: 4.0
+        expected:
+          costFactor: 0.0400
+          costPerYear: 2080.00
+          totalCost: 8320.00
+
+  # =========================================================================
+  # RULE-PURCHASE-PAYMENT-OPTIONS
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-PAYMENT-OPTIONS
+    rule_name: "Service Purchase Payment Methods"
+    category: service_purchase
+    description: >
+      Members may pay for service credit through three methods:
+      (1) Lump sum — full payment at time of purchase.
+      (2) Payroll deduction — spread over up to 5 years via pre-tax payroll
+      deductions. Interest accrues on unpaid balance at 3% per annum.
+      (3) Rollover from qualified plan — direct transfer from IRA, 401(k),
+      or other qualified retirement plan. No tax consequence on rollover.
+      Service credit is not applied until payment is complete.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: purchase.totalCost
+        operator: gt
+        value: 0
+
+    result:
+      type: calculation
+      formula: >
+        lump_sum: payment = totalCost (no interest)
+        payroll_deduction: monthly = amortize(totalCost, 3%, N months)
+          where N = min(requestedMonths, 60)
+        rollover: rollover_amount = totalCost (no tax impact)
+      output_fields:
+        - name: lumpSumAmount
+          type: decimal
+          precision: 2
+          description: "Full amount due for lump-sum payment"
+        - name: payrollDeductionMonthly
+          type: decimal
+          precision: 2
+          description: "Monthly payroll deduction amount (includes 3% interest)"
+        - name: payrollDeductionMonths
+          type: integer
+          description: "Number of payroll deduction months (max 60)"
+        - name: payrollDeductionTotal
+          type: decimal
+          precision: 2
+          description: "Total paid via payroll deduction (principal + interest)"
+        - name: rolloverAmount
+          type: decimal
+          precision: 2
+          description: "Amount needed from qualified plan (equals lump sum)"
+        - name: interestCost
+          type: decimal
+          precision: 2
+          description: "Additional interest cost for payroll deduction vs lump sum"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(d)"
+      verification: CONFIRMED
+      notes: "Payment methods per §18-415(d). Payroll deduction interest rate set by board (3% assumed)."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-COST-FACTOR
+
+    assumptions:
+      - id: Q-PAYROLL-INTEREST-01
+        description: "3% annual interest on payroll deduction installments. Actual rate set by DERP board."
+        impact: "MEDIUM — affects total cost of installment purchases"
+        status: ASSUMED
+      - id: Q-PAYROLL-MAX-01
+        description: "Maximum 60 months (5 years) for payroll deduction. Common limit in public plans."
+        impact: "LOW — most purchases fit within 5 years"
+        status: ASSUMED
+
+    test_cases:
+      - id: TC-PURCHASE-PAY-01
+        description: "Chen — $20,124.00 purchase via lump sum"
+        type: happy_path
+        inputs:
+          purchase.totalCost: 20124.00
+          payment.method: "lump_sum"
+        expected:
+          lumpSumAmount: 20124.00
+          interestCost: 0.00
+
+      - id: TC-PURCHASE-PAY-02
+        description: "Chen — $20,124.00 via 60-month payroll deduction at 3%"
+        type: happy_path
+        inputs:
+          purchase.totalCost: 20124.00
+          payment.method: "payroll_deduction"
+          payment.months: 60
+        expected:
+          payrollDeductionMonths: 60
+          payrollDeductionMonthly: 361.56
+          payrollDeductionTotal: 21693.60
+          interestCost: 1569.60
+        notes: "Standard amortization: P × r(1+r)^n / ((1+r)^n - 1) where r = 0.03/12"
+
+      - id: TC-PURCHASE-PAY-03
+        description: "Rollover from 401(k) — no tax impact"
+        type: happy_path
+        inputs:
+          purchase.totalCost: 20124.00
+          payment.method: "rollover"
+        expected:
+          rolloverAmount: 20124.00
+          interestCost: 0.00
+
+      - id: TC-PURCHASE-PAY-04
+        description: "Short payroll deduction — 24 months"
+        type: boundary
+        inputs:
+          purchase.totalCost: 8320.00
+          payment.method: "payroll_deduction"
+          payment.months: 24
+        expected:
+          payrollDeductionMonths: 24
+          payrollDeductionMonthly: 357.66
+          payrollDeductionTotal: 8583.84
+          interestCost: 263.84
+
+  # =========================================================================
+  # RULE-PURCHASE-BENEFIT-IMPACT
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-BENEFIT-IMPACT
+    rule_name: "Purchased Service Benefit Impact Analysis"
+    category: service_purchase
+    description: >
+      Calculates the projected benefit increase from purchasing service
+      credit. This is the core of the Purchase Explorer — showing members
+      "what do I gain?" Purchased service increases the years-of-service
+      factor in the benefit formula but does NOT affect eligibility
+      (Rule of 75/85) or IPR calculations. The analysis shows
+      before/after monthly benefit comparison.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: purchase.years
+        operator: gt
+        value: 0
+
+    result:
+      type: calculation
+      formula: >
+        benefit_increase = multiplier × AMS × purchased_years
+        before: multiplier × AMS × earned_years
+        after:  multiplier × AMS × (earned_years + purchased_years)
+        annual_increase = benefit_increase × 12
+        breakeven_months = total_cost / benefit_increase
+      output_fields:
+        - name: currentMonthlyBenefit
+          type: decimal
+          precision: 2
+          description: "Projected monthly benefit WITHOUT purchased service"
+        - name: projectedMonthlyBenefit
+          type: decimal
+          precision: 2
+          description: "Projected monthly benefit WITH purchased service"
+        - name: monthlyIncrease
+          type: decimal
+          precision: 2
+          description: "Increase in monthly benefit from purchase"
+        - name: annualIncrease
+          type: decimal
+          precision: 2
+          description: "Increase in annual benefit from purchase"
+        - name: breakevenMonths
+          type: integer
+          description: "Months of retirement to recoup purchase cost"
+        - name: breakevenYears
+          type: decimal
+          precision: 1
+          description: "Years of retirement to recoup purchase cost"
+        - name: eligibilityImpact
+          type: string
+          description: "Always 'none' — purchased service excluded from eligibility"
+        - name: iprImpact
+          type: string
+          description: "Always 'none' — purchased service excluded from IPR"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(a), §18-403, §18-409(a)"
+      verification: CONFIRMED
+      notes: "§18-415(a): 'Cannot be used for vesting or qualifying for different benefit category.' Benefit formula in §18-409(a) uses total service including purchased."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-COST-FACTOR
+      - RULE-SVC-PURCHASED
+
+    test_cases:
+      - id: TC-PURCHASE-IMPACT-01
+        description: "Chen — T2, 12 earned + 3 purchased, AMS $6,500/mo"
+        type: happy_path
+        inputs:
+          member.tier: 2
+          multiplier: 0.015
+          ams: 6500.00
+          earnedYears: 12.0
+          purchasedYears: 3.0
+          purchaseCost: 20124.00
+        expected:
+          currentMonthlyBenefit: 1170.00
+          projectedMonthlyBenefit: 1462.50
+          monthlyIncrease: 292.50
+          annualIncrease: 3510.00
+          breakevenMonths: 69
+          breakevenYears: 5.8
+          eligibilityImpact: "none"
+          iprImpact: "none"
+        notes: >
+          Case 11: Before: 1.5% × $6,500 × 12 = $1,170/mo.
+          After: 1.5% × $6,500 × 15 = $1,462.50/mo. Increase: $292.50/mo.
+          Breakeven: $20,124 / $292.50 = 68.8 → 69 months (~5.8 years).
+
+      - id: TC-PURCHASE-IMPACT-02
+        description: "Tier 1 member — higher multiplier means bigger impact per year"
+        type: happy_path
+        inputs:
+          member.tier: 1
+          multiplier: 0.020
+          ams: 8500.00
+          earnedYears: 20.0
+          purchasedYears: 2.0
+          purchaseCost: 40280.00
+        expected:
+          currentMonthlyBenefit: 3400.00
+          projectedMonthlyBenefit: 3740.00
+          monthlyIncrease: 340.00
+          annualIncrease: 4080.00
+          breakevenMonths: 119
+          breakevenYears: 9.9
+          eligibilityImpact: "none"
+        notes: "Tier 1: 2.0% × $8,500 × 2 = $340/mo increase. Higher cost but higher benefit."
+
+      - id: TC-PURCHASE-IMPACT-03
+        description: "Verify eligibility exclusion — purchased does NOT help Rule of 75"
+        type: negative
+        inputs:
+          member.tier: 2
+          member.age: 48
+          earnedYears: 12.0
+          purchasedYears: 3.0
+        expected:
+          eligibilityImpact: "none"
+          ruleOf75Sum: 60.0
+          ruleOf75SumWithPurchase: 60.0
+        notes: >
+          CRITICAL: Age 48 + 12 earned = 60 (Rule of 75 not met).
+          Adding 3 purchased does NOT make it 63 for eligibility.
+          Rule of 75 sum stays at 60 regardless of purchase.
+
+  # =========================================================================
+  # RULE-PURCHASE-IRREVOCABLE
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-IRREVOCABLE
+    rule_name: "Service Purchase Irrevocability"
+    category: service_purchase
+    description: >
+      Once a service purchase is fully paid, the purchased service credit
+      is permanently added to the member's record and cannot be reversed
+      or refunded. Partial payments in progress can be cancelled but any
+      payments already made are non-refundable. The system must present
+      a clear acknowledgment before finalizing the purchase.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: purchase.status
+        operator: eq
+        value: "pending_confirmation"
+
+    result:
+      type: determination
+      output_fields:
+        - name: isIrrevocable
+          type: boolean
+          description: "Always true once fully paid"
+        - name: requiresAcknowledgment
+          type: boolean
+          description: "Member must sign irrevocability acknowledgment"
+        - name: cancellationAllowed
+          type: boolean
+          description: "True only if purchase is still in progress (installments)"
+        - name: refundOfPayments
+          type: boolean
+          description: "Always false — payments are non-refundable"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(e)"
+      verification: CONFIRMED
+      notes: "Irrevocability provision. Non-refundable once paid."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-ELIGIBILITY
+
+    test_cases:
+      - id: TC-PURCHASE-IRREV-01
+        description: "Fully paid purchase — irrevocable"
+        type: happy_path
+        inputs:
+          purchase.status: "fully_paid"
+        expected:
+          isIrrevocable: true
+          cancellationAllowed: false
+          refundOfPayments: false
+
+      - id: TC-PURCHASE-IRREV-02
+        description: "In-progress installment — cancellation allowed, no refund"
+        type: happy_path
+        inputs:
+          purchase.status: "installment_in_progress"
+          purchase.paymentsMade: 12
+          purchase.totalPayments: 60
+        expected:
+          isIrrevocable: false
+          cancellationAllowed: true
+          refundOfPayments: false
+        notes: "Can cancel remaining installments but payments already made are kept by DERP"
+
+  # =========================================================================
+  # RULE-PURCHASE-TYPE-GOVERNMENTAL
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-TYPE-GOVERNMENTAL
+    rule_name: "Governmental Service Purchase Type"
+    category: service_purchase
+    description: >
+      Active members may purchase service credit for prior employment
+      with a governmental employer (federal, state, county, city, school
+      district, or special district) where the member was not covered by
+      DERP. Maximum of 5 years purchasable. Requires certification from
+      the prior employer documenting dates of service.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: purchase.serviceType
+        operator: eq
+        value: "governmental"
+      - field: purchase.years
+        operator: lte
+        value: 5.0
+        notes: "Maximum 5 years for governmental service"
+
+    result:
+      type: determination
+      output_fields:
+        - name: isValidPurchaseType
+          type: boolean
+        - name: maxYears
+          type: decimal
+          description: "Always 5.0 for governmental"
+        - name: verificationRequired
+          type: string
+          description: "Employer certification of dates and employment status"
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(b)(1)"
+      verification: CONFIRMED
+      notes: "Governmental service purchase types and limits."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-ELIGIBILITY
+
+    test_cases:
+      - id: TC-PURCHASE-GOV-01
+        description: "Chen — 3 years governmental, under 5-year max"
+        type: happy_path
+        inputs:
+          purchase.serviceType: "governmental"
+          purchase.years: 3.0
+        expected:
+          isValidPurchaseType: true
+          maxYears: 5.0
+
+      - id: TC-PURCHASE-GOV-02
+        description: "Exactly 5 years — at limit"
+        type: boundary
+        inputs:
+          purchase.serviceType: "governmental"
+          purchase.years: 5.0
+        expected:
+          isValidPurchaseType: true
+
+      - id: TC-PURCHASE-GOV-03
+        description: "6 years — exceeds 5-year max"
+        type: negative
+        inputs:
+          purchase.serviceType: "governmental"
+          purchase.years: 6.0
+        expected:
+          isValidPurchaseType: false
+          notes: "Exceeds 5-year maximum for governmental service"
+
+  # =========================================================================
+  # RULE-PURCHASE-TYPE-MILITARY
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-TYPE-MILITARY
+    rule_name: "Military Service Purchase Type"
+    category: service_purchase
+    description: >
+      Active members who served in the United States armed forces may
+      purchase service credit for their period of military service.
+      Maximum of 5 years purchasable. Requires DD-214 (Certificate of
+      Release or Discharge from Active Duty). Only honorable or general
+      discharge qualifies. Active duty only — reserve/guard training
+      weekends do not count unless called to active duty.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: purchase.serviceType
+        operator: eq
+        value: "military"
+      - field: purchase.years
+        operator: lte
+        value: 5.0
+      - field: purchase.dischargeType
+        operator: in
+        value: ["honorable", "general"]
+        notes: "Must have qualifying discharge"
+
+    result:
+      type: determination
+      output_fields:
+        - name: isValidPurchaseType
+          type: boolean
+        - name: maxYears
+          type: decimal
+          description: "Always 5.0 for military"
+        - name: dd214Required
+          type: boolean
+          description: "Always true"
+        - name: dischargeQualifies
+          type: boolean
+
+    source_reference:
+      document: "RMC"
+      section: "§18-415(b)(2)"
+      verification: CONFIRMED
+      notes: "Military service purchase provisions."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-ELIGIBILITY
+
+    test_cases:
+      - id: TC-PURCHASE-MIL-01
+        description: "Honorable discharge, 4 years — eligible"
+        type: happy_path
+        inputs:
+          purchase.serviceType: "military"
+          purchase.years: 4.0
+          purchase.dischargeType: "honorable"
+        expected:
+          isValidPurchaseType: true
+          dd214Required: true
+          dischargeQualifies: true
+
+      - id: TC-PURCHASE-MIL-02
+        description: "Other-than-honorable discharge — NOT eligible"
+        type: negative
+        inputs:
+          purchase.serviceType: "military"
+          purchase.years: 3.0
+          purchase.dischargeType: "other_than_honorable"
+        expected:
+          isValidPurchaseType: false
+          dischargeQualifies: false
+
+  # =========================================================================
+  # RULE-PURCHASE-QUOTE-VALIDITY
+  # =========================================================================
+  - rule_id: RULE-PURCHASE-QUOTE-VALIDITY
+    rule_name: "Service Purchase Cost Quote Validity"
+    category: service_purchase
+    description: >
+      A service purchase cost quote is valid for 90 days from the date
+      of issuance. After 90 days, the cost must be recalculated as the
+      member's age may have changed (affecting the actuarial cost factor)
+      and salary may have changed. The member's current salary at the time
+      of payment initiation is used for the final cost calculation.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: quote.issueDate
+        operator: is_not_null
+
+    result:
+      type: validation
+      output_fields:
+        - name: quoteValid
+          type: boolean
+          description: "Whether the quote is still within 90-day validity window"
+        - name: quoteExpirationDate
+          type: date
+          description: "issueDate + 90 calendar days"
+        - name: daysRemaining
+          type: integer
+          description: "Days left before quote expires"
+        - name: recalculationRequired
+          type: boolean
+          description: "True if quote has expired"
+
+    source_reference:
+      document: "DERP"
+      section: "Administrative practice"
+      verification: CONFIRMED
+      notes: "90-day quote validity is standard pension practice. Protects against salary/age changes."
+
+    effective_date: null
+    end_date: null
+
+    depends_on:
+      - RULE-PURCHASE-COST-FACTOR
+
+    test_cases:
+      - id: TC-PURCHASE-QUOTE-01
+        description: "Quote issued 30 days ago — valid"
+        type: happy_path
+        inputs:
+          quote.issueDate: "2026-01-15"
+          currentDate: "2026-02-14"
+        expected:
+          quoteValid: true
+          quoteExpirationDate: "2026-04-15"
+          daysRemaining: 60
+
+      - id: TC-PURCHASE-QUOTE-02
+        description: "Quote issued 91 days ago — expired"
+        type: boundary
+        inputs:
+          quote.issueDate: "2026-01-15"
+          currentDate: "2026-04-16"
+        expected:
+          quoteValid: false
+          recalculationRequired: true
+
+      - id: TC-PURCHASE-QUOTE-03
+        description: "Quote issued exactly 90 days ago — still valid"
+        type: boundary
+        inputs:
+          quote.issueDate: "2026-01-15"
+          currentDate: "2026-04-15"
+        expected:
+          quoteValid: true
+          daysRemaining: 0

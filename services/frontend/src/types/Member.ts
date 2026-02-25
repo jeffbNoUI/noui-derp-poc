@@ -182,3 +182,50 @@ export interface APIError {
     request_id: string
   }
 }
+
+// ─── Service Purchase Domain Types ──────────────────────────────────────────
+// Used by: purchase-calculator.ts, Stage9ServicePurchase.tsx, demo-data.ts
+// Source: rules/definitions/service-purchase.yaml (8 rules, RMC §18-415)
+
+export interface ServicePurchaseQuote {
+  quote_date: string
+  expiration_date: string
+  member_age: number
+  tier: number
+  service_type: 'governmental' | 'military' | 'leave_of_absence' | 'furlough'
+  years_requested: number
+  prior_employer: string
+  prior_employment_start: string
+  prior_employment_end: string
+  cost_factor: number
+  current_annual_salary: number
+  cost_per_year: number
+  total_cost: number
+  payment_options: {
+    lump_sum: { amount: number; interest: number; total: number }
+    payroll_deduction: {
+      monthly_payment: number
+      number_of_payments: number
+      annual_interest_rate: number
+      total_paid: number
+      interest_cost: number
+    }
+    rollover: { amount: number; tax_impact: string }
+  }
+  benefit_impact: {
+    current_monthly: number
+    projected_monthly: number
+    monthly_increase: number
+    annual_increase: number
+    breakeven_months: number
+    breakeven_years: number
+  }
+  eligibility_exclusion: {
+    rule_of_n_sum_without: number
+    rule_of_n_sum_with: number
+    purchased_excluded: boolean
+  }
+  valid: boolean
+  governing_rules: string[]
+  audit_trail: AuditEntry[]
+}
