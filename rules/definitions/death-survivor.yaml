@@ -1,0 +1,555 @@
+# ============================================================================
+# Category 8: Death & Survivor Benefits
+# ============================================================================
+# Processes triggered by the death of a retired or active member. Covers
+# benefit suspension, death certificate verification, overpayment detection,
+# survivor benefit continuation (J&S), death benefit installments, and the
+# pop-up provision.
+#
+# Source: derp-business-rules-inventory.docx, Category 8
+# Rules: 8
+# ============================================================================
+
+rules:
+
+  # --------------------------------------------------------------------------
+  # RULE-DEATH-NOTIFY: Death Notification and Benefit Suspension
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-DEATH-NOTIFY
+    rule_name: Death Notification and Benefit Suspension
+    category: death_survivor
+    description: >
+      Upon credible notification of a member's death, the system immediately
+      suspends benefit payments pending verification. A death certificate
+      is required for final processing. Suspension does not wait for the
+      certificate — it is protective and immediate.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: notification_received
+        operator: eq
+        value: true
+        description: "Credible notification of death has been received"
+
+    result:
+      type: determination
+      output: benefit_suspension
+      details:
+        immediate_action: "Suspend all benefit payments"
+        certificate_required: true
+        next_step: "Request official death certificate"
+
+    source_reference:
+      document: DERP Operating Procedures
+      section: "Death Processing Protocol"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — death notification received, suspend benefit"
+        inputs:
+          member_id: "10009"
+          notification_date: "2026-03-16"
+          notification_source: "family_member"
+        expected:
+          benefit_suspended: true
+          certificate_required: true
+          status: "SUSPENDED_PENDING_CERT"
+        demo_case_ref: case9-thompson-retired-death
+      - description: "Notification received — immediate suspension"
+        inputs:
+          notification_received: true
+          current_benefit_status: "ACTIVE"
+        expected:
+          new_status: "SUSPENDED"
+          reason: "Death notification received"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.1"
+
+  # --------------------------------------------------------------------------
+  # RULE-OVERPAY-DETECT: Overpayment Detection
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-OVERPAY-DETECT
+    rule_name: Overpayment Detection
+    category: death_survivor
+    description: >
+      Any benefit payment deposited AFTER the member's date of death is an
+      overpayment that must be recovered. Payments deposited on or before
+      the date of death are valid, even if the deposit date equals the
+      death date (payment was issued before death occurred). The system
+      must compare each payment deposit date against the date of death.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: payment_deposit_date
+        operator: gt
+        value: date_of_death
+        description: "Payment deposited strictly AFTER date of death"
+
+    result:
+      type: determination
+      output: overpayment_detected
+      details:
+        recovery_required: true
+        recovery_source: "estate or beneficiary"
+
+    source_reference:
+      document: DERP Operating Procedures
+      section: "Post-Death Payment Recovery"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — March payment deposited March 1, death March 15 — no overpayment"
+        inputs:
+          date_of_death: "2026-03-15"
+          payments:
+            - { deposit_date: "2026-03-01", amount: 3248.00 }
+        expected:
+          overpayment_count: 0
+          overpayment_total: 0.00
+        demo_case_ref: case9-thompson-retired-death
+      - description: "Delayed notification — two payments after death"
+        inputs:
+          date_of_death: "2026-01-10"
+          notification_date: "2026-03-20"
+          payments:
+            - { deposit_date: "2026-01-01", amount: 3248.00 }
+            - { deposit_date: "2026-02-01", amount: 3248.00 }
+            - { deposit_date: "2026-03-01", amount: 3248.00 }
+        expected:
+          overpayment_count: 2
+          overpayment_total: 6496.00
+          valid_payments: 1
+      - description: "Death on payment day — payment is valid"
+        inputs:
+          date_of_death: "2026-03-01"
+          payments:
+            - { deposit_date: "2026-03-01", amount: 3248.00 }
+        expected:
+          overpayment_count: 0
+          overpayment_total: 0.00
+          note: "Same-day payment deposited before death is valid"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.2"
+
+  # --------------------------------------------------------------------------
+  # RULE-SURVIVOR-JS: J&S Survivor Benefit Continuation
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-SURVIVOR-JS
+    rule_name: Joint & Survivor Benefit Continuation
+    category: death_survivor
+    description: >
+      If the deceased member elected a Joint & Survivor payment option,
+      the designated survivor receives the elected percentage of the
+      member's monthly benefit for the survivor's lifetime. 100% J&S:
+      survivor receives the same amount. 75% J&S: survivor receives 75%
+      of member's benefit. 50% J&S: survivor receives 50%.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "member_monthly_benefit * js_percentage"
+      variables:
+        - name: member_monthly_benefit
+          source: "BENEFIT_PAYMENT.GROSS_BENEFIT"
+          description: "Member's monthly benefit at time of death"
+        - name: js_percentage
+          source: "Payment option election (1.00, 0.75, or 0.50)"
+          description: "J&S continuation percentage"
+
+    result:
+      type: calculation
+      output: survivor_monthly_benefit
+      details:
+        duration: "Survivor's lifetime"
+        effective: "First of month following member's death"
+        no_new_beneficiary: true
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)(1)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — 75% J&S, survivor William Thompson"
+        inputs:
+          member_benefit: 3248.00
+          js_percentage: 0.75
+          survivor_name: "William Thompson"
+        expected:
+          survivor_benefit: 2436.00
+          effective_date: "2026-04-01"
+          duration: "lifetime"
+        demo_case_ref: case9-thompson-retired-death
+      - description: "100% J&S — survivor receives full amount"
+        inputs:
+          member_benefit: 5414.15
+          js_percentage: 1.00
+        expected:
+          survivor_benefit: 5414.15
+      - description: "50% J&S — survivor receives half"
+        inputs:
+          member_benefit: 5781.21
+          js_percentage: 0.50
+        expected:
+          survivor_benefit: 2890.61
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.3"
+
+  # --------------------------------------------------------------------------
+  # RULE-DEATH-INSTALLMENTS: Death Benefit Installment Continuation
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-DEATH-INSTALLMENTS
+    rule_name: Death Benefit Installment Continuation
+    category: death_survivor
+    description: >
+      At retirement, member elects death benefit as 50 or 100 monthly
+      installments. Upon death, remaining installments continue to the
+      designated death benefit beneficiary (may differ from J&S survivor).
+      Each installment = lump_sum_death_benefit / number_of_installments.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "remaining = total_installments - installments_paid"
+      variables:
+        - name: total_installments
+          source: "BENEFIT_PAYMENT.DEATH_BEN_ELECT (50 or 100)"
+          description: "Elected number of installments"
+        - name: installments_paid
+          source: "Months from retirement to death"
+          description: "Number of installments already paid"
+        - name: installment_amount
+          source: "death_benefit_lump_sum / total_installments"
+          description: "Per-installment amount"
+
+    result:
+      type: calculation
+      output: remaining_death_benefit
+      details:
+        to_beneficiary: "Designated death benefit beneficiary"
+
+    source_reference:
+      document: RMC
+      section: "§18-411(d)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — 100 installments, 27 paid, 73 remaining"
+        inputs:
+          death_benefit_lump_sum: 5000.00
+          total_installments: 100
+          retirement_date: "2024-01-01"
+          death_date: "2026-03-15"
+        expected:
+          installment_amount: 50.00
+          installments_paid: 27
+          installments_remaining: 73
+          remaining_total: 3650.00
+        demo_case_ref: case9-thompson-retired-death
+      - description: "50-installment election — all paid before death"
+        inputs:
+          death_benefit_lump_sum: 5000.00
+          total_installments: 50
+          retirement_date: "2020-01-01"
+          death_date: "2026-03-15"
+        expected:
+          installment_amount: 100.00
+          installments_paid: 50
+          installments_remaining: 0
+          remaining_total: 0.00
+      - description: "Early retirement reduced death benefit — installments"
+        inputs:
+          death_benefit_lump_sum: 2500.00
+          total_installments: 100
+          retirement_date: "2024-06-01"
+          death_date: "2026-03-15"
+        expected:
+          installment_amount: 25.00
+          installments_paid: 21
+          installments_remaining: 79
+          remaining_total: 1975.00
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.4"
+
+  # --------------------------------------------------------------------------
+  # RULE-MAXIMUM-DEATH: Maximum (Single Life) — Benefit Cessation
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-MAXIMUM-DEATH
+    rule_name: Maximum Benefit Cessation at Death
+    category: death_survivor
+    description: >
+      If the deceased member elected the Maximum (single life annuity)
+      payment option, all monthly benefit payments cease immediately upon
+      death. No survivor benefit is paid. Only the remaining death benefit
+      installments (if any) continue to the designated beneficiary.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: payment_option
+        operator: eq
+        value: "maximum"
+
+    result:
+      type: determination
+      output: benefit_cessation
+      details:
+        monthly_benefit: "Ceases at death"
+        death_benefit_installments: "Continue to designated beneficiary"
+
+    source_reference:
+      document: RMC
+      section: "§18-410(a)"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Maximum election — benefit ceases, installments continue"
+        inputs:
+          payment_option: "maximum"
+          monthly_benefit: 6117.68
+          death_benefit_remaining: 73
+        expected:
+          monthly_to_survivor: 0.00
+          installments_continue: true
+      - description: "Maximum with all installments paid"
+        inputs:
+          payment_option: "maximum"
+          monthly_benefit: 6117.68
+          death_benefit_remaining: 0
+        expected:
+          monthly_to_survivor: 0.00
+          installments_continue: false
+          note: "No ongoing payments of any kind"
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.5"
+
+  # --------------------------------------------------------------------------
+  # RULE-POPUP: Pop-Up Provision
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-POPUP
+    rule_name: Pop-Up Provision (Beneficiary Predeceases Member)
+    category: death_survivor
+    description: >
+      If the J&S beneficiary dies before the member, the member's benefit
+      increases to the Maximum (single life) amount. This is the "pop-up"
+      provision. The increase is prospective — effective the first of the
+      month following the beneficiary's death. The member may NOT designate
+      a new J&S beneficiary.
+    tier_applicability: [1, 2, 3]
+
+    formula:
+      expression: "new_benefit = maximum_benefit"
+      variables:
+        - name: maximum_benefit
+          source: "Original maximum benefit calculated at retirement"
+          description: "The unreduced single-life benefit"
+        - name: current_js_benefit
+          source: "Current J&S-reduced monthly benefit"
+          description: "The reduced amount member has been receiving"
+
+    result:
+      type: calculation
+      output: popup_benefit_increase
+      details:
+        effective: "First of month following beneficiary death"
+        new_beneficiary: "NOT allowed"
+        retroactive: false
+
+    source_reference:
+      document: Retirement Application
+      section: "Page 2 — explicit statement on form"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — what if beneficiary had died first (reference)"
+        inputs:
+          current_js_benefit: 3248.00
+          maximum_benefit: 3750.00
+          beneficiary_death_date: "2025-06-15"
+        expected:
+          new_benefit: 3750.00
+          increase_amount: 502.00
+          effective_date: "2025-07-01"
+          new_js_beneficiary_allowed: false
+      - description: "Pop-up is prospective, not retroactive"
+        inputs:
+          current_js_benefit: 5597.68
+          maximum_benefit: 6117.68
+          beneficiary_death_date: "2030-06-15"
+          notification_date: "2030-07-01"
+        expected:
+          new_benefit: 6117.68
+          effective_date: "2030-07-01"
+          retroactive_adjustment: false
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.6"
+
+  # --------------------------------------------------------------------------
+  # RULE-ACTIVE-DEATH: Active Member Death
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-ACTIVE-DEATH
+    rule_name: Active Member Death Benefits
+    category: death_survivor
+    description: >
+      When an active member dies while employed:
+      - If VESTED (5+ years): Designated beneficiary may elect a survivor
+        annuity based on what the member would have received.
+      - If NOT VESTED (<5 years): Designated beneficiary receives a refund
+        of accumulated employee contributions plus interest.
+      In both cases, the beneficiary receives any applicable death benefit.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: member_status
+        operator: eq
+        value: "active"
+        join: AND
+      - field: death_during_employment
+        operator: eq
+        value: true
+
+    result:
+      type: determination
+      output: active_death_benefit_type
+      details:
+        vested: "Survivor annuity option"
+        non_vested: "Contribution refund"
+
+    source_reference:
+      document: RMC
+      section: "§18-411"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Non-vested active member death — contribution refund"
+        inputs:
+          member_status: "active"
+          service_years: 3.00
+          accumulated_contributions: 45230.00
+          interest: 3214.50
+        expected:
+          benefit_type: "contribution_refund"
+          refund_amount: 48444.50
+          survivor_annuity_available: false
+        demo_case_ref: case10-active-member-death
+      - description: "Vested active member death — survivor annuity available"
+        inputs:
+          member_status: "active"
+          service_years: 12.00
+          accumulated_contributions: 125000.00
+        expected:
+          benefit_type: "survivor_annuity"
+          survivor_annuity_available: true
+          refund_also_available: true
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.7"
+
+  # --------------------------------------------------------------------------
+  # RULE-DEATH-RECORD-TRANSITION: Record Status Transition
+  # --------------------------------------------------------------------------
+  - rule_id: RULE-DEATH-RECORD-TRANSITION
+    rule_name: Death Record Status Transition
+    category: death_survivor
+    description: >
+      The member record transitions through specific statuses during death
+      processing. Upon credible notification: ACTIVE/RETIRED → SUSPENDED.
+      Upon death certificate verification: SUSPENDED → DECEASED.
+      If J&S applies: DECEASED with survivor benefit record created.
+      If Maximum: DECEASED with benefit terminated.
+    tier_applicability: [1, 2, 3]
+
+    conditions:
+      - field: death_certificate_verified
+        operator: eq
+        value: true
+
+    result:
+      type: determination
+      output: status_transition
+      details:
+        notification_received: "SUSPENDED"
+        certificate_verified: "DECEASED"
+        js_applies: "Survivor benefit record created"
+        maximum: "Benefit terminated, installments only"
+
+    source_reference:
+      document: DERP Operating Procedures
+      section: "Member Status Transitions"
+      verification: CONFIRMED
+
+    effective_date: "1999-01-01"
+    end_date: null
+
+    test_cases:
+      - description: "Thompson — retired to suspended to deceased with J&S"
+        inputs:
+          initial_status: "RETIRED"
+          notification_received: true
+          death_certificate_verified: true
+          payment_option: "75_js"
+        expected:
+          status_sequence: ["RETIRED", "SUSPENDED", "DECEASED"]
+          survivor_record_created: true
+        demo_case_ref: case9-thompson-retired-death
+      - description: "Maximum election — no survivor record"
+        inputs:
+          initial_status: "RETIRED"
+          notification_received: true
+          death_certificate_verified: true
+          payment_option: "maximum"
+        expected:
+          status_sequence: ["RETIRED", "SUSPENDED", "DECEASED"]
+          survivor_record_created: false
+          benefit_terminated: true
+
+    governance:
+      version: "1.0.0"
+      certified_by: PENDING
+      certified_date: null
+      inventory_ref: "derp-business-rules-inventory.docx, Section 8.8"

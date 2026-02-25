@@ -26,12 +26,28 @@ func NewRouter(h *Handlers) http.Handler {
 			return
 		}
 
-		// All other endpoints are GET only
+		// Death & survivor POST endpoints
+		if r.Method == http.MethodPost {
+			if len(parts) == 3 && parts[1] == "death" && parts[2] == "notify" {
+				h.PostDeathNotification(w, r)
+				return
+			}
+			if len(parts) == 2 && parts[1] == "survivor-claims" {
+				h.PostSurvivorClaim(w, r)
+				return
+			}
+			// Unrecognized POST — reject
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported for this resource")
+			return
+		}
+
+		// All remaining non-GET methods are rejected
 		if r.Method != http.MethodGet {
 			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported for this resource")
 			return
 		}
 
+		// GET endpoints
 		if len(parts) == 1 && parts[0] != "" {
 			// GET /api/v1/members/{id}
 			h.GetMember(w, r)
@@ -49,6 +65,10 @@ func NewRouter(h *Handlers) http.Handler {
 				h.GetContributions(w, r)
 			case "service-credit":
 				h.GetServiceCredit(w, r)
+			case "death":
+				h.GetDeathRecord(w, r)
+			case "survivor-claims":
+				h.GetSurvivorClaims(w, r)
 			default:
 				WriteError(w, http.StatusNotFound, "NOT_FOUND", "Unknown resource: "+parts[1])
 			}

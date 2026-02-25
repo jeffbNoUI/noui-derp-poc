@@ -54,6 +54,23 @@ func NewRouter(h *Handlers) http.Handler {
 		h.CalculateDRO(w, r)
 	})
 
+	// Death & Survivor APIs
+	mux.HandleFunc("/api/v1/death/process", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is supported")
+			return
+		}
+		h.ProcessDeath(w, r)
+	})
+
+	mux.HandleFunc("/api/v1/survivor/calculate", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is supported")
+			return
+		}
+		h.CalculateSurvivor(w, r)
+	})
+
 	return logMiddleware(mux)
 }
 
