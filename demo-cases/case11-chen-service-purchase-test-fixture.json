@@ -67,11 +67,11 @@
         "total": 20124.00
       },
       "payroll_deduction": {
-        "monthly_payment": 361.56,
+        "monthly_payment": 361.60,
         "number_of_payments": 60,
         "annual_interest_rate": 0.03,
-        "total_paid": 21693.60,
-        "interest_cost": 1569.60
+        "total_paid": 21696.00,
+        "interest_cost": 1572.00
       },
       "rollover": {
         "amount": 20124.00,

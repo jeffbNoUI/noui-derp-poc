@@ -26,6 +26,7 @@ import { WorkflowDashboard } from '@/pages/demos/WorkflowDashboard'
 import { OperationalDashboardPage } from '@/pages/demos/OperationalDashboardPage'
 import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage'
 import { DemoLanding } from '@/pages/DemoLanding'
+import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
 
 export const router = createBrowserRouter([
   {
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
       { path: 'workflow', element: <WorkflowDashboard /> },
       { path: 'operational', element: <OperationalDashboardPage /> },
       { path: 'data-quality', element: <DataQualityDashboardPage /> },
+      { path: 'purchase-explorer', element: <PurchaseExplorer memberId="10011" /> },
     ],
   },
 ])

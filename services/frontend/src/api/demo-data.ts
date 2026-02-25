@@ -9,7 +9,7 @@
 import type {
   Member, EmploymentEvent, SalaryRecord, AMSResult, ServiceCreditSummary,
   Beneficiary, DRORecord, EligibilityResult, BenefitResult,
-  PaymentOptionsResult, ScenarioResult, DROResult, ApplicationIntake,
+  PaymentOptionsResult, ScenarioResult, DROResult, ApplicationIntake, ServicePurchaseQuote,
 } from '@/types/Member'
 
 // ─── Case 1: Robert Martinez — Tier 1, Rule of 75, Leave Payout ─────────────
@@ -460,6 +460,150 @@ const case4Intake: ApplicationIntake = {
   ],
 }
 
+// ─── Case 11: Lisa Chen — Tier 2, Service Purchase (Governmental) ────────────
+// Source: demo-cases/case11-chen-service-purchase-test-fixture.json
+// Tier 2, age 48, hired Oct 1 2005, salary $78,000/yr ($6,500/mo)
+// Purchasing 3.0 years of prior governmental service (State of Colorado)
+
+const case11Member: Member = {
+  member_id: '10011',
+  first_name: 'Lisa',
+  last_name: 'Chen',
+  date_of_birth: '1978-06-22',
+  hire_date: '2005-10-01',
+  tier: 2,
+  status: 'Active',
+  department: 'Finance',
+  position: 'Senior Financial Analyst',
+}
+
+const case11Employment: EmploymentEvent[] = [
+  { event_type: 'hire', effective_date: '2005-10-01', department: 'Finance', position: 'Financial Analyst I' },
+  { event_type: 'promotion', effective_date: '2012-04-01', department: 'Finance', position: 'Financial Analyst II' },
+  { event_type: 'promotion', effective_date: '2018-07-01', department: 'Finance', position: 'Senior Financial Analyst' },
+]
+
+const case11ServiceCredit: ServiceCreditSummary = {
+  total_service_years: 20.33,
+  earned_service_years: 20.33,
+  purchased_service_years: 0,
+  military_service_years: 0,
+  total_for_eligibility: 20.33,
+  total_for_benefit: 20.33,
+}
+
+const case11AMS: AMSResult = {
+  ams_amount: 6500.00,
+  window_months: 36,
+  window_start: '2023-03-01',
+  window_end: '2026-02-28',
+  monthly_salaries: [],
+}
+
+const case11Eligibility: EligibilityResult = {
+  member_id: '10011',
+  retirement_date: '2026-02-15',
+  tier: 2,
+  age_at_retirement: 48,
+  eligible: false,
+  retirement_type: 'not_eligible',
+  rule_of_n_value: 68.33,
+  rule_of_n_threshold: 75,
+  reduction_factor: 1.0,
+  conditions_met: [
+    'Vested: 20.33 years >= 5 years required',
+  ],
+  conditions_unmet: [
+    'Rule of 75: age 48 + earned 20.33 = 68.33 < 75 (purchased service excluded per RMC §18-415(a))',
+    'Minimum early retirement age: 48 < 55',
+    'Normal retirement: age 48 < 65',
+  ],
+  audit_trail: [
+    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 20.33 >= 5.00', source_reference: 'RMC §18-403' },
+    { rule_id: 'RULE-ELIG-075', rule_name: 'Rule of 75', description: 'Age + earned service >= 75', result: 'FAIL: 48 + 20.33 = 68.33 < 75', source_reference: 'RMC §18-408(b)' },
+    { rule_id: 'RULE-ELIG-AGE', rule_name: 'Min Age', description: 'Minimum age 55 for Tier 2', result: 'FAIL: 48 < 55', source_reference: 'RMC §18-409' },
+  ],
+}
+
+const case11Benefit: BenefitResult = {
+  member_id: '10011',
+  retirement_date: '2026-02-15',
+  tier: 2,
+  ams: 6500.00,
+  ams_window_months: 36,
+  service_years_for_benefit: 20.33,
+  multiplier: 0.015,
+  gross_annual_benefit: 23786.10,
+  gross_monthly_benefit: 1982.18,
+  reduction_factor: 1.0,
+  retirement_type: 'projection',
+  net_monthly_benefit: 1982.18,
+  formula_display: '$6,500.00 × 1.50% × 20.33 years = $1,982.18/month',
+  audit_trail: [
+    { rule_id: 'RULE-MULT-002', rule_name: 'Multiplier', description: 'Tier 2 benefit multiplier', result: '1.50%', source_reference: 'RMC §18-408(a)' },
+    { rule_id: 'RULE-CALC-001', rule_name: 'Benefit Formula', description: 'AMS × multiplier × service', result: '$1,982.18 (projected, unreduced)', source_reference: 'RMC §18-408' },
+  ],
+}
+
+// Service purchase quote — values verified against test fixture
+// Cost: 0.0860 x $78,000 x 3.0 = $20,124.00
+// Payroll: 361.60/mo x 60 = $21,696.00 (standard amortization formula)
+// Benefit increase: $292.50/mo, breakeven 69 months
+const case11PurchaseQuote: ServicePurchaseQuote = {
+  quote_date: '2026-02-15',
+  expiration_date: '2026-05-16',
+  member_age: 48,
+  tier: 2,
+  service_type: 'governmental',
+  years_requested: 3.0,
+  prior_employer: 'State of Colorado, Department of Revenue',
+  prior_employment_start: '2002-08-15',
+  prior_employment_end: '2005-09-25',
+  cost_factor: 0.0860,
+  current_annual_salary: 78000.00,
+  cost_per_year: 6708.00,
+  total_cost: 20124.00,
+  payment_options: {
+    lump_sum: { amount: 20124.00, interest: 0.00, total: 20124.00 },
+    payroll_deduction: {
+      monthly_payment: 361.60,
+      number_of_payments: 60,
+      annual_interest_rate: 0.03,
+      total_paid: 21696.00,
+      interest_cost: 1572.00,
+    },
+    rollover: { amount: 20124.00, tax_impact: 'none' },
+  },
+  benefit_impact: {
+    current_monthly: 1982.18,
+    projected_monthly: 2274.68,
+    monthly_increase: 292.50,
+    annual_increase: 3510.00,
+    breakeven_months: 69,
+    breakeven_years: 5.8,
+  },
+  eligibility_exclusion: {
+    rule_of_n_sum_without: 68.33,
+    rule_of_n_sum_with: 68.33,
+    purchased_excluded: true,
+  },
+  valid: true,
+  governing_rules: [
+    'RULE-PURCHASE-ELIGIBILITY',
+    'RULE-PURCHASE-COST-FACTOR',
+    'RULE-PURCHASE-PAYMENT-OPTIONS',
+    'RULE-PURCHASE-BENEFIT-IMPACT',
+    'RULE-PURCHASE-QUOTE-VALIDITY',
+  ],
+  audit_trail: [
+    { rule_id: 'RULE-PURCHASE-ELIGIBILITY', rule_name: 'Purchase Eligibility', description: 'Active, vested, governmental, 3.0 years', result: 'ELIGIBLE', source_reference: 'RMC §18-415(a)' },
+    { rule_id: 'RULE-PURCHASE-COST-FACTOR', rule_name: 'Cost Factor', description: 'T2, age 48 → factor 0.0860', result: '$20,124.00', source_reference: 'RMC §18-415(c)' },
+    { rule_id: 'RULE-PURCHASE-PAYMENT-OPTIONS', rule_name: 'Payment Options', description: 'Lump sum / 60-mo payroll / rollover', result: '3 options presented', source_reference: 'RMC §18-415(d)' },
+    { rule_id: 'RULE-PURCHASE-BENEFIT-IMPACT', rule_name: 'Benefit Impact', description: '+$292.50/mo, breakeven 69 months', result: '$1,982.18 → $2,274.68', source_reference: 'RMC §18-415(a)' },
+    { rule_id: 'RULE-PURCHASE-QUOTE-VALIDITY', rule_name: 'Quote Validity', description: '90-day window from Feb 15 2026', result: 'Valid until May 16 2026', source_reference: 'DERP Admin Practice' },
+  ],
+}
+
 // ─── Demo Data Registry ──────────────────────────────────────────────────────
 
 const DEMO_MEMBERS: Record<string, Member> = {
@@ -467,6 +611,7 @@ const DEMO_MEMBERS: Record<string, Member> = {
   '10002': case2Member,
   '10003': case3Member,
   '10004': case1Member,
+  '10011': case11Member,
 }
 
 const DEMO_EMPLOYMENT: Record<string, EmploymentEvent[]> = {
@@ -474,6 +619,7 @@ const DEMO_EMPLOYMENT: Record<string, EmploymentEvent[]> = {
   '10002': case2Employment,
   '10003': case3Employment,
   '10004': case1Employment,
+  '10011': case11Employment,
 }
 
 const DEMO_SERVICE_CREDIT: Record<string, ServiceCreditSummary> = {
@@ -481,6 +627,7 @@ const DEMO_SERVICE_CREDIT: Record<string, ServiceCreditSummary> = {
   '10002': case2ServiceCredit,
   '10003': case3ServiceCredit,
   '10004': case1ServiceCredit,
+  '10011': case11ServiceCredit,
 }
 
 const DEMO_AMS: Record<string, AMSResult> = {
@@ -488,6 +635,7 @@ const DEMO_AMS: Record<string, AMSResult> = {
   '10002': case2AMS,
   '10003': case3AMS,
   '10004': case1AMS,
+  '10011': case11AMS,
 }
 
 const DEMO_ELIGIBILITY: Record<string, EligibilityResult> = {
@@ -495,6 +643,7 @@ const DEMO_ELIGIBILITY: Record<string, EligibilityResult> = {
   '10002': case2Eligibility,
   '10003': case3Eligibility,
   '10004': case1Eligibility,
+  '10011': case11Eligibility,
 }
 
 const DEMO_BENEFIT: Record<string, BenefitResult> = {
@@ -502,6 +651,7 @@ const DEMO_BENEFIT: Record<string, BenefitResult> = {
   '10002': case2Benefit,
   '10003': case3Benefit,
   '10004': case1Benefit,
+  '10011': case11Benefit,
 }
 
 const DEMO_PAYMENT_OPTIONS: Record<string, PaymentOptionsResult> = {
@@ -534,6 +684,10 @@ const DEMO_INTAKE: Record<string, ApplicationIntake> = {
   '10002': case2Intake,
   '10003': case3Intake,
   '10004': case4Intake,
+}
+
+const DEMO_PURCHASE_QUOTES: Record<string, ServicePurchaseQuote> = {
+  '10011': case11PurchaseQuote,
 }
 
 // ─── Scenario Calculator (deterministic rules engine simulation) ──────────
@@ -730,6 +884,12 @@ export const demoApi = {
     const d = DEMO_DRO_RESULT[memberId]
     if (!d) return Promise.reject(new Error(`No DRO for ${memberId}`))
     return delay(d)
+  },
+
+  getPurchaseQuote: (memberId: string) => {
+    const q = DEMO_PURCHASE_QUOTES[memberId]
+    if (!q) return Promise.reject(new Error(`No purchase quote for ${memberId}. Try 10011.`))
+    return delay(q)
   },
 
   saveElection: (election: {

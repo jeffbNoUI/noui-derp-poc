@@ -7,7 +7,7 @@
  * Depends on: DeathStageProps, theme (C, fmt), Field, Badge
  */
 import type { DeathStageProps } from './DeathStageProps.ts'
-import { C, fmt } from '@/theme.ts'
+import { C, fmt } from '@/theme'
 import { Field } from '@/components/shared/Field.tsx'
 import { Badge } from '@/components/shared/Badge.tsx'
 

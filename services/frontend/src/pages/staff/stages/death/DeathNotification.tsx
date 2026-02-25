@@ -7,7 +7,7 @@
  * Depends on: DeathStageProps, theme (C), Field
  */
 import type { DeathStageProps } from './DeathStageProps.ts'
-import { C } from '@/theme.ts'
+import { C } from '@/theme'
 import { Field } from '@/components/shared/Field.tsx'
 
 export function DeathNotification({ member: m, deathRecord: dr, processingSummary: ps }: DeathStageProps) {

@@ -8,7 +8,7 @@
  * Depends on: DeathStageProps, theme (C, fmt), Field
  */
 import type { DeathStageProps } from './DeathStageProps.ts'
-import { C, fmt } from '@/theme.ts'
+import { C, fmt } from '@/theme'
 import { Field } from '@/components/shared/Field.tsx'
 
 export function SurvivorBenefitCalc({ survivorBenefit, activeMemberDeath, processingSummary: ps }: DeathStageProps) {

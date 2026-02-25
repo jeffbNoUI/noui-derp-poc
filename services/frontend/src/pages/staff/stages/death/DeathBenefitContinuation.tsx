@@ -7,7 +7,7 @@
  * Depends on: DeathStageProps, theme (C, fmt), Field
  */
 import type { DeathStageProps } from './DeathStageProps.ts'
-import { C, fmt } from '@/theme.ts'
+import { C, fmt } from '@/theme'
 import { Field } from '@/components/shared/Field.tsx'
 // Badge colors are passed as props to Field component's badge parameter
 
