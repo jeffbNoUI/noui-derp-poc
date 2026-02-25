@@ -351,7 +351,9 @@ func (q *Queries) GetContributionSummary(memberID string) (*models.ContributionS
 		ORDER BY CONTRIB_DT DESC
 		LIMIT 1
 	`, memberID)
-	row2.Scan(&s.CurrentEmplBal, &s.CurrentEmprBal, &s.InterestBalance)
+	if err := row2.Scan(&s.CurrentEmplBal, &s.CurrentEmprBal, &s.InterestBalance); err != nil && err != sql.ErrNoRows {
+		return nil, fmt.Errorf("query latest balances %s: %w", memberID, err)
+	}
 
 	return s, nil
 }

@@ -183,7 +183,7 @@ func logMiddleware(next http.Handler) http.Handler {
 		sw := &statusWriter{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(sw, r)
 		reqID := RequestIDFromContext(r.Context())
-		log.Printf(`{"requestId":"%s","method":"%s","path":"%s","status":%d,"duration":"%v"}`,
+		log.Printf(`{"requestId":%q,"method":%q,"path":%q,"status":%d,"duration":%q}`,
 			reqID, r.Method, r.URL.Path, sw.status, time.Since(start))
 	})
 }

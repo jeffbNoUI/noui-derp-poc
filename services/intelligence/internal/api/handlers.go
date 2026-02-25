@@ -87,6 +87,7 @@ func (h *Handlers) EvaluateEligibility(w http.ResponseWriter, r *http.Request) {
 		retDateStr = r.URL.Query().Get("retirementDate")
 	} else {
 		// POST: decode JSON body
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		var req models.EligibilityRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON body")
@@ -141,6 +142,7 @@ func (h *Handlers) CalculateBenefit(w http.ResponseWriter, r *http.Request) {
 		memberID = extractPathParam(r.URL.Path, "/api/v1/benefit/")
 		retDateStr = r.URL.Query().Get("retirementDate")
 	} else {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		var req models.BenefitRequest
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON body")
@@ -231,6 +233,7 @@ func (h *Handlers) CalculatePaymentOptions(w http.ResponseWriter, r *http.Reques
 		req.MemberID = extractPathParam(r.URL.Path, "/api/v1/benefit/options/")
 		req.RetirementDate = r.URL.Query().Get("retirementDate")
 	} else {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON body")
 			return
@@ -355,6 +358,7 @@ func (h *Handlers) CalculateScenario(w http.ResponseWriter, r *http.Request) {
 		whatIfDates := r.URL.Query()["what_if_retirement_date"]
 		req.RetirementDates = append(req.RetirementDates, whatIfDates...)
 	} else {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON body")
 			return
@@ -596,6 +600,7 @@ func (h *Handlers) CalculateDRO(w http.ResponseWriter, r *http.Request) {
 		req.MemberID = extractPathParam(r.URL.Path, "/api/v1/dro/")
 		req.RetirementDate = r.URL.Query().Get("retirementDate")
 	} else {
+		r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid JSON body")
 			return

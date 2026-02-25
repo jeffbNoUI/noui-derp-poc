@@ -312,8 +312,8 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
 
   // Show profile rail at expanded+ breakpoint (Z3 Context zone — §2.2)
   const showProfileRail = !isKiosk && (tier === 'expanded' || tier === 'full')
-  // Show utility rail at full breakpoint (Z5 Actions zone — §2.2)
-  const showUtilityRail = !isKiosk && tier === 'full'
+  // Show utility rail at expanded+ breakpoint (Z5 Actions zone — §2.2)
+  const showUtilityRail = !isKiosk && (tier === 'expanded' || tier === 'full')
   // Compact tier hides LearningModule / LiveSummary inline, shows overlay toggle
   const isCompact = tier === 'compact'
 
@@ -542,8 +542,8 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
           </>
         )}
 
-        {/* Utility rail — ultra tier */}
-        {showUtilityRail && <UtilityRail {...utilityRailProps} />}
+        {/* Utility rail — expanded+ tier (collapsed by default at expanded, open at full) */}
+        {showUtilityRail && <UtilityRail {...utilityRailProps} defaultCollapsed={tier === 'expanded'} />}
       </div>
 
       {/* Compact overlay — slide-in LearningModule / LiveSummary at narrow widths */}

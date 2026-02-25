@@ -11,12 +11,14 @@ import { Badge } from '@/components/shared/Badge'
 function SummaryRow({ label, value, color }: { label: string; value: string; color?: string }) {
   return (
     <div style={{
-      display: 'flex', alignItems: 'center', padding: '6px 0',
+      display: 'grid', gridTemplateColumns: '50% 1fr',
+      alignItems: 'center', padding: '6px 0',
       borderBottom: `1px solid ${C.borderSubtle}`,
     }}>
-      <span style={{ color: C.textSecondary, fontSize: '12.5px', width: '50%' }}>{label}</span>
+      <span style={{ color: C.textSecondary, fontSize: '12.5px' }}>{label}</span>
       <span style={{
-        color: color || C.text, fontFamily: 'monospace', fontSize: '13px', fontWeight: 600,
+        color: color || C.text, fontFamily: 'monospace', fontSize: '13px',
+        fontWeight: 600, textAlign: 'right' as const,
       }}>{value}</span>
     </div>
   )

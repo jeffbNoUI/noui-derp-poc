@@ -21,6 +21,7 @@ interface UtilityRailProps {
   serviceCredit?: ServiceCreditSummary
   retirementDate?: string
   electedOption?: string
+  defaultCollapsed?: boolean
 }
 
 // Stages that default to Correspondence tab
@@ -32,9 +33,10 @@ function getDefaultTab(stageId: string): Tab {
 
 export function UtilityRail({
   currentStageId, memberId, member, eligibility, benefit, serviceCredit, retirementDate, electedOption,
+  defaultCollapsed = false,
 }: UtilityRailProps) {
   const [tab, setTab] = useState<Tab>(getDefaultTab(currentStageId))
-  const [collapsed, setCollapsed] = useState(false)
+  const [collapsed, setCollapsed] = useState(defaultCollapsed)
 
   // Auto-switch default when stage changes
   useEffect(() => {

@@ -47,8 +47,9 @@ func main() {
 	if err != nil {
 		log.Printf("WARNING: Failed to load rules from %s: %v (continuing with embedded tables)", rulesDir, err)
 	} else {
-		log.Printf("Rules loaded: %d rules across %d categories", len(ruleSet.Rules), len(ruleSet.ByCategory))
+		log.Printf("Rules loaded: %d rules across %d categories (validation reference)", len(ruleSet.Rules), len(ruleSet.ByCategory))
 	}
+	_ = ruleSet // Rules loaded for validation/logging; handlers use embedded statutory tables
 
 	// Create connector client
 	conn := connector.NewClient()

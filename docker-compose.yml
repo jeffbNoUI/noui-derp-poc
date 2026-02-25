@@ -57,7 +57,9 @@ services:
       CONNECTOR_URL: http://connector:8081
       PORT: "8082"
     depends_on:
-      - connector
+      connector:
+        condition: service_started
+    restart: on-failure
 
 volumes:
   pgdata:

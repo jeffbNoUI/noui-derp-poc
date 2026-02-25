@@ -8,32 +8,32 @@ package rules
 // Early retirement reduction factors by age — statutory tables from RMC §18-409(b).
 // These are NOT formulas. They are the exact values from the Revised Municipal Code.
 
-// EarlyRetReductionT12 contains reduction factors for Tiers 1 & 2.
+// earlyRetReductionT12 contains reduction factors for Tiers 1 & 2.
 // 3% per year under 65. Source: RMC §18-409(b)
-var EarlyRetReductionT12 = map[int]float64{
+var earlyRetReductionT12 = map[int]float64{
 	55: 0.70, 56: 0.73, 57: 0.76, 58: 0.79, 59: 0.82,
 	60: 0.85, 61: 0.88, 62: 0.91, 63: 0.94, 64: 0.97,
 	65: 1.00,
 }
 
-// EarlyRetReductionT3 contains reduction factors for Tier 3.
+// earlyRetReductionT3 contains reduction factors for Tier 3.
 // 6% per year under 65. Source: RMC §18-409(b)
-var EarlyRetReductionT3 = map[int]float64{
+var earlyRetReductionT3 = map[int]float64{
 	60: 0.70, 61: 0.76, 62: 0.82, 63: 0.88, 64: 0.94,
 	65: 1.00,
 }
 
-// DeathBenefitT12 contains lump-sum death benefit amounts for Tiers 1 & 2.
+// deathBenefitT12 contains lump-sum death benefit amounts for Tiers 1 & 2.
 // $5,000 base, reduced by $250 per year under 65. Source: RMC §18-411(d)
-var DeathBenefitT12 = map[int]float64{
+var deathBenefitT12 = map[int]float64{
 	55: 2500, 56: 2750, 57: 3000, 58: 3250, 59: 3500,
 	60: 3750, 61: 4000, 62: 4250, 63: 4500, 64: 4750,
 	65: 5000,
 }
 
-// DeathBenefitT3 contains lump-sum death benefit amounts for Tier 3.
+// deathBenefitT3 contains lump-sum death benefit amounts for Tier 3.
 // $5,000 base, reduced by $500 per year under 65. Source: RMC §18-411(d)
-var DeathBenefitT3 = map[int]float64{
+var deathBenefitT3 = map[int]float64{
 	60: 2500, 61: 3000, 62: 3500, 63: 4000, 64: 4500,
 	65: 5000,
 }
@@ -83,9 +83,9 @@ func ReductionFactor(tier, age int) float64 {
 
 	var table map[int]float64
 	if tier == 3 {
-		table = EarlyRetReductionT3
+		table = earlyRetReductionT3
 	} else {
-		table = EarlyRetReductionT12
+		table = earlyRetReductionT12
 	}
 
 	factor, ok := table[age]
@@ -104,9 +104,9 @@ func DeathBenefitAmount(tier, age int, isNormalOrRuleOfN bool) float64 {
 
 	var table map[int]float64
 	if tier == 3 {
-		table = DeathBenefitT3
+		table = deathBenefitT3
 	} else {
-		table = DeathBenefitT12
+		table = deathBenefitT12
 	}
 
 	amount, ok := table[age]

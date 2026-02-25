@@ -18,6 +18,9 @@ export default defineConfig({
       '/api/v1/benefit': 'http://localhost:8082',
       '/api/v1/dro': 'http://localhost:8082',
       '/api/v1/composition': 'http://localhost:8082',
+      '/api/v1/retirement-estimate': 'http://localhost:8082',
+      '/api/v1/scenario': 'http://localhost:8082',
+      '/api/v1/data-quality': 'http://localhost:8082',
     },
   },
 })

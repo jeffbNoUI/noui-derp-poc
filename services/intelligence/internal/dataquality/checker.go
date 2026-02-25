@@ -5,6 +5,7 @@ package dataquality
 import (
 	"fmt"
 	"math"
+	"sync/atomic"
 	"time"
 )
 
@@ -110,12 +111,12 @@ type CheckInput struct {
 	TierRecords            []TierRecord
 }
 
-var findingSeq int
+var findingSeq atomic.Int64
 
 func newFinding(cat Category, sev Severity, memberID, desc, resolution string, details map[string]string) Finding {
-	findingSeq++
+	seq := findingSeq.Add(1)
 	return Finding{
-		ID:                 fmt.Sprintf("DQ-%06d", findingSeq),
+		ID:                 fmt.Sprintf("DQ-%06d", seq),
 		Category:           cat,
 		Severity:           sev,
 		MemberID:           memberID,

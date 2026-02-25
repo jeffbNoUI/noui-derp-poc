@@ -29,36 +29,6 @@ const SHORT_LABELS: Record<string, string> = {
   'review-certify': 'Review',
 }
 
-// ─── Chevron Arrow Button ─────────────────────────────────────
-
-function ChevronButton({ direction, onClick, visible }: {
-  direction: 'prev' | 'next'; onClick: () => void; visible: boolean
-}) {
-  const [hovered, setHovered] = useState(false)
-  if (!visible) return <div style={{ width: '32px', flexShrink: 0 }} />
-
-  return (
-    <button
-      onClick={onClick}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      aria-label={direction === 'prev' ? 'Previous stage' : 'Next stage'}
-      style={{
-        width: '32px', flexShrink: 0, display: 'flex',
-        alignItems: 'center', justifyContent: 'center',
-        background: hovered ? C.accentMuted : 'transparent',
-        border: `1px solid ${hovered ? C.accent : C.border}`,
-        borderRadius: '8px', cursor: 'pointer',
-        color: hovered ? C.accent : C.textMuted,
-        fontSize: '16px', fontWeight: 600,
-        transition: 'all 0.2s ease',
-      }}
-    >
-      {direction === 'prev' ? '\u2039' : '\u203A'}
-    </button>
-  )
-}
-
 // ─── Peek Card (flat, always readable) ────────────────────────
 
 function PeekCard({ stage, isDone, signal, side, onClick }: {
@@ -398,13 +368,6 @@ export function StageNav({
         gap: '6px', padding: '8px 6px 0',
         overflow: 'hidden', minHeight: 0,
       }}>
-        {/* Left chevron */}
-        <ChevronButton
-          direction="prev"
-          onClick={goPrev}
-          visible={!!prevStage}
-        />
-
         {/* Previous peek card */}
         {prevStage ? (
           <PeekCard
@@ -444,12 +407,6 @@ export function StageNav({
           <div style={{ width: '12px', flexShrink: 0 }} />
         )}
 
-        {/* Right chevron */}
-        <ChevronButton
-          direction="next"
-          onClick={goNext}
-          visible={!!nextStage}
-        />
       </div>
 
       {/* Labeled pill navigation */}

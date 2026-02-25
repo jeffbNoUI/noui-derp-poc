@@ -534,9 +534,10 @@ func (h *Handlers) SaveElection(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	var election models.RetirementElection
 	if err := json.NewDecoder(r.Body).Decode(&election); err != nil {
-		WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body: "+err.Error())
+		WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body")
 		return
 	}
 	election.MemberID = memberID
@@ -553,7 +554,8 @@ func (h *Handlers) SaveElection(w http.ResponseWriter, r *http.Request) {
 	caseID, err := h.q.SaveRetirementElection(&election)
 	if err != nil {
 		log.Printf("ERROR: SaveRetirementElection(%s): %v", memberID, err)
-		WriteError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save election: "+err.Error())
+		log.Printf("ERROR: SaveRetirementElection(%s): internal: %v", memberID, err)
+		WriteError(w, r, http.StatusInternalServerError, "INTERNAL_ERROR", "Failed to save election")
 		return
 	}
 

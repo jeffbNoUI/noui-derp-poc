@@ -31,7 +31,7 @@ export function ComparisonField({
       <span style={{ color: C.textSecondary, fontSize: '11.5px' }}>{label}</span>
       <span style={{
         color: C.text, fontWeight: 600, fontSize: '12px',
-        fontFamily: "'SF Mono', monospace",
+        fontFamily: "'SF Mono', monospace", textAlign: 'right' as const,
       }}>{left}</span>
       <span style={{
         color: deltaColor, fontSize: '8px', textAlign: 'center' as const,
@@ -39,7 +39,7 @@ export function ComparisonField({
       }}>{deltaIcon}</span>
       <span style={{
         color: C.text, fontWeight: 600, fontSize: '12px',
-        fontFamily: "'SF Mono', monospace",
+        fontFamily: "'SF Mono', monospace", textAlign: 'right' as const,
       }}>{right}</span>
     </div>
   )

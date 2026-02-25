@@ -121,7 +121,8 @@ export function mapDRORecords(raw: Record<string, unknown>): DRORecord[] {
  * TS expects: eligible, rule_of_n_value, conditions_met[], conditions_unmet[], audit_trail[].
  */
 export function mapEligibility(raw: Record<string, unknown>, retirementDate: string): EligibilityResult {
-  const retType = String(raw.retirement_type ?? 'not_eligible')
+  // Intelligence service returns camelCase; support both conventions
+  const retType = String(raw.retirement_type ?? raw.retirementType ?? 'not_eligible')
   const eligible = retType !== 'not_eligible' && retType !== 'deferred'
 
   // Build conditions_met / conditions_unmet from bool flags
@@ -131,25 +132,35 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
   if (raw.vested) met.push('Vested (5+ years)')
   else unmet.push('Vested (5+ years)')
 
-  if (raw.normal_retirement_eligible) met.push('Normal retirement age (65)')
+  const normalElig = raw.normal_retirement_eligible ?? raw.normalRetirementEligible
+  if (normalElig) met.push('Normal retirement age (65)')
   else unmet.push('Normal retirement age (65)')
 
-  const ruleApplicable = String(raw.rule_of_n_applicable ?? '')
+  const ruleApplicable = String(raw.rule_of_n_applicable ?? raw.ruleOfNApplicable ?? '')
+  const ruleQualifies = raw.rule_of_n_qualifies ?? raw.ruleOfNQualifies
+  const ruleMinAge = raw.rule_of_n_min_age_met ?? raw.ruleOfNMinAgeMet
   if (ruleApplicable) {
     const label = `Rule of ${ruleApplicable}`
-    if (raw.rule_of_n_qualifies && raw.rule_of_n_min_age_met) met.push(label)
+    if (ruleQualifies && ruleMinAge) met.push(label)
     else unmet.push(label)
   }
 
-  if (raw.early_retirement_eligible) met.push('Early retirement eligible')
-  else if (Number(raw.age_at_retirement ?? 0) >= 55) unmet.push('Early retirement eligible')
+  const earlyElig = raw.early_retirement_eligible ?? raw.earlyRetirementEligible
+  const ageAtRet = Number(raw.age_at_retirement ?? raw.ageAtRetirement ?? 0)
+  if (earlyElig) met.push('Early retirement eligible')
+  else if (ageAtRet >= 55) unmet.push('Early retirement eligible')
+
+  const totalSvcYears = Number(raw.total_service_years ?? raw.totalServiceYears ?? 0)
+  const ruleOfNSum = raw.rule_of_n_sum ?? raw.ruleOfNSum
+  const reductionPct = Number(raw.early_retirement_reduction_percent ?? raw.earlyRetirementReductionPercent ?? 0)
+  const reductionFactor = Number(raw.reduction_factor ?? raw.reductionFactor ?? 1)
 
   // Build audit trail from the raw flags
   const audit: AuditEntry[] = []
   audit.push({
     rule_id: 'ELIG-VEST',
     rule_name: 'Vesting',
-    description: `Vested: ${raw.vested ? 'Yes' : 'No'} (${Number(raw.total_service_years ?? 0).toFixed(2)} years)`,
+    description: `Vested: ${raw.vested ? 'Yes' : 'No'} (${totalSvcYears.toFixed(2)} years)`,
     result: raw.vested ? 'PASS' : 'FAIL',
     source_reference: 'RMC §18-403',
   })
@@ -157,33 +168,33 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
     audit.push({
       rule_id: `ELIG-RULE-${ruleApplicable}`,
       rule_name: `Rule of ${ruleApplicable}`,
-      description: `Sum: ${Number(raw.rule_of_n_sum ?? 0).toFixed(2)}, min age met: ${raw.rule_of_n_min_age_met ? 'Yes' : 'No'}`,
-      result: raw.rule_of_n_qualifies && raw.rule_of_n_min_age_met ? 'PASS' : 'FAIL',
+      description: `Sum: ${Number(ruleOfNSum ?? 0).toFixed(2)}, min age met: ${ruleMinAge ? 'Yes' : 'No'}`,
+      result: ruleQualifies && ruleMinAge ? 'PASS' : 'FAIL',
       source_reference: `RMC §18-404`,
     })
   }
   audit.push({
     rule_id: 'ELIG-REDUCTION',
     rule_name: 'Early Retirement Reduction',
-    description: `Reduction: ${Number(raw.early_retirement_reduction_percent ?? 0)}%, factor: ${Number(raw.reduction_factor ?? 1)}`,
+    description: `Reduction: ${reductionPct}%, factor: ${reductionFactor}`,
     result: 'INFO',
     source_reference: 'RMC §18-409(b)',
   })
 
-  // Determine rule_of_n_value — Go returns rule_of_n_sum
-  const ruleOfNValue = raw.rule_of_n_sum != null ? Number(raw.rule_of_n_sum) : undefined
+  // Determine rule_of_n_value — Go returns ruleOfNSum (camelCase) or rule_of_n_sum
+  const ruleOfNValue = ruleOfNSum != null ? Number(ruleOfNSum) : undefined
   const ruleOfNThreshold = ruleApplicable ? Number(ruleApplicable) : undefined
 
   return {
-    member_id: fromBackendId(String(raw.member_id ?? '')),
+    member_id: fromBackendId(String(raw.member_id ?? raw.memberId ?? '')),
     retirement_date: retirementDate,
     tier: Number(raw.tier ?? 0),
-    age_at_retirement: Number(raw.age_at_retirement ?? 0),
+    age_at_retirement: ageAtRet,
     eligible,
     retirement_type: retType,
     rule_of_n_value: ruleOfNValue,
     rule_of_n_threshold: ruleOfNThreshold,
-    reduction_factor: Number(raw.reduction_factor ?? 1),
+    reduction_factor: reductionFactor,
     conditions_met: met,
     conditions_unmet: unmet,
     audit_trail: audit,
@@ -197,20 +208,21 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
  * TS expects: ams (number), net_monthly_benefit, gross_annual/monthly, audit_trail[].
  */
 export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
-  // AMS is nested under ams_calculation in Go
-  const amsObj = (raw.ams_calculation ?? {}) as Record<string, unknown>
-  const amsValue = Number(amsObj.ams ?? raw.ams ?? 0)
-  const amsWindowMonths = Number(amsObj.window_months ?? raw.ams_window_months ?? 0)
+  // Intelligence service returns camelCase; support both conventions
+  // AMS is nested under ams_calculation (snake) or amsCalculation (camel) in Go
+  const amsObj = (raw.ams_calculation ?? raw.amsCalculation ?? {}) as Record<string, unknown>
+  const amsValue = Number(amsObj.ams ?? amsObj.amount ?? raw.ams ?? 0)
+  const amsWindowMonths = Number(amsObj.window_months ?? amsObj.windowMonths ?? raw.ams_window_months ?? 0)
 
   const multiplier = Number(raw.multiplier ?? 0)
-  const serviceYears = Number(raw.service_years_for_benefit ?? 0)
-  const reductionFactor = Number(raw.reduction_factor ?? 1)
-  const retirementType = String(raw.retirement_type ?? '')
+  const serviceYears = Number(raw.service_years_for_benefit ?? raw.serviceYearsForBenefit ?? 0)
+  const reductionFactor = Number(raw.reduction_factor ?? raw.reductionFactor ?? 1)
+  const retirementType = String(raw.retirement_type ?? raw.retirementType ?? '')
 
-  // Go has unreduced_monthly_benefit, reduced_monthly_benefit, maximum_monthly_benefit
-  const unreducedMonthly = Number(raw.unreduced_monthly_benefit ?? 0)
-  const reducedMonthly = Number(raw.reduced_monthly_benefit ?? raw.maximum_monthly_benefit ?? 0)
-  const maxMonthly = Number(raw.maximum_monthly_benefit ?? reducedMonthly)
+  // Go has unreducedMonthlyBenefit, reducedMonthlyBenefit, maximumMonthlyBenefit (camelCase)
+  const unreducedMonthly = Number(raw.unreduced_monthly_benefit ?? raw.unreducedMonthlyBenefit ?? 0)
+  const reducedMonthly = Number(raw.reduced_monthly_benefit ?? raw.reducedMonthlyBenefit ?? raw.maximum_monthly_benefit ?? raw.maximumMonthlyBenefit ?? 0)
+  const maxMonthly = Number(raw.maximum_monthly_benefit ?? raw.maximumMonthlyBenefit ?? reducedMonthly)
 
   const grossMonthly = unreducedMonthly || (amsValue * multiplier * serviceYears / 12)
   const grossAnnual = grossMonthly * 12
@@ -218,27 +230,27 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
   // Formula string
   const formula = String(raw.formula ?? `$${amsValue.toFixed(2)} × ${(multiplier * 100).toFixed(1)}% × ${serviceYears.toFixed(2)} years`)
 
-  // Map IPR — Go has different field names
+  // Map IPR — Go returns camelCase field names
+  const iprObj = raw.ipr as Record<string, unknown> | undefined
   let ipr: IPRResult | undefined
-  if (raw.ipr) {
-    const i = raw.ipr as Record<string, unknown>
+  if (iprObj) {
     ipr = {
-      annual_amount: Number(i.pre_medicare_monthly ?? 0) * 12,
-      monthly_amount: Number(i.pre_medicare_monthly ?? 0),
-      rate_per_year: Number(i.pre_medicare_rate ?? 0),
-      eligible_service_years: Number(i.service_years_for_ipr ?? 0),
+      annual_amount: Number(iprObj.pre_medicare_monthly ?? iprObj.preMedicareMonthly ?? 0) * 12,
+      monthly_amount: Number(iprObj.pre_medicare_monthly ?? iprObj.preMedicareMonthly ?? 0),
+      rate_per_year: Number(iprObj.pre_medicare_rate ?? iprObj.preMedicareRate ?? 0),
+      eligible_service_years: Number(iprObj.service_years_for_ipr ?? iprObj.serviceYearsForIpr ?? 0),
       medicare_eligible: false,
     }
   }
 
-  // Map death benefit
+  // Map death benefit — Go returns deathBenefit (camelCase)
+  const dbObj = (raw.death_benefit ?? raw.deathBenefit) as Record<string, unknown> | undefined
   let deathBenefit: DeathBenefitResult | undefined
-  if (raw.death_benefit) {
-    const db = raw.death_benefit as Record<string, unknown>
+  if (dbObj) {
     deathBenefit = {
-      amount: Number(db.lump_sum_amount ?? db.amount ?? 0),
-      tier: Number(db.tier ?? raw.tier ?? 0),
-      retirement_type: String(db.retirement_type ?? retirementType),
+      amount: Number(dbObj.lump_sum_amount ?? dbObj.lumpSumAmount ?? dbObj.amount ?? 0),
+      tier: Number(dbObj.tier ?? raw.tier ?? 0),
+      retirement_type: String(dbObj.retirement_type ?? dbObj.retirementType ?? retirementType),
     }
   }
 
@@ -269,8 +281,8 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
   }
 
   return {
-    member_id: fromBackendId(String(raw.member_id ?? '')),
-    retirement_date: String(raw.retirement_date ?? ''),
+    member_id: fromBackendId(String(raw.member_id ?? raw.memberId ?? '')),
+    retirement_date: String(raw.retirement_date ?? raw.retirementDate ?? ''),
     tier: Number(raw.tier ?? 0),
     ams: amsValue,
     ams_window_months: amsWindowMonths,
@@ -295,9 +307,9 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
  * TS expects {base_monthly_benefit, options: PaymentOption[]}.
  */
 export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsResult {
-  // The Go handler wraps in payment_options
-  const po = (raw.payment_options ?? raw) as Record<string, unknown>
-  const baseBenefit = Number(po.base_benefit ?? po.base_monthly_benefit ?? 0)
+  // Intelligence handler wraps in {"paymentOptions": ..., "dro": ...} (camelCase)
+  const po = (raw.payment_options ?? raw.paymentOptions ?? raw) as Record<string, unknown>
+  const baseBenefit = Number(po.base_benefit ?? po.baseBenefit ?? po.base_monthly_benefit ?? 0)
 
   const options: PaymentOption[] = []
 
@@ -305,28 +317,28 @@ export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsR
   const max = po.maximum as Record<string, unknown> | undefined
   if (max) {
     options.push({
-      option_name: 'Maximum',
+      option_name: String(max.name ?? 'Maximum'),
       option_type: 'maximum',
-      monthly_amount: Number(max.monthly_benefit ?? 0),
+      monthly_amount: Number(max.monthly_benefit ?? max.monthlyBenefit ?? 0),
       reduction_factor: Number(max.factor ?? 1),
       description: 'Maximum monthly benefit with no survivor benefit',
     })
   }
 
-  // J&S options
-  for (const [key, label, pct] of [
-    ['joint_survivor_100', 'Joint & 100% Survivor', 100],
-    ['joint_survivor_75', 'Joint & 75% Survivor', 75],
-    ['joint_survivor_50', 'Joint & 50% Survivor', 50],
+  // J&S options — intelligence uses camelCase keys (jointSurvivor100, etc.)
+  for (const [snakeKey, camelKey, label, pct] of [
+    ['joint_survivor_100', 'jointSurvivor100', 'Joint & 100% Survivor', 100],
+    ['joint_survivor_75', 'jointSurvivor75', 'Joint & 75% Survivor', 75],
+    ['joint_survivor_50', 'jointSurvivor50', 'Joint & 50% Survivor', 50],
   ] as const) {
-    const opt = po[key] as Record<string, unknown> | null | undefined
+    const opt = (po[snakeKey] ?? po[camelKey]) as Record<string, unknown> | null | undefined
     if (opt) {
       options.push({
-        option_name: label,
-        option_type: key,
-        monthly_amount: Number(opt.monthly_benefit ?? 0),
+        option_name: String(opt.name ?? label),
+        option_type: snakeKey,
+        monthly_amount: Number(opt.monthly_benefit ?? opt.monthlyBenefit ?? 0),
         reduction_factor: Number(opt.factor ?? 1),
-        survivor_pct: pct,
+        survivor_pct: Number(pct),
         description: `${pct}% of benefit continues to survivor`,
       })
     }
@@ -345,21 +357,23 @@ export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsR
  * TS expects flat ScenarioResult[].
  */
 export function mapScenarios(raw: Record<string, unknown>): ScenarioResult[] {
+  // Intelligence returns ScenarioResponse with camelCase fields
   const list = (raw.scenarios ?? []) as Record<string, unknown>[]
   if (!Array.isArray(list)) return []
   return list.map((s) => {
     const elig = (s.eligibility ?? {}) as Record<string, unknown>
     const ben = s.benefit as Record<string, unknown> | null | undefined
-    const retType = String(elig.retirement_type ?? 'not_eligible')
+    const retType = String(elig.retirement_type ?? elig.retirementType ?? 'not_eligible')
     const eligible = retType !== 'not_eligible' && retType !== 'deferred'
+    const maxBenefit = ben ? Number(ben.maximum_monthly_benefit ?? ben.maximumMonthlyBenefit ?? 0) : 0
     return {
-      retirement_date: String(s.retirement_date ?? ''),
-      age_at_retirement: Number(elig.age_at_retirement ?? 0),
+      retirement_date: String(s.retirement_date ?? s.retirementDate ?? ''),
+      age_at_retirement: Number(elig.age_at_retirement ?? elig.ageAtRetirement ?? 0),
       eligible,
       retirement_type: retType,
-      reduction_factor: Number(elig.reduction_factor ?? 1),
-      net_monthly_benefit: ben ? Number((ben as Record<string, unknown>).maximum_monthly_benefit ?? 0) : 0,
-      annual_benefit: ben ? Number((ben as Record<string, unknown>).maximum_monthly_benefit ?? 0) * 12 : 0,
+      reduction_factor: Number(elig.reduction_factor ?? elig.reductionFactor ?? 1),
+      net_monthly_benefit: maxBenefit,
+      annual_benefit: maxBenefit * 12,
     }
   })
 }
@@ -371,23 +385,25 @@ export function mapScenarios(raw: Record<string, unknown>): ScenarioResult[] {
  * TS expects flat DROResult.
  */
 export function mapDROResult(raw: Record<string, unknown>): DROResult {
-  // Go wraps in dro_calculation
-  const d = (raw.dro_calculation ?? raw) as Record<string, unknown>
+  // Intelligence handler wraps in {"droCalculation": ..., "paymentOptions": ..., "benefit": ...} (camelCase)
+  const d = (raw.dro_calculation ?? raw.droCalculation ?? raw) as Record<string, unknown>
+  const maritalFraction = Number(d.marital_fraction ?? d.maritalFraction ?? 0)
+  const droPercentage = Number(d.dro_percentage ?? d.droPercentage ?? 0)
   return {
-    dro_id: String(d.dro_id ?? ''),
-    total_service_years: Number(d.total_service_years ?? 0),
-    marital_service_years: Number(d.service_during_marriage_years ?? d.marital_service_years ?? 0),
-    marital_fraction: Number(d.marital_fraction ?? 0),
-    member_gross_benefit: Number(d.maximum_benefit ?? d.member_gross_benefit ?? 0),
-    marital_share: Number(d.marital_share_of_benefit ?? d.marital_share ?? 0),
-    alternate_payee_amount: Number(d.alternate_payee_share ?? d.alternate_payee_amount ?? 0),
-    member_net_after_dro: Number(d.member_remaining_benefit ?? d.member_net_after_dro ?? 0),
-    division_method: String(d.division_method ?? ''),
-    alternate_payee_name: String(d.alternate_payee_name ?? ''),
+    dro_id: String(d.dro_id ?? d.droId ?? ''),
+    total_service_years: Number(d.total_service_years ?? d.totalServiceYears ?? 0),
+    marital_service_years: Number(d.service_during_marriage_years ?? d.serviceDuringMarriageYears ?? d.marital_service_years ?? 0),
+    marital_fraction: maritalFraction,
+    member_gross_benefit: Number(d.maximum_benefit ?? d.maximumBenefit ?? d.member_gross_benefit ?? 0),
+    marital_share: Number(d.marital_share_of_benefit ?? d.maritalShareOfBenefit ?? d.marital_share ?? 0),
+    alternate_payee_amount: Number(d.alternate_payee_share ?? d.alternatePayeeShare ?? d.alternate_payee_amount ?? 0),
+    member_net_after_dro: Number(d.member_remaining_benefit ?? d.memberRemainingBenefit ?? d.member_net_after_dro ?? 0),
+    division_method: String(d.division_method ?? d.divisionMethod ?? ''),
+    alternate_payee_name: String(d.alternate_payee_name ?? d.alternatePayeeName ?? ''),
     audit_trail: [{
       rule_id: 'DRO-CALC',
       rule_name: 'DRO Division',
-      description: `Marital fraction: ${Number(d.marital_fraction ?? 0).toFixed(4)}, DRO%: ${Number(d.dro_percentage ?? 0).toFixed(1)}%`,
+      description: `Marital fraction: ${maritalFraction.toFixed(4)}, DRO%: ${droPercentage.toFixed(1)}%`,
       result: 'CALCULATED',
       source_reference: 'Court Order',
     }],

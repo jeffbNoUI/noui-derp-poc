@@ -15,22 +15,21 @@ function TimelineRow({ label, value, detail, ok }: {
 }) {
   return (
     <div style={{
-      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+      display: 'grid', gridTemplateColumns: '1fr auto auto 20px',
+      alignItems: 'center', gap: '0 6px',
       padding: '6px 0', borderBottom: `1px solid ${C.borderSubtle}`,
     }}>
       <span style={{ color: C.textSecondary, fontSize: '12px' }}>{label}</span>
-      <span style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-        {detail && (
-          <span style={{ color: C.textMuted, fontSize: '10px' }}>{detail}</span>
-        )}
-        <span style={{ color: C.text, fontWeight: 600, fontFamily: "'SF Mono',monospace", fontSize: '12px' }}>
-          {value}
-        </span>
-        {ok !== undefined && (
-          <span style={{ color: ok ? C.success : C.danger, fontSize: '12px' }}>
-            {ok ? '\u2713' : '\u2717'}
-          </span>
-        )}
+      {/* Detail column — always present so date stays stable */}
+      <span style={{ color: C.textMuted, fontSize: '10px', textAlign: 'right' as const }}>
+        {detail ?? ''}
+      </span>
+      <span style={{ color: C.text, fontWeight: 600, fontFamily: "'SF Mono',monospace", fontSize: '12px', textAlign: 'right' as const }}>
+        {value}
+      </span>
+      {/* Checkbox column — fixed width, always rendered */}
+      <span style={{ color: ok === true ? C.success : ok === false ? C.danger : 'transparent', fontSize: '12px', textAlign: 'center' as const }}>
+        {ok === true ? '\u2713' : ok === false ? '\u2717' : '\u00A0'}
       </span>
     </div>
   )

@@ -44,9 +44,19 @@ const MESSAGES: Record<string, Message[]> = {
 export function MessagesPage() {
   const T = useTheme()
   const { memberId } = usePortalAuth()
-  const messages = MESSAGES[memberId] ?? MESSAGES['10001']
+  const baseMessages = MESSAGES[memberId] ?? MESSAGES['10001']
+  const [readIds, setReadIds] = useState<Set<string>>(() =>
+    new Set(baseMessages.filter(m => m.read).map(m => m.id))
+  )
   const [selectedId, setSelectedId] = useState<string | null>(null)
+
+  const messages = baseMessages.map(m => ({ ...m, read: readIds.has(m.id) }))
   const selected = messages.find(m => m.id === selectedId)
+
+  const openMessage = (id: string) => {
+    setSelectedId(id)
+    setReadIds(prev => new Set(prev).add(id))
+  }
 
   return (
     <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 20px' }}>
@@ -76,7 +86,7 @@ export function MessagesPage() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {messages.map(msg => (
-            <button key={msg.id} onClick={() => setSelectedId(msg.id)} style={{
+            <button key={msg.id} onClick={() => openMessage(msg.id)} style={{
               display: 'flex', alignItems: 'flex-start', gap: 12, padding: '14px 16px',
               background: T.surface.card, borderRadius: 10, border: `1px solid ${T.border.base}`,
               cursor: 'pointer', textAlign: 'left', width: '100%',

@@ -12,6 +12,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"time"
 )
@@ -67,7 +68,9 @@ func WriteJSON(w http.ResponseWriter, r *http.Request, status int, data interfac
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("ERROR: WriteJSON encode: %v", err)
+	}
 }
 
 // WriteError writes a CRITICAL-002 error response.
@@ -81,7 +84,9 @@ func WriteError(w http.ResponseWriter, r *http.Request, status int, code, messag
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("ERROR: WriteError encode: %v", err)
+	}
 }
 
 // FormatMoney formats a float64 as a 2-decimal string per CRITICAL-002.
