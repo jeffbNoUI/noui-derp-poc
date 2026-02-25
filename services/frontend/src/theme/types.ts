@@ -1,7 +1,7 @@
 /** Portal theme type definitions — shared shape for staff and member themes */
 
 export interface PortalTheme {
-  id: 'staff' | 'member'
+  id: 'staff' | 'member' | 'employer' | 'vendor'
   name: string
   subtitle: string
   surface: {
@@ -49,6 +49,6 @@ export interface PortalTheme {
   }
   shadow: string
   shadowLg: string
-  density: 'high' | 'comfortable'
+  density: 'high' | 'comfortable' | 'compact'
   layout: 'sidebar' | 'topnav'
 }

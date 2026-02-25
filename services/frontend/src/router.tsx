@@ -30,6 +30,10 @@ import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage
 import { DemoLanding } from '@/pages/DemoLanding'
 import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
 
+// Placeholder layouts for employer/vendor — replaced by full implementations in Phase 3.1
+function EmployerPlaceholder() { return <div style={{ padding: 40, textAlign: 'center' }}>Employer Portal — loading...</div> }
+function VendorPlaceholder() { return <div style={{ padding: 40, textAlign: 'center' }}>Vendor Portal — loading...</div> }
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -61,6 +65,14 @@ export const router = createBrowserRouter([
       { path: 'messages', element: <MessagesPage /> },
       { path: 'documents', element: <DocumentsPage /> },
     ],
+  },
+  {
+    path: '/employer',
+    element: <EmployerPlaceholder />,
+  },
+  {
+    path: '/vendor',
+    element: <VendorPlaceholder />,
   },
   {
     path: '/demos',

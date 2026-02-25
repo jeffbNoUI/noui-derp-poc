@@ -37,6 +37,16 @@ const SECTIONS: Section[] = [
         description: 'Start your retirement application, track progress, manage documents.',
         icon: 'D', iconBg: '#00796b', path: '/portal',
       },
+      {
+        id: 'employer', name: 'Employer Portal', subtitle: 'Department Reporting',
+        description: 'Employee rosters, contribution reporting, retirement coordination.',
+        icon: 'E', iconBg: '#1e293b', path: '/employer',
+      },
+      {
+        id: 'vendor', name: 'Vendor Portal', subtitle: 'Insurance Enrollment',
+        description: 'Enrollment queue, IPR verification, coverage management.',
+        icon: 'V', iconBg: '#059669', path: '/vendor',
+      },
     ],
   },
   {
