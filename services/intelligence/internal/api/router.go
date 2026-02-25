@@ -146,6 +146,15 @@ func NewRouter(h *Handlers) http.Handler {
 		WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Use GET /api/v1/data-quality/summary")
 	})
 
+	// Refund: POST /api/v1/refund/calculate
+	mux.HandleFunc("/api/v1/refund/calculate", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is supported")
+			return
+		}
+		h.CalculateRefund(w, r)
+	})
+
 	// Apply middleware chain: CORS → Request ID → Logging
 	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
 }

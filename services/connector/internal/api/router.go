@@ -40,6 +40,10 @@ func NewRouter(h *Handlers) http.Handler {
 			h.SaveElection(w, r)
 			return
 		}
+		if r.Method == http.MethodPost && len(parts) == 2 && parts[1] == "refund" {
+			h.SaveRefundApplication(w, r)
+			return
+		}
 
 		// All other endpoints are GET only
 		if r.Method != http.MethodGet {
@@ -64,8 +68,17 @@ func NewRouter(h *Handlers) http.Handler {
 				h.GetContributions(w, r)
 			case "service-credit":
 				h.GetServiceCredit(w, r)
+			case "refund":
+				h.GetRefundApplication(w, r)
 			default:
 				WriteError(w, r, http.StatusNotFound, "NOT_FOUND", "Unknown resource: "+parts[1])
+			}
+		} else if len(parts) == 3 {
+			// /api/v1/members/{id}/contributions/history
+			if parts[1] == "contributions" && parts[2] == "history" {
+				h.GetContributionHistory(w, r)
+			} else {
+				WriteError(w, r, http.StatusNotFound, "NOT_FOUND", "Unknown resource: "+parts[1]+"/"+parts[2])
 			}
 		} else {
 			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid path")
