@@ -12,7 +12,6 @@ import type {
   ContributionAccumulation,
   ContributionDetail,
   InterestSchedule,
-  InterestCreditEntry,
   TaxWithholdingResult,
   DeferredComparison,
   RefundCalculation,
@@ -135,7 +134,7 @@ const case7Interest: InterestSchedule = {
   credits: [
     { date: '2023-06-30', balance_before: 6370.00, interest_amount: 127.40, balance_after: 6497.40 },
     { date: '2024-06-30', balance_before: 12477.40, interest_amount: 252.10, balance_after: 12729.50 },
-    { date: '2025-06-30', balance_before: 17638.38, interest_amount: 270.64, balance_after: 17908.02 },
+    { date: '2025-06-30', balance_before: 17638.38, interest_amount: 270.64, balance_after: 17909.02 },
   ],
   formula: 'balance_at_june_30 x 0.0200, compounded annually on June 30',
 }
