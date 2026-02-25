@@ -105,6 +105,65 @@ func NewRouter(h *Handlers) http.Handler {
 		}
 	})
 
+	// Employer APIs
+	mux.HandleFunc("/api/v1/employer/departments", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetDepartments(w, r)
+	})
+	mux.HandleFunc("/api/v1/employer/departments/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		path := strings.TrimPrefix(r.URL.Path, "/api/v1/employer/departments/")
+		parts := strings.Split(path, "/")
+		if len(parts) == 2 {
+			switch parts[1] {
+			case "employees":
+				h.GetDepartmentEmployees(w, r)
+			case "stats":
+				h.GetDepartmentStats(w, r)
+			default:
+				WriteError(w, r, http.StatusNotFound, "NOT_FOUND", "Unknown department resource: "+parts[1])
+			}
+		} else {
+			WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid employer path")
+		}
+	})
+	mux.HandleFunc("/api/v1/employer/contributions", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetContributionReports(w, r)
+	})
+	mux.HandleFunc("/api/v1/employer/retirements", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetPendingRetirements(w, r)
+	})
+
+	// Vendor APIs
+	mux.HandleFunc("/api/v1/vendor/enrollment-queue", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetEnrollmentQueue(w, r)
+	})
+	mux.HandleFunc("/api/v1/vendor/stats", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetVendorStats(w, r)
+	})
+
 	// Apply middleware chain: CORS → Request ID → Logging
 	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
 }

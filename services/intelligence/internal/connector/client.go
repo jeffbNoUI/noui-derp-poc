@@ -164,3 +164,25 @@ func (c *Client) GetDROs(memberID string) (*DROResponse, error) {
 	}
 	return &resp, nil
 }
+
+// Department represents a city department with aggregate employee/payroll data.
+// Mirrors the connector's employer model for pass-through aggregation.
+type Department struct {
+	DeptID         string  `json:"dept_id"`
+	Name           string  `json:"name"`
+	Code           string  `json:"code"`
+	EmployeeCount  int     `json:"employee_count"`
+	MonthlyPayroll float64 `json:"monthly_payroll"`
+	ContactName    string  `json:"contact_name"`
+	ContactEmail   string  `json:"contact_email"`
+}
+
+// GetDepartments fetches all department data from the connector employer endpoint.
+func (c *Client) GetDepartments() ([]Department, error) {
+	var depts []Department
+	err := c.get("/api/v1/employer/departments", &depts)
+	if err != nil {
+		return nil, err
+	}
+	return depts, nil
+}

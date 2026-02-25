@@ -172,6 +172,24 @@ func NewRouter(h *Handlers) http.Handler {
 		h.CalculateSurvivor(w, r)
 	})
 
+	// Employer overview
+	mux.HandleFunc("/api/v1/employer/overview", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only GET is supported")
+			return
+		}
+		h.GetEmployerOverview(w, r)
+	})
+
+	// Vendor IPR calculation
+	mux.HandleFunc("/api/v1/vendor/ipr/calculate", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			WriteError(w, r, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is supported")
+			return
+		}
+		h.CalculateVendorIPR(w, r)
+	})
+
 	// Apply middleware chain: CORS → Request ID → Logging
 	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
 }
