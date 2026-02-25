@@ -2244,3 +2244,131 @@ Phase 2 components were built in isolated worktrees but not wired into navigable
 - TypeScript: 0 errors
 - Tests: 209/209 pass (13 test files)
 - Production build: 224 modules, succeeds
+
+---
+
+## Phase 3: End-to-End Platform Build
+
+### Session 11: Shared Foundation (Phase 3.0)
+
+**Phase 3.0 — Shared Foundation on main branch:**
+- Expanded `PortalTheme.id` to `'staff' | 'member' | 'employer' | 'vendor'`
+- Added `'compact'` density option to PortalTheme
+- Created employer theme (`src/theme/employer-theme.ts`) — navy sidebar, blue accent
+- Created vendor theme (`src/theme/vendor-theme.ts`) — teal-green accent, clean surfaces
+- Updated barrel export (`src/theme/index.ts`) with new themes
+- Created `DataTable` component (`src/components/shared/DataTable.tsx`) — sortable, filterable
+- Created `StatsCard` component (`src/components/shared/StatsCard.tsx`) — metric dashboard card
+- Added employer/vendor cards to PortalSwitcher (4 core workspaces)
+- Added placeholder employer/vendor routes in router.tsx
+- Configured vitest jsdom environment with `test-setup.ts` and `@testing-library/jest-dom`
+- Created `test-utils.tsx` with `renderWithRouter()`, `renderWithTheme()`, `renderApp()`
+- Verification: 0 TS errors, 209/209 tests, build passes
+
+### Session 11: Employer Portal (Phase 3.1a — worktree)
+
+**Types:** `src/types/Employer.ts` — Department, EmployerEmployee, ContributionReport, ContributionDiscrepancy, PendingRetirement, EmployerDashboardStats
+
+**Demo Data:** `src/api/employer-demo-data.ts`
+- 3 departments: Public Works (8 employees), Parks & Recreation (6), Finance (5)
+- 19 employees cross-referencing existing member IDs (10001, 10002, 10003, 10008)
+- 9 contribution reports (Jan-Mar 2026, 3 departments each)
+- March Parks & Rec report has discrepancies (salary mismatch, contribution shortfall)
+- Contribution rates: 8.45% employee, 17.95% employer (RMC §18-407)
+- 3 pending retirements for Cases 1-3
+- `employerDemoApi` with async filter methods
+
+**Auth:** `src/employer/auth/EmployerAuthContext.tsx` — EmployerAuthProvider, useEmployerAuth, 3 demo accounts
+
+**Layout:** `src/layouts/EmployerLayout.tsx` — 200px navy sidebar, 5 nav items, department selector, Switch Portal
+
+**Pages (5):**
+- `EmployerDashboard.tsx` — 4 StatsCards, activity timeline, quick actions, contribution rate callout
+- `EmployeeRoster.tsx` — DataTable with dept/status filters, tier badges
+- `ContributionReporting.tsx` — expandable reports, discrepancy highlighting
+- `RetirementCoordination.tsx` — pending retirements with doc completeness
+- `EmployerReports.tsx` — 4 report type cards
+
+**Tests:** 24 new tests (employer-demo-data.test.ts)
+
+### Session 11: Vendor Portal (Phase 3.1b — worktree)
+
+**Types:** `src/types/Vendor.ts` — EnrollmentQueueItem, IPRVerification, VendorDashboardStats
+
+**Demo Data:** `src/api/vendor-demo-data.ts`
+- 6 enrollment queue items (Cases 1-3 as new_retiree, 3 coverage_change)
+- IPR verifications using EARNED service years only (purchased excluded per RMC §18-412)
+  - Case 1: 28.75 earned years, $359.38/mo pre-Medicare
+  - Case 2: 18.17 earned years (3.00 purchased excluded), $227.13/mo
+  - Case 3: 13.58 earned years, $169.75/mo
+- `vendorDemoApi` with async methods
+
+**Auth:** `src/vendor/auth/VendorAuthContext.tsx` — VendorAuthProvider, useVendorAuth, 2 demo vendors (Kaiser, Delta Dental)
+
+**Layout:** `src/layouts/VendorLayout.tsx` — top nav, vendor selector, ThemeProvider with vendorTheme
+
+**Pages (3):**
+- `VendorDashboard.tsx` — 4 StatsCards, enrollment queue DataTable
+- `VendorMemberDetail.tsx` — IPR verification panel with formula transparency (RMC §18-412)
+- `VendorReports.tsx` — 3 report type cards
+
+**Tests:** 20 new tests (vendor-demo-data.test.ts)
+
+**Critical business rule verified:** Purchased service excluded from IPR — Case 2 (Jennifer Kim) tests this explicitly.
+
+### Session 11: Test Quality Overhaul (Phase 3.1c — worktree)
+
+**New test files (5):**
+- `src/__tests__/route-smoke.test.tsx` — 25 tests: PortalSwitcher, DemoLanding, StaffWelcomeScreen rendering
+- `src/components/shared/__tests__/Badge.test.tsx` — 5 tests: rendering, styles, edge cases
+- `src/components/shared/__tests__/Field.test.tsx` — 7 tests: label/value, sub text, badge, highlight
+- `src/components/shared/__tests__/DataTable.test.tsx` — 10 tests: headers, rows, empty state, sort, click
+- `src/api/__tests__/error-handling.test.ts` — 30 tests: unknown IDs, null inputs, fmt edge cases, tierMeta
+- `src/api/__tests__/data-contracts.test.ts` — 27 tests: fixture shapes, cross-module consistency
+
+**Strengthened existing tests (4 files):**
+- `portal-demo-data.test.ts` — 12→18 tests: document types, status transitions, message structure
+- `guided-signals.test.ts` — 18→26 tests: missing data edge cases, red signals
+- `guided-composition.test.ts` — 9→15 tests: empty service credit, null retirement date
+- `demo-verify.test.ts` — tightened assertions to exact values
+
+### Session 11: Integration Merge (Phase 3.2)
+
+- Merged all 3 worktrees into master
+- Combined router.tsx with both employer and vendor routes (removed placeholders)
+- Fixed DataTable generic constraint (`Record<string, any>` for interface compatibility)
+- Added cross-portal integration tests (16 tests)
+
+#### Updated Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/employer` | Employer Dashboard |
+| `/employer/roster` | Employee Roster |
+| `/employer/contributions` | Contribution Reporting |
+| `/employer/retirements` | Retirement Coordination |
+| `/employer/reports` | Employer Reports |
+| `/vendor` | Vendor Dashboard (enrollment queue) |
+| `/vendor/member/:memberId` | IPR Verification & Enrollment |
+| `/vendor/reports` | Vendor Reports |
+
+#### Phase 3 Summary
+
+| Metric | Before | After |
+|--------|--------|-------|
+| Portals | 2 | 4 (+employer, vendor) |
+| Frontend routes | 14 | 22 (+8) |
+| Test files | 13 | 22 (+9) |
+| Test count | 209 | 393 (+184) |
+| Component render tests | 0 | 3 files |
+| Route smoke tests | 0 | 25 tests |
+| Cross-portal tests | 0 | 16 tests |
+| Error path tests | 0 | 30 tests |
+| Data contract tests | 0 | 27 tests |
+| Frontend modules | 224 | 242 |
+
+#### Verification
+- TypeScript: 0 errors
+- Tests: 393/393 pass (22 test files)
+- Production build: 242 modules, succeeds
+- Pushed to remote: `origin/master` up to date
