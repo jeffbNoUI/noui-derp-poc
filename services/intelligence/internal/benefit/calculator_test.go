@@ -160,3 +160,157 @@ func TestPaymentOptionsAfterDROCase4(t *testing.T) {
 	assertFloat(t, "js75_survivor", result.JointSurvivor75.SurvivorBenefit, 3132.35, 0.01)
 	assertFloat(t, "js50", result.JointSurvivor50.MonthlyBenefit, 4313.40, 0.01)
 }
+
+// TestCase4MartinezDROBenefit verifies the base benefit for Case 4.
+// Case 4 uses the same member as Case 1 — DRO does not change the base benefit.
+// AMS $10,639.45, Tier 1 (2.0%), 28.75 years, no reduction → $6,117.68
+func TestCase4MartinezDROBenefit(t *testing.T) {
+	input := CalculationInput{
+		Tier:               1,
+		AMS:                10639.45,
+		ServiceYears:       28.75,
+		ReductionFactor:    1.0,
+		RetirementType:     "rule_of_75",
+		AgeAtRetirement:    63,
+		EarnedServiceYears: 28.75,
+	}
+
+	result := CalculateBenefit(input)
+
+	// Base benefit is identical to Case 1
+	assertFloat(t, "maximum", result.MaximumMonthlyBenefit, 6117.68, 0.01)
+
+	// DRO split happens separately — benefit calculator produces the base
+	// DRO remainder ($4,564.44) and payment options are tested in DRO package
+	// and TestPaymentOptionsAfterDROCase4 above.
+
+	t.Logf("Case 4 base: $%.2f (DRO split applied separately)", result.MaximumMonthlyBenefit)
+}
+
+// TestBenefitTracePopulated verifies that the calculation trace is populated.
+func TestBenefitTracePopulated(t *testing.T) {
+	input := CalculationInput{
+		Tier:               1,
+		AMS:                10639.45,
+		ServiceYears:       28.75,
+		ReductionFactor:    1.0,
+		RetirementType:     "rule_of_75",
+		AgeAtRetirement:    63,
+		EarnedServiceYears: 28.75,
+	}
+
+	result := CalculateBenefit(input)
+
+	if result.Trace == nil {
+		t.Fatal("expected trace to be populated")
+	}
+	if result.Trace.CalculationType != "benefit" {
+		t.Errorf("trace type = %q, want benefit", result.Trace.CalculationType)
+	}
+	if len(result.Trace.Steps) < 2 {
+		t.Errorf("expected at least 2 trace steps (AMS + formula), got %d", len(result.Trace.Steps))
+	}
+
+	// Verify AMS step exists
+	foundAMS := false
+	for _, step := range result.Trace.Steps {
+		if step.RuleID == "RULE-AMS-CALC" {
+			foundAMS = true
+		}
+	}
+	if !foundAMS {
+		t.Error("expected AMS step in trace")
+	}
+
+	// Verify final result
+	if result.Trace.FinalResult == nil {
+		t.Error("expected trace final result")
+	}
+	if result.Trace.FinalResult["maximumMonthlyBenefit"] != "6117.68" {
+		t.Errorf("trace final maximumMonthlyBenefit = %q, want 6117.68",
+			result.Trace.FinalResult["maximumMonthlyBenefit"])
+	}
+}
+
+// TestCOLAEligibility verifies COLA eligibility date.
+// All cases retiring in 2026 → first COLA eligible 2028-01-01
+func TestCOLAEligibility(t *testing.T) {
+	input := CalculationInput{
+		Tier:               1,
+		AMS:                10639.45,
+		ServiceYears:       28.75,
+		ReductionFactor:    1.0,
+		RetirementType:     "rule_of_75",
+		AgeAtRetirement:    63,
+		EarnedServiceYears: 28.75,
+		RetirementYear:     2026,
+	}
+
+	result := CalculateBenefit(input)
+
+	if result.COLA == nil {
+		t.Fatal("expected COLA eligibility to be populated")
+	}
+	if result.COLA.FirstEligibleDate != "2028-01-01" {
+		t.Errorf("COLA first eligible = %q, want 2028-01-01", result.COLA.FirstEligibleDate)
+	}
+	if result.COLA.Status != "pending_board_action" {
+		t.Errorf("COLA status = %q, want pending_board_action", result.COLA.Status)
+	}
+}
+
+// TestCOLAEligibility_DifferentYear verifies COLA for non-2026 retirement.
+func TestCOLAEligibility_DifferentYear(t *testing.T) {
+	input := CalculationInput{
+		Tier:               2,
+		AMS:                5000.00,
+		ServiceYears:       20.00,
+		ReductionFactor:    1.0,
+		RetirementType:     "normal",
+		AgeAtRetirement:    65,
+		EarnedServiceYears: 20.00,
+		RetirementYear:     2027,
+	}
+
+	result := CalculateBenefit(input)
+
+	if result.COLA == nil {
+		t.Fatal("expected COLA eligibility to be populated")
+	}
+	if result.COLA.FirstEligibleDate != "2029-01-01" {
+		t.Errorf("COLA first eligible = %q, want 2029-01-01", result.COLA.FirstEligibleDate)
+	}
+}
+
+// TestBenefitTraceWithEarlyReduction verifies trace includes reduction step.
+func TestBenefitTraceWithEarlyReduction(t *testing.T) {
+	input := CalculationInput{
+		Tier:               2,
+		AMS:                7347.62,
+		ServiceYears:       21.17,
+		ReductionFactor:    0.70,
+		RetirementType:     "early",
+		AgeAtRetirement:    55,
+		EarnedServiceYears: 18.17,
+	}
+
+	result := CalculateBenefit(input)
+
+	if result.Trace == nil {
+		t.Fatal("expected trace to be populated")
+	}
+
+	// Should have reduction step since ReductionFactor < 1.0
+	foundReduction := false
+	for _, step := range result.Trace.Steps {
+		if step.RuleID == "RULE-REDUCTION-APPLY" {
+			foundReduction = true
+			if step.IntermediateValues == nil {
+				t.Error("reduction step should have intermediate values")
+			}
+		}
+	}
+	if !foundReduction {
+		t.Error("expected reduction step in trace for early retirement")
+	}
+}

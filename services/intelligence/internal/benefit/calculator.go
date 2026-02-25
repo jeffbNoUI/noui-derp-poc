@@ -1,4 +1,6 @@
 // Package benefit implements the DERP benefit calculation engine.
+// Consumed by: api/handlers.go
+// Depends on: models (types), rules (statutory tables and constants)
 //
 // The benefit formula is: AMS × multiplier × service_years × reduction_factor
 //
@@ -30,6 +32,7 @@ type CalculationInput struct {
 	RetirementType     string  // "normal", "rule_of_75", "rule_of_85", "early"
 	AgeAtRetirement    int
 	EarnedServiceYears float64 // For IPR (purchased excluded)
+	RetirementYear     int     // For COLA eligibility calculation
 }
 
 // CalculateBenefit performs the complete benefit calculation.
@@ -72,7 +75,141 @@ func CalculateBenefit(input CalculationInput) models.BenefitResult {
 		input.RetirementType == "rule_of_85"
 	result.DeathBenefit = calculateDeathBenefit(input.Tier, input.AgeAtRetirement, isNormalOrRuleOfN)
 
+	// Build calculation trace
+	result.Trace = buildBenefitTrace(input, result, multiplier, unreduced, reduced)
+
+	// COLA eligibility: January 1 of second year after retirement
+	// All cases retiring in 2026 → first COLA eligible 2028-01-01
+	// COLA is discretionary and board-approved — no automatic formula.
+	retYear := input.RetirementYear
+	if retYear == 0 {
+		retYear = 2026 // Default for demo cases
+	}
+	result.COLA = &models.COLAEligibility{
+		FirstEligibleDate: fmt.Sprintf("%d-01-01", retYear+2),
+		Status:            "pending_board_action",
+		Note:              "COLA is discretionary and requires board approval. First eligible January 1 of second year after retirement.",
+	}
+
 	return result
+}
+
+// buildBenefitTrace constructs the calculation trace for a benefit calculation.
+func buildBenefitTrace(input CalculationInput, result models.BenefitResult, multiplier, unreduced, reduced float64) *models.CalculationTrace {
+	trace := &models.CalculationTrace{
+		TraceID:         fmt.Sprintf("calc-benefit-%d", input.Tier),
+		MemberID:        result.MemberID,
+		CalculationType: "benefit",
+		EngineVersion:   "1.0.0",
+		Assumptions: []string{
+			"[Q-CALC-01] Banker's rounding (round half to even) on final amounts only",
+			"[Q-CALC-04] J&S factors are placeholders pending actuarial tables",
+		},
+	}
+
+	stepNum := 0
+
+	// Step 1: AMS source
+	stepNum++
+	trace.Steps = append(trace.Steps, models.CalculationStep{
+		StepNumber:      stepNum,
+		RuleID:          "RULE-AMS-CALC",
+		RuleName:        "Average Monthly Salary",
+		SourceReference: "RMC §18-401(3)",
+		Description:     "AMS from Connector service (trusted value)",
+		Result:          fmt.Sprintf("AMS = $%.2f", input.AMS),
+		Notes:           "Intelligence trusts Connector's AMS calculation (XS-11)",
+	})
+
+	// Step 2: Benefit formula
+	tierName := "Tier 1"
+	if input.Tier == 2 {
+		tierName = "Tier 2"
+	} else if input.Tier == 3 {
+		tierName = "Tier 3"
+	}
+	ruleID := fmt.Sprintf("RULE-BENEFIT-T%d", input.Tier)
+
+	stepNum++
+	trace.Steps = append(trace.Steps, models.CalculationStep{
+		StepNumber:      stepNum,
+		RuleID:          ruleID,
+		RuleName:        fmt.Sprintf("%s Benefit Formula", tierName),
+		SourceReference: "RMC §18-409(a)",
+		Description:     "Calculate unreduced monthly benefit",
+		Formula:         "AMS × multiplier × serviceYears",
+		Substitution:    fmt.Sprintf("$%.2f × %.3f × %.2f", input.AMS, multiplier, input.ServiceYears),
+		IntermediateValues: map[string]string{
+			"ams":          fmt.Sprintf("%.2f", input.AMS),
+			"multiplier":   fmt.Sprintf("%.3f", multiplier),
+			"serviceYears": fmt.Sprintf("%.2f", input.ServiceYears),
+		},
+		Result: fmt.Sprintf("unreducedBenefit = $%.2f", unreduced),
+	})
+
+	// Step 3: Reduction (if early)
+	if input.ReductionFactor < 1.0 {
+		stepNum++
+		trace.Steps = append(trace.Steps, models.CalculationStep{
+			StepNumber:      stepNum,
+			RuleID:          "RULE-REDUCTION-APPLY",
+			RuleName:        "Early Retirement Reduction",
+			SourceReference: "RMC §18-409(b)",
+			Description:     "Apply early retirement reduction factor",
+			Formula:         "reducedBenefit = unreducedBenefit × reductionFactor",
+			Substitution:    fmt.Sprintf("$%.2f × %.2f", unreduced, input.ReductionFactor),
+			IntermediateValues: map[string]string{
+				"unreducedBenefit": fmt.Sprintf("%.2f", unreduced),
+				"reductionFactor":  fmt.Sprintf("%.2f", input.ReductionFactor),
+				"reductionPercent": fmt.Sprintf("%.0f%%", math.Round((1.0-input.ReductionFactor)*100)),
+			},
+			Result: fmt.Sprintf("reducedBenefit = $%.2f", reduced),
+		})
+	}
+
+	// Step 4: IPR
+	if result.IPR != nil {
+		stepNum++
+		trace.Steps = append(trace.Steps, models.CalculationStep{
+			StepNumber:      stepNum,
+			RuleID:          "RULE-IPR",
+			RuleName:        "Insurance Premium Reimbursement",
+			SourceReference: "RMC §18-412",
+			Description:     "Calculate IPR using earned service years only",
+			Formula:         "preMedicare = earnedYears × $12.50; postMedicare = earnedYears × $6.25",
+			Substitution:    fmt.Sprintf("%.2f × $12.50; %.2f × $6.25", input.EarnedServiceYears, input.EarnedServiceYears),
+			IntermediateValues: map[string]string{
+				"earnedServiceYears": fmt.Sprintf("%.2f", input.EarnedServiceYears),
+				"preMedicareRate":    "12.50",
+				"postMedicareRate":   "6.25",
+			},
+			Result: fmt.Sprintf("preMedicare = $%.2f/mo, postMedicare = $%.2f/mo",
+				result.IPR.PreMedicareMonthly, result.IPR.PostMedicareMonthly),
+			Notes: "Purchased service EXCLUDED from IPR calculation",
+		})
+	}
+
+	// Step 5: Death benefit
+	if result.DeathBenefit != nil {
+		stepNum++
+		trace.Steps = append(trace.Steps, models.CalculationStep{
+			StepNumber:      stepNum,
+			RuleID:          "RULE-DEATH-BENEFIT",
+			RuleName:        "Lump-Sum Death Benefit",
+			SourceReference: "RMC §18-411(d)",
+			Description:     "Lookup death benefit from statutory table",
+			Result:          fmt.Sprintf("lumpSum = $%.2f", result.DeathBenefit.LumpSumAmount),
+		})
+	}
+
+	// Final result
+	trace.FinalResult = map[string]string{
+		"maximumMonthlyBenefit": fmt.Sprintf("%.2f", result.MaximumMonthlyBenefit),
+		"retirementType":        input.RetirementType,
+		"tier":                  fmt.Sprintf("%d", input.Tier),
+	}
+
+	return trace
 }
 
 // calculateIPR computes the Insurance Premium Reimbursement.
@@ -119,7 +256,7 @@ func calculateDeathBenefit(tier, age int, isNormalOrRuleOfN bool) *models.DeathB
 
 // PaymentOptionsResult holds all payment option calculations.
 type PaymentOptionsResult struct {
-	Maximum         models.PaymentOption
+	Maximum          models.PaymentOption
 	JointSurvivor100 models.PaymentOption
 	JointSurvivor75  models.PaymentOption
 	JointSurvivor50  models.PaymentOption

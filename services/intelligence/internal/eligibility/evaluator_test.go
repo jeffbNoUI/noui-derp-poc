@@ -289,3 +289,122 @@ func TestRuleOf75JustBelow(t *testing.T) {
 		t.Error("should NOT qualify for Rule of 75 at 74.99")
 	}
 }
+
+// TestCase4MartinezDROEligibility verifies eligibility for Case 4.
+// Same member as Case 1 (Robert Martinez, Tier 1, Rule of 75).
+// DRO does not affect eligibility — only benefit distribution.
+func TestCase4MartinezDROEligibility(t *testing.T) {
+	member := models.MemberData{
+		MemberID:    "M-100001",
+		DateOfBirth: datePtr(1963, 3, 8),
+		HireDate:    datePtr(1997, 6, 15),
+		Tier:        1,
+	}
+	svcCredit := models.ServiceCreditSummary{
+		EarnedYears:    28.75,
+		PurchasedYears: 0,
+		TotalForBenefit: 28.75,
+		TotalForElig:   28.75,
+		TotalForIPR:    28.75,
+	}
+	retDate := date(2026, 4, 1)
+
+	result := Evaluate(member, svcCredit, retDate)
+
+	// Same eligibility as Case 1
+	if result.RetirementType != "rule_of_75" {
+		t.Errorf("type = %q, want rule_of_75", result.RetirementType)
+	}
+	assertFloat(t, "reduction_factor", result.ReductionFactor, 1.0, 0.01)
+	assertFloat(t, "rule_of_n_sum", result.RuleOfNSum, 91.75, 0.1)
+	if !result.RuleOfNQualifies {
+		t.Error("should qualify for Rule of 75")
+	}
+}
+
+// TestEligibilityTracePopulated verifies that the calculation trace is populated.
+func TestEligibilityTracePopulated(t *testing.T) {
+	member := models.MemberData{
+		MemberID:    "M-999",
+		DateOfBirth: datePtr(1963, 3, 8),
+		HireDate:    datePtr(1997, 6, 15),
+		Tier:        1,
+	}
+	svcCredit := models.ServiceCreditSummary{
+		EarnedYears:    28.75,
+		TotalForBenefit: 28.75,
+		TotalForElig:   28.75,
+		TotalForIPR:    28.75,
+	}
+	retDate := date(2026, 4, 1)
+
+	result := Evaluate(member, svcCredit, retDate)
+
+	if result.Trace == nil {
+		t.Fatal("expected trace to be populated")
+	}
+	if result.Trace.CalculationType != "eligibility" {
+		t.Errorf("trace type = %q, want eligibility", result.Trace.CalculationType)
+	}
+	if len(result.Trace.Steps) < 3 {
+		t.Errorf("expected at least 3 trace steps, got %d", len(result.Trace.Steps))
+	}
+	if result.Trace.FinalResult == nil {
+		t.Error("expected trace final result to be populated")
+	}
+	// Verify each step has required fields
+	for i, step := range result.Trace.Steps {
+		if step.RuleID == "" {
+			t.Errorf("step %d: missing ruleId", i)
+		}
+		if step.SourceReference == "" {
+			t.Errorf("step %d: missing sourceReference", i)
+		}
+		if step.Result == "" {
+			t.Errorf("step %d: missing result", i)
+		}
+	}
+}
+
+// TestEligibilityPathsPopulated verifies that the paths array is populated.
+func TestEligibilityPathsPopulated(t *testing.T) {
+	member := models.MemberData{
+		MemberID:    "M-999",
+		DateOfBirth: datePtr(1963, 3, 8),
+		HireDate:    datePtr(1997, 6, 15),
+		Tier:        1,
+	}
+	svcCredit := models.ServiceCreditSummary{
+		EarnedYears:    28.75,
+		TotalForBenefit: 28.75,
+		TotalForElig:   28.75,
+		TotalForIPR:    28.75,
+	}
+	retDate := date(2026, 4, 1)
+
+	result := Evaluate(member, svcCredit, retDate)
+
+	if len(result.Paths) < 4 {
+		t.Errorf("expected at least 4 paths (normal, rule75, rule85, early), got %d", len(result.Paths))
+	}
+
+	// Find and verify the rule75 path for Tier 1
+	foundRule75 := false
+	for _, p := range result.Paths {
+		if p.PathType == "rule75" {
+			foundRule75 = true
+			if !p.Eligible {
+				t.Error("rule75 path should be eligible for Case 1 member")
+			}
+			if !p.ApplicableToTier {
+				t.Error("rule75 should be applicable to Tier 1")
+			}
+			if len(p.Conditions) < 2 {
+				t.Errorf("rule75 path should have at least 2 conditions, got %d", len(p.Conditions))
+			}
+		}
+	}
+	if !foundRule75 {
+		t.Error("expected to find rule75 path")
+	}
+}

@@ -1,4 +1,6 @@
 // Package connector provides an HTTP client for the Data Connector service.
+// Consumed by: api/handlers.go
+// Depends on: models (domain types)
 //
 // The intelligence service fetches all member data through the connector.
 // No direct database access — connector is the sole interface to the legacy database.
@@ -9,6 +11,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/noui-derp-poc/intelligence/internal/models"
@@ -34,11 +37,12 @@ func NewClient() *Client {
 	}
 }
 
-// connectorResponse is the standard response envelope from the connector service.
+// connectorResponse is the CRITICAL-002 response envelope from the connector service.
 type connectorResponse struct {
-	Data json.RawMessage `json:"data"`
-	Meta struct {
-		RequestID string `json:"request_id"`
+	Data             json.RawMessage `json:"data"`
+	DataQualityFlags json.RawMessage `json:"dataQualityFlags"`
+	Meta             struct {
+		RequestID string `json:"requestId"`
 		Timestamp string `json:"timestamp"`
 	} `json:"meta"`
 }
@@ -48,6 +52,19 @@ type connectorError struct {
 		Code    string `json:"code"`
 		Message string `json:"message"`
 	} `json:"error"`
+}
+
+// Ping checks if the connector service is reachable (for /readyz).
+func (c *Client) Ping() error {
+	resp, err := c.httpClient.Get(c.baseURL + "/healthz")
+	if err != nil {
+		return fmt.Errorf("connector healthz: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("connector healthz returned %d", resp.StatusCode)
+	}
+	return nil
 }
 
 // get performs a GET request and decodes the response data.
@@ -73,38 +90,49 @@ func (c *Client) get(path string, result interface{}) error {
 }
 
 // GetMember fetches member data by ID.
+// Connector returns camelCase JSON with string dates; this method parses them.
 func (c *Client) GetMember(memberID string) (*models.MemberData, error) {
 	var member models.MemberData
 	err := c.get(fmt.Sprintf("/api/v1/members/%s", memberID), &member)
 	if err != nil {
 		return nil, err
 	}
+	member.ParseDates()
 	return &member, nil
 }
 
 // SalaryResponse is the response from the connector salary endpoint.
+// Uses camelCase JSON tags per Session 2 CRITICAL-002 update.
 type SalaryResponse struct {
-	MemberID       string             `json:"member_id"`
-	Tier           int                `json:"tier"`
-	AMS            *models.AMSResult  `json:"ams_calculation"`
-	LeaveEligible  bool               `json:"leave_payout_eligible"`
-	LeaveNote      string             `json:"leave_payout_note"`
-	RecordCount    int                `json:"salary_record_count"`
+	MemberID            string            `json:"memberId"`
+	Tier                int               `json:"tier"`
+	AMS                 *models.AMSResult `json:"ams"`
+	LeavePayoutEligible bool              `json:"leavePayoutEligible"`
+	LeavePayoutNote     string            `json:"leavePayoutNote"`
+	SalaryRecordCount   int               `json:"salaryRecordCount"`
 }
 
 // GetSalary fetches salary data and AMS calculation for a member.
+// Parses the string AMS amount to float64 for downstream calculations.
 func (c *Client) GetSalary(memberID string) (*SalaryResponse, error) {
 	var salary SalaryResponse
 	err := c.get(fmt.Sprintf("/api/v1/members/%s/salary", memberID), &salary)
 	if err != nil {
 		return nil, err
 	}
+	// Parse string AMS amount to float64 for calculation use
+	if salary.AMS != nil && salary.AMS.Amount != "" {
+		if v, err := strconv.ParseFloat(salary.AMS.Amount, 64); err == nil {
+			salary.AMS.AMS = v
+		}
+	}
 	return &salary, nil
 }
 
 // ServiceCreditResponse is the response from the connector service-credit endpoint.
+// Note: "summary" nested object uses snake_case JSON tags (connector internal model).
 type ServiceCreditResponse struct {
-	MemberID string                      `json:"member_id"`
+	MemberID string                      `json:"memberId"`
 	Summary  models.ServiceCreditSummary `json:"summary"`
 }
 
@@ -119,10 +147,11 @@ func (c *Client) GetServiceCredit(memberID string) (*models.ServiceCreditSummary
 }
 
 // DROResponse is the response from the connector DRO endpoint.
+// Top-level keys are camelCase; nested DRO records use snake_case.
 type DROResponse struct {
-	MemberID string             `json:"member_id"`
-	HasDRO   bool               `json:"has_dro"`
-	DROCount int                `json:"dro_count"`
+	MemberID string             `json:"memberId"`
+	HasDRO   bool               `json:"hasDro"`
+	DROCount int                `json:"droCount"`
 	DROs     []models.DRORecord `json:"dros"`
 }
 

@@ -9,12 +9,15 @@
 // executing certified rule configurations.
 //
 // Endpoints:
-//   POST /api/v1/eligibility/evaluate  - Evaluate retirement eligibility
-//   POST /api/v1/benefit/calculate     - Calculate retirement benefit
-//   POST /api/v1/benefit/options       - Calculate payment options
-//   POST /api/v1/benefit/scenario      - Compare retirement scenarios
-//   POST /api/v1/dro/calculate         - Calculate DRO impact
-//   GET  /healthz                      - Health check
+//   GET  /api/v1/eligibility/{memberId} - Evaluate retirement eligibility
+//   POST /api/v1/eligibility/evaluate   - Evaluate retirement eligibility
+//   GET  /api/v1/benefit/{memberId}     - Calculate retirement benefit
+//   POST /api/v1/benefit/calculate      - Calculate retirement benefit
+//   POST /api/v1/benefit/options        - Calculate payment options
+//   POST /api/v1/benefit/scenario       - Compare retirement scenarios
+//   POST /api/v1/dro/calculate          - Calculate DRO impact
+//   GET  /healthz                       - Health check
+//   GET  /readyz                        - Readiness check
 package main
 
 import (
@@ -28,11 +31,24 @@ import (
 
 	"github.com/noui-derp-poc/intelligence/internal/api"
 	"github.com/noui-derp-poc/intelligence/internal/connector"
+	"github.com/noui-derp-poc/intelligence/internal/rules"
 )
 
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 	log.Println("Starting DERP Intelligence service v0.1.0")
+
+	// Load rule definitions from YAML (immutable after load)
+	rulesDir := os.Getenv("RULES_DIR")
+	if rulesDir == "" {
+		rulesDir = "/app/rules/definitions"
+	}
+	ruleSet, err := rules.LoadRules(rulesDir)
+	if err != nil {
+		log.Printf("WARNING: Failed to load rules from %s: %v (continuing with embedded tables)", rulesDir, err)
+	} else {
+		log.Printf("Rules loaded: %d rules across %d categories", len(ruleSet.Rules), len(ruleSet.ByCategory))
+	}
 
 	// Create connector client
 	conn := connector.NewClient()

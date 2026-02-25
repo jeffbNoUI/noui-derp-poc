@@ -1699,3 +1699,124 @@ All verified against running Docker service on localhost:8081:
 | End-to-end live mode test | Verify `?live` mode renders all 4 demo cases from real backend | High | `docker compose up`, then `localhost:5175/?live` |
 | Proficiency model integration | Wire proficiency model into expert mode / learning module defaults | Medium | Design integration points with guided-types.ts |
 | BUILD_HISTORY documentation | Kept current | Ongoing | Update after each session |
+
+---
+
+## Session 4: Intelligence Service — Payment Options, DRO, Scenario, Supplemental
+
+**Date:** 2026-02-24
+**BUILD_PLAN mapping:** Day 5, Steps 5.5–5.8
+**Goal:** Complete Intelligence Service with payment options, DRO, scenario modeling, supplemental benefits. Full 4-case acceptance.
+
+### Phase 1: GET Endpoints & Payment Options (Task #14)
+
+Added dual GET/POST support for all endpoints:
+- `GET /api/v1/benefit/options/{memberId}` — payment options with DRO-first sequence
+- `GET /api/v1/dro/{memberId}` — DRO calculation
+- `GET /api/v1/scenario/{memberId}` — scenario modeling
+- `GET /api/v1/retirement-estimate/{memberId}` — full pipeline master endpoint
+
+Payment options engine already existed from Session 3. GET endpoints wire it to path params + query strings.
+
+### Phase 2: Spousal Consent, COLA, Payment Enhancements (Task #15)
+
+- Added `SpousalConsentInfo` type for married member consent tracking
+- Added `COLAEligibility` type and calculation: `firstEligibleDate = retirementYear + 2`
+- Added `RetirementYear` to `benefit.CalculationInput`
+- COLA: all 2026 retirees → first eligible 2028-01-01, status "pending_board_action"
+- J&S factors tagged with Q-CALC-04 assumption in all responses
+
+### Phase 3: Scenario Enhancements (Task #16)
+
+Rewrote `CalculateScenario` handler with:
+- **Salary growth projection:** 3% annual per XS-29 (`projectedAMS = AMS × 1.03^yearsForward`)
+- **Service credit projection:** Earned service + years forward
+- **Comparison metrics:** Monthly diff, percent increase, breakeven months
+- **Threshold proximity detection:** Identifies members within 24 months of Rule of 75/85, normal age, or vesting
+- Added `ScenarioComparison`, `ThresholdProximity`, `ScenarioResponse` types
+
+### Phase 4-6: Acceptance Tests (Task #17)
+
+Created comprehensive acceptance test suite: `internal/acceptance/acceptance_test.go` (33 tests)
+
+**Case 1 (Robert Martinez — Tier 1, Rule of 75):**
+- Eligibility: Rule of 75 sum 91.75, qualifies, no reduction ✓
+- Benefit: $10,639.45 × 0.02 × 28.75 = $6,117.68 ✓
+- Payment options: Max $6,117.68, 75% J&S $5,597.68 / survivor $4,198.26 ✓
+- IPR: pre-Medicare $359.38 ✓
+- Death benefit: $5,000.00 ✓
+- COLA: 2028-01-01 ✓
+
+**Case 2 (Jennifer Kim — Tier 2, Early Retirement):**
+- Eligibility: Rule of 75 sum 73.17 (purchased excluded), 30% reduction ✓
+- Benefit: formula-correct $2,333.24 unreduced, $1,633.27 reduced ✓
+  - Known discrepancy vs fixture ($2,332.96/$1,633.07) — biweekly aggregation precision
+- IPR: 18.17 earned × $12.50 = $227.13 (purchased excluded) ✓
+- Death benefit: $2,500.00 (age 55, $250/yr × 10 under 65) ✓
+- Scenario: wait 1yr → Rule of 75 met, ~$2,517/mo, ~54% increase ✓
+- Threshold: 1.83 gap to Rule of 75, ~11 months ✓
+
+**Case 3 (David Washington — Tier 3, Early Retirement):**
+- Eligibility: Rule of 85 sum 76.58, doesn't qualify, 12% reduction (6%/yr × 2) ✓
+- Benefit: formula-correct $1,361.64 unreduced, $1,198.24 reduced ✓
+  - Known discrepancy vs fixture ($1,361.40/$1,198.03) — same precision issue
+- IPR: $169.75 ✓
+- Death benefit: $4,000.00 (Tier 3, $500/yr × 2 under 65) ✓
+- Tier 3 distinctions: Rule of 85, min age 60, 6% reduction, $500 death reduction ✓
+
+**Case 4 (Robert Martinez + DRO):**
+- Base benefit: $6,117.68 (identical to Case 1) ✓
+- DRO: 18.25y marriage, fraction 0.6348, Patricia $1,553.40 ✓
+  - Small precision diff vs fixture $1,553.24 ($0.16) — within tolerance
+- DRO sequence: split FIRST → Robert $4,564.28 → J&S on remainder ✓
+- Patricia's share INDEPENDENT of Robert's J&S election ✓ (CRITICAL)
+- Payment options on remainder: 75% J&S $4,176.32 / survivor $3,132.24 ✓
+- IPR: Robert only (RULE-DRO-NO-IPR) ✓
+- Death benefit: $5,000.00 (separate from DRO) ✓
+
+**Cross-cutting:**
+- J&S factors confirmed as Q-CALC-04 placeholders (0.8850, 0.9150, 0.9450) ✓
+- IPR rates: $12.50 pre-Medicare, $6.25 post-Medicare per earned year ✓
+- All 2026 cases: COLA eligible 2028-01-01 ✓
+- Eligibility paths populated for all cases ✓
+- Calculation traces include source references ✓
+
+### Known Precision Discrepancies
+
+| Case | Field | Formula-Correct | Fixture | Diff | Root Cause |
+|------|-------|----------------|---------|------|------------|
+| Case 2 | Unreduced | $2,333.24 | $2,332.96 | $0.28 | Biweekly aggregation |
+| Case 2 | Reduced | $1,633.27 | $1,633.07 | $0.20 | Same |
+| Case 3 | Unreduced | $1,361.64 | $1,361.40 | $0.24 | Same |
+| Case 3 | Reduced | $1,198.24 | $1,198.03 | $0.21 | Same |
+| Case 4 | Patricia | $1,553.40 | $1,553.24 | $0.16 | Marital fraction rounding |
+
+All discrepancies arise from using Connector's rounded AMS vs computing from raw biweekly data. The formula with rounded AMS is the correct implementation per XS-11 (Intelligence trusts Connector's AMS).
+
+### Test Count
+
+| Package | Count | Description |
+|---------|-------|-------------|
+| acceptance | 33 | Full 4-case acceptance suite |
+| benefit | 17 | Calculator, payment options, trace, COLA |
+| changemanagement | 1 | Rule change impact |
+| dataquality | 18 | Data quality checks |
+| dro | 4 | DRO calculation, no-DRO, fixed amount, marital service |
+| eligibility | 27 | Cases 1-4, boundaries, paths, traces, scenarios |
+| rules | 8 | Reduction, death benefit, multiplier, Rule of N |
+| **Total** | **108** | |
+
+### Files Modified/Created
+
+| File | Change |
+|------|--------|
+| `internal/acceptance/acceptance_test.go` | NEW — 33 acceptance tests |
+| `internal/eligibility/scenario_test.go` | NEW — 4 scenario tests |
+| `internal/api/handlers.go` | Rewrote scenario, added retirement-estimate, DRO/payment GET support |
+| `internal/api/router.go` | Added GET routes for all new endpoints |
+| `internal/models/models.go` | Added ScenarioComparison, ThresholdProximity, ScenarioResponse, COLAEligibility, SpousalConsentInfo |
+| `internal/benefit/calculator.go` | Added RetirementYear, COLA calculation |
+| `internal/benefit/calculator_test.go` | Added Case 4, trace, COLA tests |
+| `internal/eligibility/evaluator_test.go` | Added Case 4, trace, paths tests |
+| `internal/eligibility/boundary_test.go` | Added 4 boundary tests |
+| `main.go` | Wired rule loader at startup |
