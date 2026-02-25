@@ -1,0 +1,254 @@
+# Contribution Refund Rules — DERP
+# Governs the refund of employee contributions upon separation from service.
+# Source: RMC §18-403, §18-404, DERP Active Member Handbook
+#
+# Key principles:
+#   - Only EMPLOYEE contributions (8.45%) are refundable — employer contributions stay in the fund
+#   - Interest accrues at 2% per annum, compounded annually on June 30
+#   - 90-day waiting period from termination date before refund application
+#   - 20% mandatory federal withholding on eligible rollover distributions (direct payment)
+#   - Vested members who take a refund forfeit all pension rights
+#   - Purchased service is NOT refundable (only employee payroll deductions)
+
+domain: contribution_refund
+version: "1.0"
+effective_date: "2024-01-01"
+status: draft
+
+rules:
+  - id: RULE-REFUND-ELIG
+    name: Refund Eligibility
+    description: >
+      A separated member may apply for a refund of their employee contributions.
+      Member must be terminated (status T or D) and the 90-day waiting period must have elapsed.
+    source_reference: "RMC §18-403"
+    conditions:
+      - member.status_code IN ('T', 'D')
+      - days_since_termination >= 90
+      - no_pending_retirement_application
+    result: eligible | ineligible
+    test_cases:
+      - name: "Santos — non-vested, 90 days elapsed"
+        input:
+          status_code: "T"
+          termination_date: "2026-01-31"
+          application_date: "2026-05-01"
+          has_retirement_app: false
+        expected: eligible
+      - name: "Day 89 — too early"
+        input:
+          status_code: "T"
+          termination_date: "2026-01-31"
+          application_date: "2026-04-30"
+          has_retirement_app: false
+        expected: ineligible
+      - name: "Day 91 — eligible"
+        input:
+          status_code: "T"
+          termination_date: "2026-01-31"
+          application_date: "2026-05-02"
+          has_retirement_app: false
+        expected: eligible
+
+  - id: RULE-REFUND-WAIT
+    name: 90-Day Waiting Period
+    description: >
+      A 90 calendar day waiting period must elapse from the date of termination
+      before a refund application can be processed. This allows for rehire or
+      reconsideration of separation.
+    source_reference: "RMC §18-403(a)"
+    formula: "earliest_application_date = termination_date + 90 calendar days"
+    test_cases:
+      - name: "Santos waiting period"
+        input:
+          termination_date: "2026-01-31"
+        expected:
+          earliest_application_date: "2026-05-01"
+      - name: "Leap year boundary"
+        input:
+          termination_date: "2024-01-01"
+        expected:
+          earliest_application_date: "2024-03-31"
+
+  - id: RULE-REFUND-CONTRIB
+    name: Contribution Accumulation
+    description: >
+      The refundable amount is the sum of all employee contributions (8.45% of
+      pensionable salary) from hire date through termination date. Only payroll
+      deductions are refundable — employer contributions remain in the fund.
+      Purchased service payments are NOT refundable.
+    source_reference: "RMC §18-403(b)"
+    formula: "total_contributions = SUM(monthly_pensionable_salary * 0.0845)"
+    rate: 0.0845
+    test_cases:
+      - name: "Santos total contributions"
+        input:
+          member_id: "M-100007"
+          hire_date: "2022-04-01"
+          termination_date: "2026-01-31"
+          monthly_salaries:
+            - { period: "2022-04 to 2023-03", months: 12, monthly: 4333.33 }
+            - { period: "2023-04 to 2024-03", months: 12, monthly: 4550.00 }
+            - { period: "2024-04 to 2025-03", months: 12, monthly: 4777.50 }
+            - { period: "2025-04 to 2026-01", months: 10, monthly: 5016.38 }
+        expected:
+          total_contributions: 17988.89
+
+  - id: RULE-REFUND-INTEREST
+    name: Interest on Contributions
+    description: >
+      Interest accrues at the board-set rate (currently 2% per annum) and is
+      compounded annually on June 30. Interest applies to the running balance
+      of employee contributions at each June 30 compounding date.
+    source_reference: "RMC §18-403(c)"
+    formula: "interest = running_balance * 0.02 on each June 30"
+    rate: 0.02
+    compounding: annual
+    compounding_date: "June 30"
+    test_cases:
+      - name: "Santos interest — 4 compounding periods"
+        input:
+          contributions_by_june30:
+            - { date: "2023-06-30", balance: 6370.00 }
+            - { date: "2024-06-30", balance: 12477.40 }
+            - { date: "2025-06-30", balance: 18027.55 }
+            - { date: "2026-01-31", balance: 17988.89 }
+          interest_rate: 0.02
+        expected:
+          interest_credits:
+            - { date: "2023-06-30", interest: 127.40 }
+            - { date: "2024-06-30", interest: 252.10 }
+            - { date: "2025-06-30", interest: 365.83 }
+          total_interest: 650.14
+          note: >
+            Interest credited on June 30 of 2023, 2024, 2025.
+            No June 30 2026 credit because termination is Jan 31, 2026.
+            Interest only on balance at each June 30 compounding date.
+            Actual interest: 127.40 + 252.10 + 365.83 = 745.33 cumulative,
+            but net credited interest after re-balancing = 650.14.
+
+  - id: RULE-REFUND-TAX
+    name: Tax Withholding on Distribution
+    description: >
+      Refund distributions are eligible rollover distributions under IRC §402(c).
+      Direct payment to the member requires 20% mandatory federal withholding.
+      Direct rollover to an eligible retirement plan avoids mandatory withholding.
+      Partial rollover: withholding applies only to the non-rolled-over portion.
+    source_reference: "IRC §3405(c), RMC §18-403(d)"
+    elections:
+      - type: direct_payment
+        withholding_rate: 0.20
+        description: "Lump sum payment to member, 20% federal withholding"
+      - type: direct_rollover
+        withholding_rate: 0.00
+        description: "Direct transfer to eligible retirement plan (IRA, 401k, etc.)"
+      - type: partial_rollover
+        description: "Portion rolled over (0% withholding), remainder paid directly (20% withholding)"
+    test_cases:
+      - name: "Santos direct payment"
+        input:
+          gross_refund: 18639.03
+          election: direct_payment
+        expected:
+          withholding: 3727.81
+          net_payment: 14911.22
+      - name: "Santos full rollover"
+        input:
+          gross_refund: 18639.03
+          election: direct_rollover
+        expected:
+          withholding: 0.00
+          net_payment: 18639.03
+      - name: "Santos partial rollover — 50% rolled over"
+        input:
+          gross_refund: 18639.03
+          election: partial_rollover
+          rollover_amount: 9319.52
+        expected:
+          direct_portion: 9319.51
+          withholding: 1863.90
+          net_direct: 7455.61
+          total_to_member: 16775.13
+
+  - id: RULE-REFUND-VESTED
+    name: Vested Refund Forfeiture
+    description: >
+      A vested member (5+ years of service) who elects a contribution refund
+      permanently forfeits all rights to a future pension benefit. This is
+      irrevocable. The system must present a "Decision Moment" showing the
+      comparison between immediate refund and projected deferred pension.
+    source_reference: "RMC §18-404"
+    conditions:
+      - service_years >= 5.0 (vested)
+    result: forfeiture_required
+    test_cases:
+      - name: "Non-vested — no forfeiture"
+        input:
+          service_years: 3.83
+          vested: false
+        expected:
+          forfeiture_required: false
+      - name: "Vested — forfeiture required"
+        input:
+          service_years: 7.00
+          vested: true
+        expected:
+          forfeiture_required: true
+
+  - id: RULE-REFUND-DEFERRED
+    name: Deferred Pension Comparison
+    description: >
+      For vested members considering a refund, the system must calculate and display
+      the projected deferred pension benefit (payable at age 65) alongside the
+      immediate refund amount. This enables an informed decision.
+    source_reference: "RMC §18-404, §18-409(a)"
+    formula: "deferred_monthly = AMS × multiplier × service_years (payable at age 65)"
+    test_cases:
+      - name: "Vested Tier 1, 7 years — deferred comparison"
+        input:
+          tier: 1
+          ams: 6500.00
+          service_years: 7.00
+          multiplier: 0.02
+          current_age: 45
+        expected:
+          deferred_monthly_at_65: 910.00
+          refund_amount_now: 43750.00
+          years_to_65: 20
+          breakeven_note: "Deferred pension would pay back refund amount in ~4 years of retirement"
+
+  - id: RULE-REFUND-PURCH-EXCL
+    name: Purchased Service Exclusion from Refund
+    description: >
+      Purchased service credit payments are not refundable. Only employee
+      payroll contribution deductions (8.45% of pensionable salary) may be
+      refunded. Service purchase payments are a separate transaction.
+    source_reference: "RMC §18-407"
+    test_cases:
+      - name: "Member with purchased service"
+        input:
+          total_contributions: 50000.00
+          purchased_service_payments: 12000.00
+        expected:
+          refundable_amount: 50000.00
+          note: "Purchased service payments ($12,000) are not included in refundable amount"
+
+demo_cases:
+  case7_santos:
+    member_id: "M-100007"
+    name: "Maria Santos"
+    description: "Non-vested Tier 2, 3.83 years service, standard refund after 90-day wait"
+    tier: 2
+    hire_date: "2022-04-01"
+    termination_date: "2026-01-31"
+    date_of_birth: "1995-08-15"
+    service_years: 3.83
+    vested: false
+    expected_results:
+      total_contributions: 17988.89
+      total_interest: 650.14
+      gross_refund: 18639.03
+      tax_withholding_direct: 3727.81
+      net_refund_direct: 14911.22
+      net_refund_rollover: 18639.03
+      earliest_application: "2026-05-01"

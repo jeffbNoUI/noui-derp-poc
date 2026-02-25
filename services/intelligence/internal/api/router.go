@@ -54,6 +54,14 @@ func NewRouter(h *Handlers) http.Handler {
 		h.CalculateDRO(w, r)
 	})
 
+	mux.HandleFunc("/api/v1/refund/calculate", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			WriteError(w, http.StatusMethodNotAllowed, "METHOD_NOT_ALLOWED", "Only POST is supported")
+			return
+		}
+		h.CalculateRefund(w, r)
+	})
+
 	return logMiddleware(mux)
 }
 
