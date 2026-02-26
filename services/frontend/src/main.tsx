@@ -11,6 +11,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { router } from './router'
 import { KioskBridgeProvider, KioskOrchestrator } from './kiosk'
 import './index.css'
+import './styles/animations.css'
+import './styles/print.css'
 
 const queryClient = new QueryClient({
   defaultOptions: {

@@ -39,6 +39,7 @@ import { OperationalDashboardPage } from '@/pages/demos/OperationalDashboardPage
 import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage'
 import { DemoLanding } from '@/pages/DemoLanding'
 import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
+import { ChangeManagementDemo } from '@/pages/demo/ChangeManagementDemo'
 
 export const router = createBrowserRouter([
   {
@@ -104,6 +105,7 @@ export const router = createBrowserRouter([
       { path: 'operational', element: <OperationalDashboardPage /> },
       { path: 'data-quality', element: <DataQualityDashboardPage /> },
       { path: 'purchase-explorer', element: <PurchaseExplorer memberId="10011" /> },
+      { path: 'change-management', element: <ChangeManagementDemo /> },
     ],
   },
 ])

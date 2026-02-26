@@ -1,0 +1,63 @@
+/**
+ * Micro-animations — subtle transitions for visual polish across all portals.
+ * fadeIn for component appearance, slideUp for cards, pulse for loading skeletons,
+ * highlight for newly-calculated values.
+ * Consumed by: main.tsx (global import), LoadingSkeleton.tsx
+ * Depends on: Nothing
+ */
+
+/* Fade in — components appearing */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fadeIn {
+  animation: fadeIn 0.2s ease both;
+}
+
+/* Slide up — cards sliding into view */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out both;
+}
+
+/* Shimmer — loading skeleton pulse */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+.animate-shimmer {
+  background: linear-gradient(90deg, transparent 25%, rgba(255,255,255,0.08) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Light-theme shimmer variant */
+.animate-shimmer-light {
+  background: linear-gradient(90deg, transparent 25%, rgba(0,0,0,0.04) 50%, transparent 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Highlight flash — brief yellow glow for newly calculated values */
+@keyframes highlight {
+  0% { background-color: rgba(250, 204, 21, 0.3); }
+  100% { background-color: transparent; }
+}
+.animate-highlight {
+  animation: highlight 1.2s ease-out both;
+}
+
+/* Staggered entry — cascading slide-up for lists */
+.animate-stagger > * {
+  animation: slideUp 0.3s ease-out both;
+}
+.animate-stagger > *:nth-child(1) { animation-delay: 0ms; }
+.animate-stagger > *:nth-child(2) { animation-delay: 50ms; }
+.animate-stagger > *:nth-child(3) { animation-delay: 100ms; }
+.animate-stagger > *:nth-child(4) { animation-delay: 150ms; }
+.animate-stagger > *:nth-child(5) { animation-delay: 200ms; }
+.animate-stagger > *:nth-child(6) { animation-delay: 250ms; }

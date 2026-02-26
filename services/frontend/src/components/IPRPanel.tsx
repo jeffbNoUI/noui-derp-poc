@@ -8,7 +8,7 @@ interface IPRPanelProps {
 
 export function IPRPanel({ ipr }: IPRPanelProps) {
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
       <div className="flex items-center gap-2 mb-4">
         <TrendingUp className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-semibold text-gray-900">Increase in Pension for Retirees (IPR)</h2>

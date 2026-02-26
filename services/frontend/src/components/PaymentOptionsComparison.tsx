@@ -16,13 +16,13 @@ const optionIcons: Record<string, typeof CreditCard> = {
 
 export function PaymentOptionsComparison({ result }: PaymentOptionsComparisonProps) {
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Payment Options</h2>
       <p className="text-sm text-muted mb-4">
-        Base monthly benefit: {formatCurrency(result.base_monthly_benefit)}
+        Base monthly benefit: <span data-monetary>{formatCurrency(result.base_monthly_benefit)}</span>
       </p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4" data-print="payment-options">
         {result.options.map((option) => {
           const Icon = optionIcons[option.option_type] ?? CreditCard
           const isMax = option.option_type === 'maximum'
@@ -37,6 +37,7 @@ export function PaymentOptionsComparison({ result }: PaymentOptionsComparisonPro
                   ? 'border-primary bg-primary/5'
                   : 'border-border hover:border-primary/30'
               )}
+              data-print="payment-card"
             >
               <div className="flex items-center gap-2 mb-2">
                 <Icon className={cn('w-5 h-5', isMax ? 'text-primary' : 'text-muted')} />
@@ -45,7 +46,7 @@ export function PaymentOptionsComparison({ result }: PaymentOptionsComparisonPro
                 </h3>
               </div>
 
-              <p className="text-2xl font-bold font-mono text-gray-900 mb-1">
+              <p className="text-2xl font-bold font-mono text-gray-900 mb-1" data-monetary>
                 {formatCurrency(option.monthly_amount)}
               </p>
               <p className="text-xs text-muted">per month</p>

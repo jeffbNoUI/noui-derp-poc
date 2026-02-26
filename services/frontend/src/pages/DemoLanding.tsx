@@ -188,7 +188,7 @@ export function DemoLanding() {
 
         {/* Secondary links */}
         <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+          display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
           gap: 12, width: '100%', maxWidth: 720,
         }}>
           <button onClick={() => navigate('/demos/data-quality')} style={{
@@ -218,6 +218,20 @@ export function DemoLanding() {
               Population Analysis
             </div>
             <div style={{ fontSize: 11, color: '#5a7878' }}>Eligibility projections and workload</div>
+          </button>
+          <button onClick={() => navigate('/demos/change-management')} style={{
+            padding: '16px 20px', background: '#fff',
+            border: '1px solid #d4e0e0', borderRadius: 10,
+            cursor: 'pointer', textAlign: 'left' as const,
+            transition: 'all 0.15s', fontFamily: 'inherit',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d4e0e0' }}
+          >
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e2e', marginBottom: 3 }}>
+              Change Management
+            </div>
+            <div style={{ fontSize: 11, color: '#5a7878' }}>AI-accelerated rule change lifecycle</div>
           </button>
           <button onClick={() => navigate('/')} style={{
             padding: '16px 20px', background: '#fff',

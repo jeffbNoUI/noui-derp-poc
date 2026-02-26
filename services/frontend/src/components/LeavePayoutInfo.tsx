@@ -13,7 +13,7 @@ export function LeavePayoutInfo({ member, leavePayoutAmount }: LeavePayoutInfoPr
   if (!isEligible) return null
 
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
       <div className="flex items-center gap-2 mb-4">
         <Clock className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-semibold text-gray-900">Leave Payout</h2>

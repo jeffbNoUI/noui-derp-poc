@@ -21,7 +21,7 @@ export function EmploymentTimeline({ events }: EmploymentTimelineProps) {
   )
 
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
       <h2 className="text-lg font-semibold text-gray-900 mb-4">Employment Timeline</h2>
 
       <div className="relative">

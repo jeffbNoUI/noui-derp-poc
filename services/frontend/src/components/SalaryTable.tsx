@@ -31,7 +31,7 @@ export function SalaryTable({ records, ams, tier }: SalaryTableProps) {
   }
 
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn" data-print="calc-panel">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-900">Salary History</h2>
         <div className="flex items-center gap-2 text-sm">

@@ -9,7 +9,7 @@ interface EligibilityPanelProps {
 
 export function EligibilityPanel({ result }: EligibilityPanelProps) {
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn" data-print="calc-panel">
       <div className="flex items-center gap-2 mb-4">
         <Shield className="w-5 h-5 text-primary" />
         <h2 className="text-lg font-semibold text-gray-900">Eligibility Evaluation</h2>

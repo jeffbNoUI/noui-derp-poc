@@ -3,15 +3,16 @@ import { formatDate } from '@/lib/utils'
 import { User, Calendar, Building2, Briefcase } from 'lucide-react'
 
 const tierLabels: Record<number, string> = {
-  1: 'Tier 1 — Hired before Sept 1, 2004',
-  2: 'Tier 2 — Sept 1, 2004 to June 30, 2011',
-  3: 'Tier 3 — On/after July 1, 2011',
+  1: 'Tier 1 \u2014 Hired before Sept 1, 2004',
+  2: 'Tier 2 \u2014 Sept 1, 2004 to June 30, 2011',
+  3: 'Tier 3 \u2014 On/after July 1, 2011',
 }
 
+// Aligned with canonical tierMeta in legacy.ts: Tier1=blue, Tier2=orange, Tier3=green
 const tierColors: Record<number, string> = {
   1: 'bg-blue-100 text-blue-800 border-blue-200',
-  2: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-  3: 'bg-amber-100 text-amber-800 border-amber-200',
+  2: 'bg-orange-100 text-orange-800 border-orange-200',
+  3: 'bg-green-100 text-green-800 border-green-200',
 }
 
 interface MemberBannerProps {
@@ -25,7 +26,7 @@ export function MemberBanner({ member, serviceCredit }: MemberBannerProps) {
   )
 
   return (
-    <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+    <div className="bg-white border border-border rounded-lg shadow-sm p-6 member-banner animate-fadeIn" data-print="member-header">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-4">
           <div className="flex items-center justify-center w-14 h-14 bg-primary/10 rounded-full">
@@ -43,6 +44,7 @@ export function MemberBanner({ member, serviceCredit }: MemberBannerProps) {
           className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
             tierColors[member.tier] ?? 'bg-gray-100 text-gray-800'
           }`}
+          data-print="badge"
         >
           Tier {member.tier}
         </span>

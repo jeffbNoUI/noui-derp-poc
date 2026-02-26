@@ -10,7 +10,7 @@ interface EarlyRetirementReductionProps {
 export function EarlyRetirementReduction({ eligibility, benefit }: EarlyRetirementReductionProps) {
   if (benefit.reduction_factor >= 1.0) {
     return (
-      <div className="bg-white border border-border rounded-lg shadow-sm p-6">
+      <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
         <div className="flex items-center gap-2 mb-4">
           <Info className="w-5 h-5 text-success" />
           <h2 className="text-lg font-semibold text-gray-900">Early Retirement Reduction</h2>
