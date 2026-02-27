@@ -5,13 +5,13 @@
  * Depends on: useContributionReportDetail, useUpdateReportStatus, validateFile, computeValidationSummary,
  *             DEMO_EMPLOYER_EMPLOYEES, DataTable, Badge, C theme, fmt
  */
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { C } from '@/theme'
 import { fmt } from '@/lib/constants'
 import { Badge } from '@/components/shared/Badge'
 import { DataTable } from '@/components/shared/DataTable'
-import { useContributionReportDetail, useUpdateReportStatus } from '@/hooks/useContributionReview'
+import { useContributionReportDetail, useUpdateReportStatus, useSubmittedReports } from '@/hooks/useContributionReview'
 import { validateFile, computeValidationSummary } from '@/lib/contribution-validation'
 import { DEMO_EMPLOYER_EMPLOYEES } from '@/api/employer-demo-data'
 import type { ContributionFileRow, ValidationSummary, RowValidationResult } from '@/types/Employer'
@@ -37,10 +37,19 @@ export function ContributionReview() {
   const navigate = useNavigate()
   const { data: detail, isLoading } = useContributionReportDetail(reportId || '')
   const updateStatus = useUpdateReportStatus()
+  const { data: submittedReports } = useSubmittedReports()
   const [actionTaken, setActionTaken] = useState('')
+  const [allComplete, setAllComplete] = useState(false)
   const [flagNote, setFlagNote] = useState('')
   const [showFlagInput, setShowFlagInput] = useState(false)
   const [validationResult, setValidationResult] = useState<{ summary: ValidationSummary; results: RowValidationResult[] } | null>(null)
+
+  // Auto-navigate to staff home when all submitted reports have been processed
+  useEffect(() => {
+    if (!allComplete) return
+    const timer = setTimeout(() => navigate('/staff'), 2500)
+    return () => clearTimeout(timer)
+  }, [allComplete, navigate])
 
   if (isLoading) {
     return <div style={{ flex: 1, padding: 40, textAlign: 'center' as const, color: C.textMuted }}>Loading...</div>
@@ -70,6 +79,11 @@ export function ContributionReview() {
       setShowFlagInput(false)
     }
     setActionTaken(action)
+    // Check if this was the last submitted report — remaining count excludes current report
+    const remaining = (submittedReports || []).filter(r => r.report_id !== report.report_id)
+    if (remaining.length === 0) {
+      setAllComplete(true)
+    }
   }
 
   const handleRunValidation = () => {
@@ -151,6 +165,18 @@ export function ContributionReview() {
             <span style={{ fontSize: 12, fontWeight: 600, color: actionTaken === 'verify' ? '#0d9488' : '#dc2626' }}>
               {actionTaken === 'verify' ? 'Report verified.' : 'Report flagged with discrepancy.'}
             </span>
+          </div>
+        )}
+
+        {/* All tasks complete — auto-redirects to staff home */}
+        {allComplete && (
+          <div style={{
+            padding: '16px 20px', borderRadius: 8, marginBottom: 16,
+            background: '#16a34a15', border: '1px solid #16a34a40',
+            textAlign: 'center' as const,
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>All Tasks Complete.</div>
+            <div style={{ fontSize: 11, color: C.textMuted, marginTop: 4 }}>Returning to Staff Workspace...</div>
           </div>
         )}
 
