@@ -34,5 +34,8 @@ database/seed/output/
 # Claude Code worktrees
 .claude/worktrees/
 
+# Dev feedback bridge (written by scripts/dev-feedback-server.mjs)
+dev-feedback.json
+
 # Sync drop zone (raw uploads from Claude project — processed files live in docs/)
 docs/sync/

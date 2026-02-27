@@ -3,6 +3,7 @@
  * notes while using the running app. Persists to localStorage, exports as JSON.
  * Consumed by: main.tsx (conditionally rendered when ?dev query param present)
  * Depends on: Nothing (self-contained, reads window.location.pathname directly)
+ * Bridge: Fire-and-forget POST to localhost:3001 when dev-feedback-server.mjs is running
  */
 import { useState, useRef, useEffect } from 'react'
 
@@ -14,6 +15,16 @@ interface DevFeedbackEntry {
 }
 
 const STORAGE_KEY = 'noui:dev:feedback'
+const FEEDBACK_SERVER = 'http://localhost:3001/feedback'
+
+// Fire-and-forget POST to local dev-feedback-server (no-op if server isn't running)
+function sendToServer(entry: DevFeedbackEntry) {
+  fetch(FEEDBACK_SERVER, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(entry),
+  }).catch(() => {})
+}
 
 function readEntries(): DevFeedbackEntry[] {
   try {
@@ -177,6 +188,7 @@ export function DevFeedbackOverlay() {
     const updated = [entry, ...entries]
     setEntries(updated)
     saveEntries(updated)
+    sendToServer(entry)
     setComment('')
   }
 
@@ -195,6 +207,7 @@ export function DevFeedbackOverlay() {
     if (!confirm('Clear all dev feedback entries?')) return
     setEntries([])
     localStorage.removeItem(STORAGE_KEY)
+    fetch(FEEDBACK_SERVER, { method: 'DELETE' }).catch(() => {})
   }
 
   function fmtTime(iso: string) {
