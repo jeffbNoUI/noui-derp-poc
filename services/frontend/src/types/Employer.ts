@@ -71,3 +71,65 @@ export interface EmployerDashboardStats {
   contribution_rate_employee: number
   contribution_rate_employer: number
 }
+
+// ─── Contribution Upload Types ──────────────────────────────────────────────
+
+/** Single row from an employer contribution CSV file */
+export interface ContributionFileRow {
+  member_id: string
+  ssn_last4: string
+  name: string
+  pay_period_begin: string
+  pay_period_end: string
+  department: string
+  job_classification: string
+  gross_earnings: number
+  pensionable_earnings: number
+  employee_contribution: number
+  employer_contribution: number
+  employment_status: 'active' | 'terminated' | 'leave'
+  transaction_type: 'regular' | 'adjustment' | 'retroactive'
+  tier: number
+}
+
+/** Single validation issue on a row */
+export interface ValidationIssue {
+  issue_id: string
+  field: string
+  severity: 'warning' | 'error'
+  message: string
+  expected?: string
+  actual?: string
+  resolved: boolean
+}
+
+/** Per-row validation result */
+export interface RowValidationResult {
+  row_index: number
+  status: 'clean' | 'warning' | 'error'
+  issues: ValidationIssue[]
+  corrections: Record<string, string | number>
+  acknowledged_warnings: string[]
+}
+
+/** File metadata extracted at upload time */
+export interface ContributionFileMetadata {
+  file_name: string
+  file_size_bytes: number
+  row_count: number
+  period: string
+  department: string
+  uploaded_at: string
+}
+
+/** Aggregate validation stats */
+export interface ValidationSummary {
+  total_rows: number
+  clean_rows: number
+  warning_rows: number
+  error_rows: number
+  total_issues: number
+  total_payroll: number
+  total_ee_contributions: number
+  total_er_contributions: number
+}

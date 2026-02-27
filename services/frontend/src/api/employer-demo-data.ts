@@ -158,7 +158,8 @@ function buildReport(
   }
 }
 
-export const DEMO_CONTRIBUTION_REPORTS: ContributionReport[] = [
+// Mutable store for contribution reports — same pattern as form-submission-store.ts
+const SEED_CONTRIBUTION_REPORTS: ContributionReport[] = [
   // January 2026 — verified
   buildReport('CR-2026-01-PW', '2026-01', 'PW', DEMO_EMPLOYER_EMPLOYEES, 'verified', {
     submitted_at: '2026-02-05T14:30:00Z',
@@ -199,6 +200,17 @@ export const DEMO_CONTRIBUTION_REPORTS: ContributionReport[] = [
   }),
   buildReport('CR-2026-03-FIN', '2026-03', 'FIN', DEMO_EMPLOYER_EMPLOYEES, 'draft'),
 ]
+
+// Mutable copy for runtime additions (upload workflow posts new reports here)
+let contributionReportStore = [...SEED_CONTRIBUTION_REPORTS]
+
+/** Reset store to seed data — for test isolation */
+export function resetContributionReportStore(): void {
+  contributionReportStore = [...SEED_CONTRIBUTION_REPORTS]
+}
+
+// Re-export seed data under original name for backward compat with tests
+export const DEMO_CONTRIBUTION_REPORTS = SEED_CONTRIBUTION_REPORTS
 
 // ─── Pending Retirements ─────────────────────────────────────────────────────
 // Cross-references Cases 1-3 from the demo cases
@@ -264,9 +276,14 @@ export const employerDemoApi = {
 
   async getContributionReports(deptId?: string): Promise<ContributionReport[]> {
     const reports = deptId
-      ? DEMO_CONTRIBUTION_REPORTS.filter(r => r.department === deptId)
-      : DEMO_CONTRIBUTION_REPORTS
+      ? contributionReportStore.filter(r => r.department === deptId)
+      : contributionReportStore
     return delay(reports)
+  },
+
+  async addContributionReport(report: ContributionReport): Promise<ContributionReport> {
+    contributionReportStore = [report, ...contributionReportStore]
+    return delay(report)
   },
 
   async getPendingRetirements(deptId?: string): Promise<PendingRetirement[]> {

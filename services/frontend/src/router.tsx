@@ -25,6 +25,7 @@ import { DocumentsPage } from '@/pages/portal/DocumentsPage'
 import { EmployerDashboard } from '@/pages/employer/EmployerDashboard'
 import { EmployeeRoster } from '@/pages/employer/EmployeeRoster'
 import { ContributionReporting } from '@/pages/employer/ContributionReporting'
+import { ContributionUpload } from '@/pages/employer/ContributionUpload'
 import { RetirementCoordination } from '@/pages/employer/RetirementCoordination'
 import { EmployerReports } from '@/pages/employer/EmployerReports'
 import { VendorDashboard } from '@/pages/vendor/VendorDashboard'
@@ -40,6 +41,12 @@ import { DataQualityDashboardPage } from '@/pages/demos/DataQualityDashboardPage
 import { DemoLanding } from '@/pages/DemoLanding'
 import { PurchaseExplorer } from '@/pages/PurchaseExplorer'
 import { ChangeManagementDemo } from '@/pages/demo/ChangeManagementDemo'
+import { LifeEventHub } from '@/pages/portal/LifeEventHub'
+import { LifeEventFlow } from '@/pages/portal/LifeEventFlow'
+import { FormWizardPage } from '@/pages/portal/FormWizardPage'
+import { FormSubmissionStatus } from '@/pages/portal/FormSubmissionStatus'
+import { WorkQueue } from '@/pages/staff/WorkQueue'
+import { SubmissionReview } from '@/pages/staff/SubmissionReview'
 
 export const router = createBrowserRouter([
   {
@@ -60,6 +67,8 @@ export const router = createBrowserRouter([
       { path: 'death/:memberId', element: <StaffDeathView /> },
       { path: 'refund/:memberId', element: <StaffRefundView /> },
       { path: 'compare', element: <ComparisonView /> },
+      { path: 'queue', element: <WorkQueue /> },
+      { path: 'queue/:bundleId', element: <SubmissionReview /> },
     ],
   },
   {
@@ -71,6 +80,10 @@ export const router = createBrowserRouter([
       { path: 'status/:appId', element: <ApplicationStatus /> },
       { path: 'messages', element: <MessagesPage /> },
       { path: 'documents', element: <DocumentsPage /> },
+      { path: 'life-events', element: <LifeEventHub /> },
+      { path: 'life-events/:eventId', element: <LifeEventFlow /> },
+      { path: 'forms/:formId', element: <FormWizardPage /> },
+      { path: 'submissions/:bundleId', element: <FormSubmissionStatus /> },
     ],
   },
   {
@@ -80,6 +93,7 @@ export const router = createBrowserRouter([
       { index: true, element: <EmployerDashboard /> },
       { path: 'roster', element: <EmployeeRoster /> },
       { path: 'contributions', element: <ContributionReporting /> },
+      { path: 'contributions/upload', element: <ContributionUpload /> },
       { path: 'retirements', element: <RetirementCoordination /> },
       { path: 'reports', element: <EmployerReports /> },
     ],

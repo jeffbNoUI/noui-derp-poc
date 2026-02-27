@@ -4,6 +4,7 @@
  * Depends on: employerDemoApi, useEmployerAuth, fmt, employerTheme, Employer types
  */
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useEmployerAuth } from '@/employer/auth/EmployerAuthContext'
 import { employerDemoApi } from '@/api/employer-demo-data'
 import { employerTheme as T } from '@/theme'
@@ -19,6 +20,7 @@ const STATUS_STYLES: Record<string, { color: string; bg: string }> = {
 
 export function ContributionReporting() {
   const { deptId } = useEmployerAuth()
+  const navigate = useNavigate()
   const [reports, setReports] = useState<ContributionReport[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
@@ -32,11 +34,22 @@ export function ContributionReporting() {
         <div style={{ fontSize: 16, fontWeight: 700, color: T.text.primary }}>
           Contribution Reports
         </div>
-        {/* Contribution rates callout — RMC §18-407 */}
-        <div style={{ fontSize: 11, color: T.text.muted }}>
-          Employee: <strong style={{ color: T.text.primary }}>8.45%</strong>
-          <span style={{ margin: '0 8px', color: T.border.base }}>|</span>
-          Employer: <strong style={{ color: T.text.primary }}>17.95%</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Contribution rates callout — RMC §18-407 */}
+          <div style={{ fontSize: 11, color: T.text.muted }}>
+            Employee: <strong style={{ color: T.text.primary }}>8.45%</strong>
+            <span style={{ margin: '0 8px', color: T.border.base }}>|</span>
+            Employer: <strong style={{ color: T.text.primary }}>17.95%</strong>
+          </div>
+          <button
+            onClick={() => navigate('/employer/contributions/upload')}
+            style={{
+              padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+              background: T.accent.primary, color: T.accent.on, border: 'none', cursor: 'pointer',
+            }}
+          >
+            Upload New Report
+          </button>
         </div>
       </div>
 
