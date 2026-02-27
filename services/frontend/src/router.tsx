@@ -49,6 +49,8 @@ import { WorkQueue } from '@/pages/staff/WorkQueue'
 import { SubmissionReview } from '@/pages/staff/SubmissionReview'
 import { ContributionQueue } from '@/pages/staff/ContributionQueue'
 import { ContributionReview } from '@/pages/staff/ContributionReview'
+import { MemberLookup } from '@/pages/staff/MemberLookup'
+import { EmployerLookup } from '@/pages/staff/EmployerLookup'
 
 export const router = createBrowserRouter([
   {
@@ -73,6 +75,10 @@ export const router = createBrowserRouter([
       { path: 'queue/:bundleId', element: <SubmissionReview /> },
       { path: 'contributions', element: <ContributionQueue /> },
       { path: 'contributions/:reportId', element: <ContributionReview /> },
+      { path: 'members', element: <MemberLookup /> },
+      { path: 'members/:memberId', element: <MemberLookup /> },
+      { path: 'employers', element: <EmployerLookup /> },
+      { path: 'employers/:deptId', element: <EmployerLookup /> },
     ],
   },
   {

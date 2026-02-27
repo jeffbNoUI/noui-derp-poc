@@ -1,14 +1,18 @@
 /**
  * Guided mode Stage 2 — Service Credit Review.
- * Earned vs. purchased breakdown, vesting status, exclusion callout.
+ * Earned vs. purchased breakdown, vesting status, exclusion callout,
+ * and employment history summary for approving service credit.
  * Consumed by: GuidedWorkspace (stage renderer)
- * Depends on: StageProps, theme (C), Badge
+ * Depends on: StageProps, theme (C), Badge, Field, useEmployment hook
  */
 import type { StageProps } from './StageProps'
 import { C } from '@/theme'
 import { Field } from '@/components/shared/Field'
+import { useEmployment } from '@/hooks/useMember'
 
-export function Stage2ServiceCredit({ member: m, serviceCredit: sc }: StageProps) {
+export function Stage2ServiceCredit({ member: m, memberId, serviceCredit: sc }: StageProps) {
+  const { data: employment } = useEmployment(memberId)
+
   if (!sc) {
     return <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading service credit...</div>
   }
@@ -78,6 +82,52 @@ export function Stage2ServiceCredit({ member: m, serviceCredit: sc }: StageProps
           </div>
         </div>
       </div>
+
+      {/* Employment history summary — supports service credit approval */}
+      {employment && employment.length > 0 && (
+        <div style={{
+          marginTop: '8px', borderRadius: '6px', overflow: 'hidden',
+          border: `1px solid ${C.borderSubtle}`,
+        }}>
+          <div style={{
+            padding: '6px 8px', background: C.elevated, fontSize: '9px', fontWeight: 600,
+            color: C.textMuted, textTransform: 'uppercase' as const, letterSpacing: '1px',
+          }}>Employment History</div>
+          <div style={{ padding: '4px 8px' }}>
+            {employment.map((evt, i) => (
+              <div key={i} style={{
+                display: 'flex', alignItems: 'center', gap: '8px',
+                padding: '5px 0',
+                borderBottom: i < employment.length - 1 ? `1px solid ${C.borderSubtle}` : 'none',
+              }}>
+                {/* Timeline dot + line */}
+                <div style={{
+                  width: '6px', height: '6px', borderRadius: '50%', flexShrink: 0,
+                  background: i === employment.length - 1 ? C.accent : C.textDim,
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ color: C.text, fontSize: '11px', fontWeight: 500 }}>{evt.position}</span>
+                    <span style={{
+                      color: C.textMuted, fontSize: '10px', fontFamily: "'SF Mono',monospace",
+                      flexShrink: 0, marginLeft: '8px',
+                    }}>{evt.effective_date}</span>
+                  </div>
+                  <div style={{ color: C.textDim, fontSize: '10px' }}>
+                    {evt.department}
+                    {evt.event_type !== 'hire' && (
+                      <span style={{
+                        marginLeft: '6px', fontSize: '9px', padding: '0 4px',
+                        borderRadius: '3px', background: C.accentMuted, color: C.accent,
+                      }}>{evt.event_type}</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Purchased service exclusion callout */}
       {hasPurchased && (

@@ -69,14 +69,39 @@ export function StaffLayout() {
         background: C.surface, flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{
+          <div onClick={() => navigate('/staff')} style={{
             width: '22px', height: '22px', borderRadius: '5px',
             background: `linear-gradient(135deg,${C.accent},#00695c)`,
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 800, fontSize: '10px', color: '#ffffff',
+            fontWeight: 800, fontSize: '10px', color: '#ffffff', cursor: 'pointer',
           }}>N</div>
-          <span style={{ color: C.text, fontWeight: 700, fontSize: '13px' }}>NoUI</span>
+          <span onClick={() => navigate('/staff')} style={{ color: C.text, fontWeight: 700, fontSize: '13px', cursor: 'pointer' }}>NoUI</span>
           <span style={{ color: C.textMuted, fontSize: '11px' }}>Staff Workspace</span>
+          {/* Persistent lookup navigation */}
+          <div style={{
+            display: 'flex', gap: '2px', marginLeft: '8px', borderRadius: '4px',
+            overflow: 'hidden', border: `1px solid ${C.border}`,
+          }}>
+            {[
+              { label: 'Members', path: '/staff/members' },
+              { label: 'Employers', path: '/staff/employers' },
+            ].map(link => {
+              const active = location.pathname.startsWith(link.path)
+              return (
+                <button key={link.path} onClick={() => navigate(link.path)} style={{
+                  fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '0.5px',
+                  color: active ? C.accent : C.textDim, fontWeight: active ? 600 : 400,
+                  background: active ? C.accentMuted : 'transparent',
+                  border: 'none', padding: '2px 8px', cursor: 'pointer',
+                  borderRight: link.label === 'Members' ? `1px solid ${C.border}` : 'none',
+                  transition: 'all 0.15s',
+                }}
+                  onMouseEnter={e => { if (!active) e.currentTarget.style.color = C.accent }}
+                  onMouseLeave={e => { if (!active) e.currentTarget.style.color = C.textDim }}
+                >{link.label}</button>
+              )
+            })}
+          </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
           {memberId && (
