@@ -186,6 +186,62 @@ export function DemoLanding() {
           ))}
         </div>
 
+        {/* ── Member Life Events ── */}
+        <SectionLabel title="Member Life Events" count={7} color="#00796b" />
+        <div style={{
+          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
+        }}>
+          <button onClick={() => navigate('/portal/life-events')} style={{
+            padding: 20, background: '#fff',
+            border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: '4px solid #00796b',
+            cursor: 'pointer', textAlign: 'left' as const,
+            boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
+            transition: 'all 0.2s', fontFamily: 'inherit',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>MEMBER PORTAL</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#00796b', background: '#e0f2f1', padding: '2px 8px', borderRadius: 4 }}>7 Events</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>Life Event Hub</div>
+            <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>
+              Members choose their life situation and the system assembles the right forms automatically.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
+              {['Retirement', 'Divorce/DRO', 'Death/Survivor', 'Disability', 'Life Changes'].map(f => (
+                <span key={f} style={{ fontSize: 9.5, color: '#5a7878', background: '#f0f5f5', padding: '2px 7px', borderRadius: 3 }}>{f}</span>
+              ))}
+            </div>
+          </button>
+          <button onClick={() => navigate('/staff/queue')} style={{
+            padding: 20, background: '#fff',
+            border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: '4px solid #1565c0',
+            cursor: 'pointer', textAlign: 'left' as const,
+            boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
+            transition: 'all 0.2s', fontFamily: 'inherit',
+          }}
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>STAFF WORKSPACE</span>
+              <span style={{ fontSize: 10, fontWeight: 700, color: '#1565c0', background: '#e3f2fd', padding: '2px 8px', borderRadius: 4 }}>Work Queue</span>
+            </div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>Staff Work Queue</div>
+            <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>
+              Portal submissions flow to the staff work queue. Review forms, approve or request more information.
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
+              {['Form Review', 'Approval Workflow', 'Portal Bridge'].map(f => (
+                <span key={f} style={{ fontSize: 9.5, color: '#5a7878', background: '#f0f5f5', padding: '2px 7px', borderRadius: 3 }}>{f}</span>
+              ))}
+            </div>
+          </button>
+        </div>
+
         {/* Secondary links */}
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',

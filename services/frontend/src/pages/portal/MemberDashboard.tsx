@@ -211,6 +211,43 @@ export function MemberDashboard() {
         </div>
       </div>
 
+      {/* Life Events */}
+      <div style={{
+        background: T.surface.card, borderRadius: 12,
+        border: `1px solid ${T.border.base}`, boxShadow: T.shadow,
+        overflow: 'hidden', marginBottom: 16,
+      }}>
+        <div style={{
+          padding: '14px 20px', borderBottom: `1px solid ${T.border.subtle}`,
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>Life Events</span>
+          <span onClick={() => navigate('/portal/life-events')} style={{
+            fontSize: 11, color: T.accent.primary, cursor: 'pointer', fontWeight: 600,
+          }}>See all</span>
+        </div>
+        <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+          {[
+            { label: "I'm Ready to Retire", icon: 'R', color: '#00796b', bg: '#e0f2f1', eventId: 'retirement' },
+            { label: 'Something Changed', icon: 'C', color: '#16a34a', bg: '#dcfce7', eventId: 'life-change' },
+            { label: 'Manage Account', icon: 'A', color: '#475569', bg: '#f1f5f9', eventId: 'account' },
+          ].map(item => (
+            <button key={item.eventId} onClick={() => navigate(`/portal/life-events/${item.eventId}`)} style={{
+              padding: '12px 10px', background: T.surface.cardAlt, borderRadius: 8,
+              border: `1px solid ${T.border.subtle}`, cursor: 'pointer', textAlign: 'center' as const,
+              fontFamily: 'inherit',
+            }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 6, background: item.bg,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 800, color: item.color, margin: '0 auto 6px',
+              }}>{item.icon}</div>
+              <div style={{ fontSize: 11, fontWeight: 600, color: T.text.primary }}>{item.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* Quick Links */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
         {[

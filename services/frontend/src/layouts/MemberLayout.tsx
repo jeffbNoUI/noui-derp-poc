@@ -16,6 +16,7 @@ function MemberLayoutInner() {
   const { memberId, setMemberId } = usePortalAuth()
   const navItems = [
     { label: 'Dashboard', path: '/portal' },
+    { label: 'Life Events', path: '/portal/life-events' },
     { label: 'My Application', path: '/portal/apply/current' },
     { label: 'Messages', path: '/portal/messages' },
     { label: 'Documents', path: '/portal/documents' },

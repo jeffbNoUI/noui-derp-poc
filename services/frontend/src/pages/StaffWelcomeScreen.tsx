@@ -10,11 +10,21 @@ import { useNavigate } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
+import { usePendingSubmissions } from '@/hooks/useFormSubmission'
+import { LIFE_EVENTS } from '@/lib/life-events'
+
+const MEMBER_NAMES: Record<string, string> = {
+  '10001': 'Robert Martinez',
+  '10002': 'Jennifer Kim',
+  '10003': 'David Washington',
+  '10004': 'Robert Martinez',
+}
 
 
 export function StaffWelcomeScreen() {
   const navigate = useNavigate()
   const [mode, setMode] = useState<'expert' | 'guided'>('expert')
+  const { data: pending = [] } = usePendingSubmissions()
 
   return (
     <div style={{
@@ -40,6 +50,47 @@ export function StaffWelcomeScreen() {
             Select a process type and demo case. Every calculation is transparent and verifiable.
           </div>
         </div>
+
+        {/* ── Incoming Work ── */}
+        {pending.length > 0 && (
+          <div>
+            <SectionHeader title="Incoming Work" badge={`${pending.length} Pending`} color="#16a34a" />
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '8px',
+            }}>
+              {pending.slice(0, 4).map(b => {
+                const event = LIFE_EVENTS.find(e => e.eventId === b.eventId)
+                return (
+                  <button key={b.bundleId} onClick={() => navigate(`/staff/queue/${b.bundleId}`)} style={{
+                    padding: '14px', background: C.surface, border: `1px solid ${C.borderSubtle}`,
+                    borderRadius: '8px', cursor: 'pointer', textAlign: 'left' as const,
+                    transition: 'border-color 0.15s',
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.borderColor = '#16a34a')}
+                    onMouseLeave={e => (e.currentTarget.style.borderColor = C.borderSubtle)}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                      <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>
+                        {MEMBER_NAMES[b.memberId] || `Member ${b.memberId}`}
+                      </span>
+                      <Badge text="New" bg="#16a34a20" color="#16a34a" />
+                    </div>
+                    <div style={{ color: C.textMuted, fontSize: '10px' }}>{event?.title || b.eventId}</div>
+                    <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>
+                      {b.forms.length} form{b.forms.length !== 1 ? 's' : ''} · {b.submittedAt ? new Date(b.submittedAt).toLocaleDateString() : 'Pending'}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+            <button onClick={() => navigate('/staff/queue')} style={{
+              width: '100%', padding: '8px', borderRadius: '6px', fontSize: '10.5px',
+              border: `1px solid ${C.border}`, background: 'transparent',
+              color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
+              marginBottom: '8px',
+            }}>View Full Work Queue</button>
+          </div>
+        )}
 
         {/* ── Retirement Application Section ── */}
         <div>
