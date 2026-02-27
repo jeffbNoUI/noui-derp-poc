@@ -47,6 +47,8 @@ import { FormWizardPage } from '@/pages/portal/FormWizardPage'
 import { FormSubmissionStatus } from '@/pages/portal/FormSubmissionStatus'
 import { WorkQueue } from '@/pages/staff/WorkQueue'
 import { SubmissionReview } from '@/pages/staff/SubmissionReview'
+import { ContributionQueue } from '@/pages/staff/ContributionQueue'
+import { ContributionReview } from '@/pages/staff/ContributionReview'
 
 export const router = createBrowserRouter([
   {
@@ -69,6 +71,8 @@ export const router = createBrowserRouter([
       { path: 'compare', element: <ComparisonView /> },
       { path: 'queue', element: <WorkQueue /> },
       { path: 'queue/:bundleId', element: <SubmissionReview /> },
+      { path: 'contributions', element: <ContributionQueue /> },
+      { path: 'contributions/:reportId', element: <ContributionReview /> },
     ],
   },
   {

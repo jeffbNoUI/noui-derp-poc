@@ -236,6 +236,13 @@ export const DEMO_PENDING_RETIREMENTS: PendingRetirement[] = [
   },
 ]
 
+// ─── Staff Review Types ─────────────────────────────────────────────────────
+
+export interface ContributionReportDetail {
+  report: ContributionReport
+  rows: import('@/types/Employer').ContributionFileRow[]
+}
+
 // ─── Demo API ────────────────────────────────────────────────────────────────
 
 function delay<T>(val: T): Promise<T> {
@@ -291,5 +298,35 @@ export const employerDemoApi = {
       ? DEMO_PENDING_RETIREMENTS.filter(r => r.department === deptId)
       : DEMO_PENDING_RETIREMENTS
     return delay(retirements)
+  },
+
+  // ── Staff review methods ──────────────────────────────────────────────────
+
+  /** Filter contribution reports to only those with status 'submitted' — feeds staff queue */
+  async getSubmittedContributionReports(): Promise<ContributionReport[]> {
+    return delay(contributionReportStore.filter(r => r.status === 'submitted'))
+  },
+
+  /** Get full report detail + generated row-level employee data for staff review */
+  async getContributionReportDetail(reportId: string): Promise<ContributionReportDetail | null> {
+    const report = contributionReportStore.find(r => r.report_id === reportId)
+    if (!report) return delay(null)
+    // Generate row-level data from the same fixtures the employer upload uses
+    const { generateCleanFile } = await import('@/api/contribution-csv-fixtures')
+    const rows = generateCleanFile(report.department, report.period)
+    return delay({ report, rows })
+  },
+
+  /** Mutate report status in-place — submitted → verified | discrepancy */
+  async updateContributionReportStatus(
+    reportId: string,
+    status: ContributionReport['status'],
+    discrepancies?: ContributionReport['discrepancies'],
+  ): Promise<ContributionReport | null> {
+    const report = contributionReportStore.find(r => r.report_id === reportId)
+    if (!report) return delay(null)
+    report.status = status
+    if (discrepancies) report.discrepancies = discrepancies
+    return delay(report)
   },
 }

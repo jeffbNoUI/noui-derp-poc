@@ -11,7 +11,15 @@ import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
 import { usePendingSubmissions } from '@/hooks/useFormSubmission'
+import { useSubmittedReports } from '@/hooks/useContributionReview'
 import { LIFE_EVENTS } from '@/lib/life-events'
+import { fmt } from '@/lib/constants'
+
+const DEPT_NAMES: Record<string, string> = {
+  PW: 'Public Works',
+  PR: 'Parks & Recreation',
+  FIN: 'Finance',
+}
 
 const MEMBER_NAMES: Record<string, string> = {
   '10001': 'Robert Martinez',
@@ -25,6 +33,7 @@ export function StaffWelcomeScreen() {
   const navigate = useNavigate()
   const [mode, setMode] = useState<'expert' | 'guided'>('expert')
   const { data: pending = [] } = usePendingSubmissions()
+  const { data: submittedReports = [] } = useSubmittedReports()
 
   return (
     <div style={{
@@ -89,6 +98,44 @@ export function StaffWelcomeScreen() {
               color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
               marginBottom: '8px',
             }}>View Full Work Queue</button>
+          </div>
+        )}
+
+        {/* ── Contribution Reports ── */}
+        {submittedReports.length > 0 && (
+          <div>
+            <SectionHeader title="Contribution Reports" badge={`${submittedReports.length} Pending`} color="#0d9488" />
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px', marginBottom: '8px',
+            }}>
+              {submittedReports.slice(0, 4).map(r => (
+                <button key={r.report_id} onClick={() => navigate(`/staff/contributions/${r.report_id}`)} style={{
+                  padding: '14px', background: C.surface, border: `1px solid ${C.borderSubtle}`,
+                  borderRadius: '8px', cursor: 'pointer', textAlign: 'left' as const,
+                  transition: 'border-color 0.15s',
+                }}
+                  onMouseEnter={e => (e.currentTarget.style.borderColor = '#0d9488')}
+                  onMouseLeave={e => (e.currentTarget.style.borderColor = C.borderSubtle)}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>
+                      {DEPT_NAMES[r.department] || r.department}
+                    </span>
+                    <Badge text="New" bg="#0d948820" color="#0d9488" />
+                  </div>
+                  <div style={{ color: C.textMuted, fontSize: '10px' }}>{r.period}</div>
+                  <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>
+                    {fmt(r.total_gross_payroll)} · {r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : 'Pending'}
+                  </div>
+                </button>
+              ))}
+            </div>
+            <button onClick={() => navigate('/staff/contributions')} style={{
+              width: '100%', padding: '8px', borderRadius: '6px', fontSize: '10.5px',
+              border: `1px solid ${C.border}`, background: 'transparent',
+              color: C.textSecondary, cursor: 'pointer', fontWeight: 500,
+              marginBottom: '8px',
+            }}>View All Contribution Reports</button>
           </div>
         )}
 

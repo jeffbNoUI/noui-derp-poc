@@ -18,6 +18,7 @@ import { DemoLanding } from '@/pages/DemoLanding'
 import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
 import { LifeEventHub } from '@/pages/portal/LifeEventHub'
 import { WorkQueue } from '@/pages/staff/WorkQueue'
+import { ContributionQueue } from '@/pages/staff/ContributionQueue'
 
 // Ensure DOM is clean before each test to prevent element accumulation
 beforeEach(() => { cleanup() })
@@ -222,6 +223,29 @@ describe('Route Smoke Tests', () => {
       const { container } = renderWithRouter(<WorkQueue />)
       const view = within(container)
       expect(view.getByText('Incoming Work Queue')).toBeInTheDocument()
+    })
+  })
+
+  describe('ContributionQueue (/staff/contributions)', () => {
+    it('renders without crashing', () => {
+      renderWithRouter(<ContributionQueue />)
+    })
+
+    it('displays the contribution reports title', () => {
+      const { container } = renderWithRouter(<ContributionQueue />)
+      const view = within(container)
+      expect(view.getByText('Contribution Reports')).toBeInTheDocument()
+    })
+  })
+
+  describe('StaffWelcomeScreen — contribution reports section', () => {
+    it('renders Contribution Reports section when submitted reports exist', async () => {
+      const { container } = renderWithRouter(<StaffWelcomeScreen />)
+      const view = within(container)
+      // The section header includes "Contribution Reports" — wait for async data
+      await new Promise(r => setTimeout(r, 200))
+      // Re-query after data loads
+      expect(view.getByText('View All Contribution Reports')).toBeInTheDocument()
     })
   })
 
