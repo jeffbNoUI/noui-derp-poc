@@ -1,7 +1,8 @@
 /**
  * Dev feedback bridge — zero-dependency Node HTTP server that receives feedback
  * entries from the DevFeedbackOverlay and writes them to dev-feedback.json on disk.
- * Consumed by: Claude Code (reads dev-feedback.json directly)
+ * POST /feedback/batch signals Claude Code to pick up and implement the batch.
+ * Consumed by: Claude Code (reads dev-feedback.json and dev-feedback-ready signal)
  * Depends on: Nothing (standalone script, built-in http + fs only)
  */
 import { createServer } from 'node:http'
@@ -10,6 +11,7 @@ import { resolve } from 'node:path'
 
 const PORT = 3001
 const FILE = resolve(import.meta.dirname, '..', 'dev-feedback.json')
+const SIGNAL = resolve(import.meta.dirname, '..', 'dev-feedback-ready')
 
 function readFile() {
   try { return JSON.parse(readFileSync(FILE, 'utf8')) }
@@ -36,6 +38,15 @@ const server = createServer((req, res) => {
 
   // CORS preflight
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+
+  // Batch signal — overlay says "ready for Claude to pick up"
+  if (req.url === '/feedback/batch' && req.method === 'POST') {
+    const entries = readFile()
+    writeFileSync(SIGNAL, new Date().toISOString())
+    console.log(`\n[dev] ★ BATCH READY — ${entries.length} entries queued for Claude`)
+    json(res, 200, { ok: true, count: entries.length })
+    return
+  }
 
   if (req.url !== '/feedback') { json(res, 404, { error: 'not found' }); return }
 

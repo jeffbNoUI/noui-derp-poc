@@ -36,6 +36,7 @@ database/seed/output/
 
 # Dev feedback bridge (written by scripts/dev-feedback-server.mjs)
 dev-feedback.json
+dev-feedback-ready
 
 # Sync drop zone (raw uploads from Claude project — processed files live in docs/)
 docs/sync/

@@ -6,6 +6,7 @@
  */
 // @ts-nocheck
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { KNOWLEDGE_BASE, searchKnowledge } from "@/lib/knowledge-base";
 
 // ============================================================
@@ -386,7 +387,15 @@ function EmptyState({ isConnected }) {
 }
 
 export function KnowledgeAssistant() {
-  const [mode, setMode] = useState("standalone");
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detect member context from referrer — if navigated from a member-specific screen, auto-connect
+  const fromPath = (location.state as { from?: string })?.from || "";
+  const memberMatch = fromPath.match(/\/staff\/(?:case|members)\/(\d+)/);
+  const hasMemberContext = !!memberMatch;
+
+  const [mode, setMode] = useState(hasMemberContext ? "connected" : "standalone");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
@@ -421,6 +430,16 @@ export function KnowledgeAssistant() {
         borderBottom: `1px solid rgba(255,255,255,0.08)`,
       }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {/* Back button — returns to previous screen */}
+          <button onClick={() => fromPath ? navigate(fromPath) : navigate(-1)} style={{
+            background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)",
+            borderRadius: 6, padding: "4px 10px", cursor: "pointer",
+            color: C.sidebarText, fontSize: 12, fontFamily: FONT,
+            transition: "all 0.15s",
+          }}
+            onMouseEnter={e => { e.currentTarget.style.background = "rgba(255,255,255,0.15)"; e.currentTarget.style.color = "#fff" }}
+            onMouseLeave={e => { e.currentTarget.style.background = "rgba(255,255,255,0.08)"; e.currentTarget.style.color = C.sidebarText }}
+          >&larr; Back</button>
           <span style={{ color: "#fff", fontWeight: 800, fontSize: 16, letterSpacing: -0.5 }}>NoUI</span>
           <span style={{ color: C.sidebarText, fontSize: 13 }}>Knowledge Assistant</span>
           {isConnected && (

@@ -259,6 +259,14 @@ export function DevFeedbackOverlay() {
     URL.revokeObjectURL(url)
   }
 
+  const [batchSent, setBatchSent] = useState(false)
+
+  function handleSendBatch() {
+    fetch(`${FEEDBACK_SERVER}/batch`, { method: 'POST' })
+      .then(() => { setBatchSent(true); setTimeout(() => setBatchSent(false), 3000) })
+      .catch(() => {})
+  }
+
   function handleClear() {
     if (!confirm('Clear all dev feedback entries?')) return
     setEntries([])
@@ -345,6 +353,21 @@ export function DevFeedbackOverlay() {
               <div style={S.entryComment}>{e.comment}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Send batch to Claude */}
+      {entries.length > 0 && (
+        <div style={{ padding: '0 14px 8px' }}>
+          <button onClick={handleSendBatch} disabled={batchSent} style={{
+            width: '100%', padding: '7px', borderRadius: '6px', fontSize: '12px',
+            fontWeight: 600, cursor: batchSent ? 'default' : 'pointer',
+            border: 'none', transition: 'all 0.2s',
+            background: batchSent ? 'rgba(46,125,50,0.3)' : 'rgba(124,58,237,0.25)',
+            color: batchSent ? '#4ade80' : '#c084fc',
+          }}>
+            {batchSent ? `Sent ${entries.length} notes to Claude` : `Send ${entries.length} to Claude`}
+          </button>
         </div>
       )}
 

@@ -4,7 +4,7 @@ export const C = {
   surface: '#ffffff',
   elevated: '#f0f6f6',
   border: '#d4e0e0',
-  borderSubtle: '#e8efef',
+  borderSubtle: '#cddada',
   accent: '#00796b',
   accentMuted: 'rgba(0,121,107,0.08)',
   accentGlow: 'rgba(0,121,107,0.15)',

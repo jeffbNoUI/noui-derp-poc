@@ -51,6 +51,7 @@ import { ContributionQueue } from '@/pages/staff/ContributionQueue'
 import { ContributionReview } from '@/pages/staff/ContributionReview'
 import { MemberLookup } from '@/pages/staff/MemberLookup'
 import { EmployerLookup } from '@/pages/staff/EmployerLookup'
+import { MemberProfile } from '@/pages/portal/MemberProfile'
 
 export const router = createBrowserRouter([
   {
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
       { path: 'status/:appId', element: <ApplicationStatus /> },
       { path: 'messages', element: <MessagesPage /> },
       { path: 'documents', element: <DocumentsPage /> },
+      { path: 'profile', element: <MemberProfile /> },
       { path: 'life-events', element: <LifeEventHub /> },
       { path: 'life-events/:eventId', element: <LifeEventFlow /> },
       { path: 'forms/:formId', element: <FormWizardPage /> },

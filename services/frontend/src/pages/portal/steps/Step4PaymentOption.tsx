@@ -25,7 +25,7 @@ export function Step4PaymentOption({ T, draft, onUpdate, opts }: StepProps) {
             onClick={() => onUpdate({ payment_option: o.option_type as ApplicationDraft['payment_option'] })}
             style={{
               padding: '16px 18px', marginBottom: 8, borderRadius: 8, cursor: 'pointer',
-              border: `2px solid ${isSelected ? T.accent.primary : T.border.subtle}`,
+              border: `2px solid ${isSelected ? T.accent.primary : T.border.base}`,
               background: isSelected ? T.accent.surface : T.surface.card,
               transition: 'all 0.15s',
             }}

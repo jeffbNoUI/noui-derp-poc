@@ -5,11 +5,12 @@
  * Consumed by: router.tsx (index route under /portal)
  * Depends on: useTheme, usePortalAuth, useMember hooks, useApplication, constants (fmt, dates)
  */
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
 import { useMember, useServiceCredit } from '@/hooks/useMember'
-import { useEligibility, useBenefitCalculation } from '@/hooks/useCalculations'
+import { useEligibility, useBenefitCalculation, useScenarios } from '@/hooks/useCalculations'
 import { useApplication } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
 import { DEFAULT_RETIREMENT_DATES, fmt } from '@/lib/constants'
@@ -34,6 +35,20 @@ export function MemberDashboard() {
   const elig = eligibility.data
   const ben = benefit.data
   const app = application.data
+
+  // What-If scenario calculator state
+  const [scenarioOpen, setScenarioOpen] = useState(false)
+  const scenarioDates = (() => {
+    const base = new Date(retDate)
+    const dates: string[] = []
+    for (let offset = -2; offset <= 3; offset++) {
+      const d = new Date(base)
+      d.setFullYear(d.getFullYear() + offset)
+      dates.push(d.toISOString().split('T')[0])
+    }
+    return dates
+  })()
+  const scenarios = useScenarios(memberId, scenarioOpen ? scenarioDates : [])
 
   if (member.isLoading) {
     return (
@@ -211,7 +226,83 @@ export function MemberDashboard() {
         </div>
       </div>
 
-      {/* Life Events */}
+      {/* Life Events — visually rich navigable cards */}
+      <div style={{ marginBottom: 16 }}>
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+          marginBottom: 12,
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>Life Events</span>
+          <span onClick={() => navigate('/portal/life-events')} style={{
+            fontSize: 11, color: T.accent.primary, cursor: 'pointer', fontWeight: 600,
+          }}>See all events &rarr;</span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+          {[
+            {
+              label: "I'm Ready to Retire",
+              desc: 'Start your retirement application and see your estimated benefit',
+              icon: '\u2600', color: '#00796b', bg: '#e0f2f1', gradFrom: '#e0f2f1', gradTo: '#b2dfdb',
+              eventId: 'retirement',
+            },
+            {
+              label: 'Something Changed',
+              desc: 'Report a marriage, divorce, name change, or other life update',
+              icon: '\u21C4', color: '#16a34a', bg: '#dcfce7', gradFrom: '#dcfce7', gradTo: '#bbf7d0',
+              eventId: 'life-change',
+            },
+            {
+              label: 'Manage Account',
+              desc: 'Update beneficiaries, tax withholding, or contact preferences',
+              icon: '\u2699', color: '#475569', bg: '#f1f5f9', gradFrom: '#f1f5f9', gradTo: '#e2e8f0',
+              eventId: 'account',
+            },
+          ].map(item => (
+            <button
+              key={item.eventId}
+              onClick={() => navigate(`/portal/life-events/${item.eventId}`)}
+              style={{
+                padding: 0, background: T.surface.card, borderRadius: 12,
+                border: `1px solid ${T.border.base}`, cursor: 'pointer',
+                textAlign: 'left' as const, fontFamily: 'inherit',
+                boxShadow: T.shadow, overflow: 'hidden',
+                transition: 'transform 0.15s, box-shadow 0.15s',
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.transform = 'translateY(-2px)'
+                e.currentTarget.style.boxShadow = T.shadowLg
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.transform = 'translateY(0)'
+                e.currentTarget.style.boxShadow = T.shadow
+              }}
+            >
+              {/* Colored header strip */}
+              <div style={{
+                background: `linear-gradient(135deg, ${item.gradFrom}, ${item.gradTo})`,
+                padding: '16px 16px 12px', display: 'flex', alignItems: 'center', gap: 10,
+              }}>
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10, background: '#ffffff',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 18, color: item.color, flexShrink: 0,
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
+                }}>{item.icon}</div>
+                <div style={{
+                  fontSize: 13, fontWeight: 700, color: item.color, lineHeight: 1.3,
+                }}>{item.label}</div>
+              </div>
+              {/* Description */}
+              <div style={{
+                padding: '12px 16px 14px', fontSize: 11, lineHeight: 1.5,
+                color: T.text.secondary,
+              }}>{item.desc}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* What-If Benefit Calculator */}
       <div style={{
         background: T.surface.card, borderRadius: 12,
         border: `1px solid ${T.border.base}`, boxShadow: T.shadow,
@@ -221,50 +312,102 @@ export function MemberDashboard() {
           padding: '14px 20px', borderBottom: `1px solid ${T.border.subtle}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>Life Events</span>
-          <span onClick={() => navigate('/portal/life-events')} style={{
-            fontSize: 11, color: T.accent.primary, cursor: 'pointer', fontWeight: 600,
-          }}>See all</span>
+          <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>What-If Calculator</span>
+          <button onClick={() => setScenarioOpen(v => !v)} style={{
+            fontSize: 11, fontWeight: 600, color: T.accent.primary,
+            background: scenarioOpen ? T.accent.surface : 'transparent',
+            border: `1px solid ${scenarioOpen ? T.accent.light : T.border.base}`,
+            padding: '4px 12px', borderRadius: 6, cursor: 'pointer',
+          }}>{scenarioOpen ? 'Hide Scenarios' : 'Compare Dates'}</button>
         </div>
-        <div style={{ padding: '16px 20px', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-          {[
-            { label: "I'm Ready to Retire", icon: 'R', color: '#00796b', bg: '#e0f2f1', eventId: 'retirement' },
-            { label: 'Something Changed', icon: 'C', color: '#16a34a', bg: '#dcfce7', eventId: 'life-change' },
-            { label: 'Manage Account', icon: 'A', color: '#475569', bg: '#f1f5f9', eventId: 'account' },
-          ].map(item => (
-            <button key={item.eventId} onClick={() => navigate(`/portal/life-events/${item.eventId}`)} style={{
-              padding: '12px 10px', background: T.surface.cardAlt, borderRadius: 8,
-              border: `1px solid ${T.border.subtle}`, cursor: 'pointer', textAlign: 'center' as const,
-              fontFamily: 'inherit',
-            }}>
-              <div style={{
-                width: 24, height: 24, borderRadius: 6, background: item.bg,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 10, fontWeight: 800, color: item.color, margin: '0 auto 6px',
-              }}>{item.icon}</div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: T.text.primary }}>{item.label}</div>
-            </button>
-          ))}
-        </div>
+        {!scenarioOpen ? (
+          <div style={{ padding: '16px 20px' }}>
+            <div style={{ fontSize: 13, color: T.text.secondary, lineHeight: 1.5 }}>
+              See how your benefit changes based on different retirement dates.
+              Compare up to 6 scenarios side by side.
+            </div>
+          </div>
+        ) : (
+          <div style={{ padding: '16px 20px' }}>
+            {scenarios.isLoading ? (
+              <div style={{ fontSize: 12, color: T.text.muted, textAlign: 'center' as const, padding: 20 }}>
+                Calculating scenarios...
+              </div>
+            ) : scenarios.data ? (
+              <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8 }}>
+                {scenarios.data.map(s => {
+                  const isBase = s.retirement_date === retDate
+                  const diff = ben ? s.net_monthly_benefit - ben.net_monthly_benefit : 0
+                  return (
+                    <div key={s.retirement_date} style={{
+                      display: 'flex', alignItems: 'center', gap: 12,
+                      padding: '10px 14px', borderRadius: 8,
+                      background: isBase ? T.accent.surface : T.surface.cardAlt,
+                      border: `1px solid ${isBase ? T.accent.light : T.border.subtle}`,
+                    }}>
+                      <div style={{ flex: 1 }}>
+                        <div style={{
+                          fontSize: 12, fontWeight: isBase ? 700 : 500,
+                          color: isBase ? T.accent.primary : T.text.primary,
+                        }}>
+                          {formatDate(s.retirement_date)}
+                          {isBase && <span style={{ fontSize: 10, marginLeft: 6, fontWeight: 400 }}>(current)</span>}
+                        </div>
+                        <div style={{ fontSize: 10, color: T.text.muted, marginTop: 2 }}>
+                          Age {s.age_at_retirement.toFixed(1)} · {s.retirement_type?.replace(/_/g, ' ')}
+                          {s.reduction_factor < 1 && ` · ${((1 - s.reduction_factor) * 100).toFixed(0)}% reduction`}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' as const }}>
+                        <div style={{
+                          fontSize: 15, fontWeight: 700,
+                          fontFamily: "'JetBrains Mono', monospace",
+                          color: isBase ? T.accent.primary : T.text.primary,
+                        }}>{fmt(s.net_monthly_benefit)}</div>
+                        {!isBase && diff !== 0 && (
+                          <div style={{
+                            fontSize: 10, fontWeight: 600,
+                            color: diff > 0 ? T.status.success : T.status.danger,
+                          }}>{diff > 0 ? '+' : ''}{fmt(diff)}/mo</div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
+                <div style={{
+                  fontSize: 10, color: T.text.muted, marginTop: 4, fontStyle: 'italic',
+                }}>
+                  Estimates from the rules engine. Actual benefit determined at retirement.
+                </div>
+              </div>
+            ) : null}
+          </div>
+        )}
       </div>
 
       {/* Quick Links */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
         {[
-          { label: 'IPR Estimate', value: ben?.ipr ? fmt(ben.ipr.monthly_amount) + '/mo' : '--', sub: 'Insurance Premium Reduction' },
-          { label: 'Death Benefit', value: ben?.death_benefit ? fmt(ben.death_benefit.amount) : '--', sub: 'Lump sum benefit' },
-          { label: 'Contact DERP', value: '(303) 839-5419', sub: 'Mon-Fri 8am-5pm' },
+          { label: 'IPR Estimate', value: ben?.ipr ? fmt(ben.ipr.monthly_amount) + '/mo' : '--', sub: 'Insurance Premium Reduction', path: '' },
+          { label: 'Death Benefit', value: ben?.death_benefit ? fmt(ben.death_benefit.amount) : '--', sub: 'Lump sum benefit', path: '' },
+          { label: 'My Profile', value: '\u270E', sub: 'Update demographics & address', path: '/portal/profile' },
+          { label: 'Contact DERP', value: '(303) 839-5419', sub: 'Mon-Fri 8am-5pm', path: '' },
         ].map(item => (
-          <div key={item.label} style={{
+          <div key={item.label} onClick={() => item.path && navigate(item.path)} style={{
             padding: 16, background: T.surface.card, borderRadius: 8,
             border: `1px solid ${T.border.base}`, boxShadow: T.shadow,
-          }}>
+            cursor: item.path ? 'pointer' : 'default',
+            transition: item.path ? 'transform 0.15s' : 'none',
+          }}
+            onMouseEnter={e => { if (item.path) e.currentTarget.style.transform = 'translateY(-1px)' }}
+            onMouseLeave={e => { if (item.path) e.currentTarget.style.transform = 'translateY(0)' }}
+          >
             <div style={{
               fontSize: 10, color: T.text.muted, letterSpacing: 0.5,
               textTransform: 'uppercase' as const, fontWeight: 600,
             }}>{item.label}</div>
             <div style={{
-              fontSize: 18, fontWeight: 800, color: T.text.primary,
+              fontSize: 18, fontWeight: 800, color: item.path ? T.accent.primary : T.text.primary,
               fontFamily: "'JetBrains Mono', monospace", marginTop: 4,
             }}>{item.value}</div>
             <div style={{ fontSize: 10, color: T.text.muted, marginTop: 2 }}>{item.sub}</div>

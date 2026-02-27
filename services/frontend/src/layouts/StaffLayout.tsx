@@ -154,7 +154,7 @@ export function StaffLayout() {
                       { label: 'Compose', path: '/demos/correspondence' },
                       { label: 'Validate', path: '/demos/data-validator' },
                     ].map(tool => (
-                      <button key={tool.label} onClick={() => { navigate(tool.path); setToolMenuOpen(false) }} style={{
+                      <button key={tool.label} onClick={() => { navigate(tool.path, { state: { from: location.pathname } }); setToolMenuOpen(false) }} style={{
                         display: 'block', width: '100%', textAlign: 'left' as const,
                         fontSize: '11px', color: C.text, background: 'none', border: 'none',
                         padding: '8px 12px', cursor: 'pointer',
@@ -174,7 +174,7 @@ export function StaffLayout() {
                 { label: 'Compose', path: '/demos/correspondence' },
                 { label: 'Validate', path: '/demos/data-validator' },
               ].map(tool => (
-                <button key={tool.label} onClick={() => navigate(tool.path)} style={{
+                <button key={tool.label} onClick={() => navigate(tool.path, { state: { from: location.pathname } })} style={{
                   fontSize: '8px', color: C.textDim, textTransform: 'uppercase' as const,
                   letterSpacing: '0.5px', background: 'none', border: `1px solid ${C.borderSubtle}`,
                   padding: '2px 6px', borderRadius: '3px', cursor: 'pointer',
