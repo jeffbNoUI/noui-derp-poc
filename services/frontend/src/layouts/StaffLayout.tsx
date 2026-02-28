@@ -23,6 +23,7 @@ import { OnboardingPanel } from '@/adoption'
 import { StaffAuthProvider, useStaffAuth } from '@/staff/auth/StaffAuthContext'
 import { AuthGate } from '@/components/shared/AuthGate'
 import { isDemoMode } from '@/api/demo-data'
+import { resolveApiMode } from '@/api/client'
 
 class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | null }> {
   state = { error: null as Error | null }
@@ -40,10 +41,17 @@ class ErrorBoundary extends Component<{ children: ReactNode }, { error: Error | 
 
 
 function StaffLayoutInner() {
-  const navigate = useNavigate()
+  const rawNavigate = useNavigate()
   const { memberId } = useParams()
   const location = useLocation()
   const isGuided = location.pathname.endsWith('/guided')
+
+  // Preserve query params (e.g. ?kiosk) across StaffLayout navigation.
+  // Agent mode is session-sticky via sessionStorage (see resolveApiMode),
+  // so it survives navigation even without URL params.
+  const navigate = (path: string, opts?: { state?: unknown }) => {
+    rawNavigate(path + location.search, opts)
+  }
   const [checklistOpen, setChecklistOpen] = useState(false)
   const [toolMenuOpen, setToolMenuOpen] = useState(false)
   const isKiosk = location.search.includes('kiosk')
@@ -274,6 +282,23 @@ function StaffLayoutInner() {
 
         {/* Onboarding checklist panel */}
         <OnboardingPanel open={checklistOpen} onClose={() => setChecklistOpen(false)} />
+
+        {/* Agent mode indicator banner — uses session-sticky mode, not URL */}
+        {resolveApiMode() === 'agent' && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+            padding: '4px 12px', flexShrink: 0,
+            background: 'linear-gradient(90deg, #8B5CF622, #8B5CF611, #8B5CF622)',
+            borderTop: '1px solid #8B5CF644',
+          }}>
+            <span style={{ fontSize: '10px', color: '#8B5CF6', fontWeight: 700, letterSpacing: '1px', textTransform: 'uppercase' as const }}>
+              AI-Composed Workspace
+            </span>
+            <span style={{ fontSize: '9px', color: '#8B5CF699' }}>
+              Stages and components selected by the composition service
+            </span>
+          </div>
+        )}
 
         {/* Case selector bottom bar */}
         <div style={{

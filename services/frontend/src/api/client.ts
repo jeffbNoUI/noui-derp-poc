@@ -149,15 +149,24 @@ const liveApi = {
     ),
 } satisfies ApiInterface
 
-// Agent API — delegates to liveApi for data, composition service for workspace layout.
-// The agentApi stub currently wraps liveApi; Phase 5 adds composition service integration.
-const agentApi: ApiInterface = { ...liveApi }
+// Agent API — uses demoApi for data, composition service for workspace layout.
+// Data hooks use demo fixtures; only the composition call goes to the composition service.
+const agentApi: ApiInterface = { ...demoApi } as ApiInterface
 
-/** Determine API mode from query parameters. */
+/**
+ * Determine API mode from query parameters, with session persistence.
+ * Once ?agent or ?live is used, the mode sticks for the browser tab session
+ * so React Router navigation doesn't lose it. Use ?demo to explicitly reset.
+ */
 export function resolveApiMode(): ApiMode {
   const params = new URLSearchParams(window.location.search)
-  if (params.has('agent')) return 'agent'
-  if (params.has('live')) return 'live'
+  // Explicit query param wins — and persists to sessionStorage
+  if (params.has('demo')) { sessionStorage.setItem('noui:api-mode', 'demo'); return 'demo' }
+  if (params.has('agent')) { sessionStorage.setItem('noui:api-mode', 'agent'); return 'agent' }
+  if (params.has('live')) { sessionStorage.setItem('noui:api-mode', 'live'); return 'live' }
+  // Fall back to session-sticky mode
+  const stored = sessionStorage.getItem('noui:api-mode') as ApiMode | null
+  if (stored === 'agent' || stored === 'live') return stored
   return 'demo'
 }
 
@@ -169,5 +178,10 @@ function resolveApi(): ApiInterface {
 }
 
 // Export the appropriate API based on query param mode.
-// Demo mode is the default for the POC — opt out with ?live or ?agent query param.
-export const api: ApiInterface = resolveApi()
+// Uses a Proxy so the mode is re-evaluated on each property access,
+// allowing session-sticky mode changes to take effect without reload.
+export const api: ApiInterface = new Proxy({} as ApiInterface, {
+  get(_target, prop) {
+    return (resolveApi() as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})

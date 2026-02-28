@@ -37,6 +37,16 @@ async function postService(baseUrl: string, path: string, reqBody: unknown): Pro
   return respBody.data ?? respBody
 }
 
+/** Convert frontend short ID (10001) to backend format (M-100001). Pass through if already prefixed. */
+const DEMO_CASE_MAP: Record<string, string> = {
+  '10001': 'M-100001', '10002': 'M-100002', '10003': 'M-100003', '10004': 'M-100001',
+}
+function toBackendId(id: string): string {
+  if (DEMO_CASE_MAP[id]) return DEMO_CASE_MAP[id]
+  if (/^\d+$/.test(id)) return `M-${id.padStart(6, '0')}`
+  return id
+}
+
 /** Fetch all member context from the connector service. */
 async function fetchMemberContext(memberId: string) {
   const [member, employment, salary, serviceCredit, beneficiaries, dros] = await Promise.all([
@@ -65,14 +75,15 @@ async function fetchCalculations(memberId: string, retirementDate: string) {
 export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
   const startTime = Date.now()
 
-  // Step 1: Fetch member data from connector
-  const context = await fetchMemberContext(req.member_id)
+  // Step 1: Fetch member data from connector (map frontend short IDs to backend format)
+  const backendId = toBackendId(req.member_id)
+  const context = await fetchMemberContext(backendId)
 
   // Step 2: Optionally fetch calculations from intelligence
   let calculations = null
   if (req.retirement_date && req.process_type === 'retirement') {
     try {
-      calculations = await fetchCalculations(req.member_id, req.retirement_date)
+      calculations = await fetchCalculations(backendId, req.retirement_date)
     } catch (err) {
       console.warn('Failed to fetch calculations (proceeding without):', err)
     }
@@ -108,7 +119,7 @@ export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
       output_config: {
         format: {
           type: 'json_schema',
-          json_schema: workspaceSpecSchema,
+          schema: workspaceSpecSchema.schema,
         },
       },
     })
@@ -118,8 +129,19 @@ export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
       throw new Error('No text block in response')
     }
 
-    const spec: WorkspaceSpec = JSON.parse(textBlock.text)
-    spec.composed_by = 'agent'
+    const raw = JSON.parse(textBlock.text)
+
+    // Convert array-format maps (required by strict JSON schema) back to Record format
+    const spec: WorkspaceSpec = {
+      ...raw,
+      conditional_components: Object.fromEntries(
+        (raw.conditional_components ?? []).map((e: { component_id: string; shown: boolean }) => [e.component_id, e.shown])
+      ),
+      rationale: Object.fromEntries(
+        (raw.rationale ?? []).map((e: { component_id: string; reason: string }) => [e.component_id, e.reason])
+      ),
+      composed_by: 'agent',
+    }
 
     const elapsed = Date.now() - startTime
     console.log(`Composition completed in ${elapsed}ms (agent) for ${req.member_id}`)

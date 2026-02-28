@@ -1,8 +1,10 @@
 /**
  * JSON schema for structured output from Claude Messages API.
  * Passed via output_config.format.type = "json_schema" to guarantee valid JSON.
+ * Strict mode requires additionalProperties: false on all objects, so maps
+ * are represented as arrays of {key, value} pairs.
  * Consumed by: compose.ts (Messages API call)
- * Depends on: types.ts (WorkspaceSpec matches this schema)
+ * Depends on: types.ts (WorkspaceSpec matches this schema after post-processing)
  */
 
 export const workspaceSpecSchema = {
@@ -32,14 +34,30 @@ export const workspaceSpecSchema = {
         },
       },
       conditional_components: {
-        type: 'object' as const,
-        description: 'Map of conditional component ID to whether it should be shown',
-        additionalProperties: { type: 'boolean' as const },
+        type: 'array' as const,
+        description: 'Conditional component decisions — each entry is a component ID and whether to show it',
+        items: {
+          type: 'object' as const,
+          properties: {
+            component_id: { type: 'string' as const },
+            shown: { type: 'boolean' as const },
+          },
+          required: ['component_id', 'shown'] as const,
+          additionalProperties: false,
+        },
       },
       rationale: {
-        type: 'object' as const,
-        description: 'Map of component ID to reason for inclusion or exclusion',
-        additionalProperties: { type: 'string' as const },
+        type: 'array' as const,
+        description: 'Per-component reasoning — each entry is a component ID and the reason for inclusion or exclusion',
+        items: {
+          type: 'object' as const,
+          properties: {
+            component_id: { type: 'string' as const },
+            reason: { type: 'string' as const },
+          },
+          required: ['component_id', 'reason'] as const,
+          additionalProperties: false,
+        },
       },
       alerts: {
         type: 'array' as const,
