@@ -12,7 +12,7 @@ import { useState, useEffect } from 'react'
 import { useMember, useServiceCredit } from '@/hooks/useMember'
 import { useEligibility } from '@/hooks/useCalculations'
 import type { ServicePurchaseQuote } from '@/types/Member'
-import { demoApi } from '@/api/demo-data'
+import { api } from '@/api/client'
 import { C, tierMeta } from '@/theme'
 import { PurchaseCostSection } from './PurchaseCostSection'
 import { PurchaseImpactSection } from './PurchaseImpactSection'
@@ -79,7 +79,7 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
   const [quoteError, setQuoteError] = useState('')
 
   useEffect(() => {
-    demoApi.getPurchaseQuote(memberId)
+    api.getPurchaseQuote(memberId)
       .then(setQuote)
       .catch((err: Error) => setQuoteError(err.message))
   }, [memberId])

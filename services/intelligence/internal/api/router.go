@@ -1,11 +1,14 @@
 // HTTP router and middleware for the DERP Intelligence Service.
 // Consumed by: main.go
-// Depends on: handlers.go (endpoint implementations), response.go (request ID context)
+// Depends on: handlers.go (endpoint implementations), response.go (request ID context), auth.go (identity)
 package api
 
 import (
+	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"runtime/debug"
 	"strings"
 	"time"
 )
@@ -190,8 +193,8 @@ func NewRouter(h *Handlers) http.Handler {
 		h.CalculateVendorIPR(w, r)
 	})
 
-	// Apply middleware chain: CORS → Request ID → Logging
-	return corsMiddleware(requestIDMiddleware(logMiddleware(mux)))
+	// Apply middleware chain: Recover → CORS → Auth → Request ID → Logging
+	return recoverMiddleware(corsMiddleware(authMiddleware(DefaultAuthenticator())(requestIDMiddleware(logMiddleware(mux)))))
 }
 
 // requestIDMiddleware generates a UUID v4 request ID and attaches it to the context.
@@ -203,10 +206,36 @@ func requestIDMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// corsMiddleware adds CORS headers for frontend development.
+// allowedOrigins returns the configured CORS origins from ALLOWED_ORIGINS env var.
+func allowedOrigins() []string {
+	origins := os.Getenv("ALLOWED_ORIGINS")
+	if origins == "" {
+		return []string{"http://localhost:5175"}
+	}
+	parts := strings.Split(origins, ",")
+	result := make([]string, 0, len(parts))
+	for _, p := range parts {
+		if trimmed := strings.TrimSpace(p); trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
+}
+
+// corsMiddleware adds CORS headers with configurable allowed origins.
 func corsMiddleware(next http.Handler) http.Handler {
+	origins := allowedOrigins()
+	allowed := make(map[string]bool, len(origins))
+	for _, o := range origins {
+		allowed[o] = true
+	}
+
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+		if allowed[origin] {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Request-ID")
 		w.Header().Set("Access-Control-Expose-Headers", "X-Request-ID")
@@ -216,6 +245,24 @@ func corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	})
+}
+
+// recoverMiddleware catches panics in downstream handlers and returns a 500 JSON error.
+func recoverMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				stack := debug.Stack()
+				reqID := RequestIDFromContext(r.Context())
+				log.Printf("PANIC: %v\nRequest: %s %s\nRequestID: %s\nStack:\n%s",
+					err, r.Method, r.URL.Path, reqID, stack)
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusInternalServerError)
+				fmt.Fprintf(w, `{"error":{"code":"INTERNAL_ERROR","message":"Internal server error"},"meta":{"requestId":%q}}`, reqID)
+			}
+		}()
 		next.ServeHTTP(w, r)
 	})
 }

@@ -320,25 +320,37 @@ func TestCORSHeaders(t *testing.T) {
 	h := &Handlers{q: &db.Queries{}}
 	router := NewRouter(h)
 
-	// Test preflight OPTIONS request
+	// Test preflight OPTIONS request with allowed origin
 	req := httptest.NewRequest("OPTIONS", "/api/v1/members/M-100001", nil)
+	req.Header.Set("Origin", "http://localhost:5175")
 	rr := httptest.NewRecorder()
 	router.ServeHTTP(rr, req)
 
 	if rr.Code != http.StatusNoContent {
 		t.Fatalf("OPTIONS status = %d, want %d", rr.Code, http.StatusNoContent)
 	}
-	if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
-		t.Errorf("CORS origin = %q, want %q", origin, "*")
+	if origin := rr.Header().Get("Access-Control-Allow-Origin"); origin != "http://localhost:5175" {
+		t.Errorf("CORS origin = %q, want %q", origin, "http://localhost:5175")
 	}
 
-	// Test CORS on regular request
+	// Test CORS on regular GET with allowed origin
 	req2 := httptest.NewRequest("GET", "/healthz", nil)
+	req2.Header.Set("Origin", "http://localhost:5175")
 	rr2 := httptest.NewRecorder()
 	router.ServeHTTP(rr2, req2)
 
-	if origin := rr2.Header().Get("Access-Control-Allow-Origin"); origin != "*" {
-		t.Errorf("CORS origin on GET = %q, want %q", origin, "*")
+	if origin := rr2.Header().Get("Access-Control-Allow-Origin"); origin != "http://localhost:5175" {
+		t.Errorf("CORS origin on GET = %q, want %q", origin, "http://localhost:5175")
+	}
+
+	// Test CORS blocks disallowed origin
+	req3 := httptest.NewRequest("GET", "/healthz", nil)
+	req3.Header.Set("Origin", "http://evil.example.com")
+	rr3 := httptest.NewRecorder()
+	router.ServeHTTP(rr3, req3)
+
+	if origin := rr3.Header().Get("Access-Control-Allow-Origin"); origin != "" {
+		t.Errorf("CORS should block disallowed origin, got %q", origin)
 	}
 }
 
@@ -395,5 +407,68 @@ func TestCheckMemberDQ(t *testing.T) {
 	})
 }
 
+func TestPanicRecovery(t *testing.T) {
+	// Create a handler that panics
+	mux := http.NewServeMux()
+	mux.HandleFunc("/panic", func(w http.ResponseWriter, r *http.Request) {
+		panic("test panic")
+	})
+	handler := recoverMiddleware(requestIDMiddleware(mux))
+
+	req := httptest.NewRequest("GET", "/panic", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusInternalServerError {
+		t.Fatalf("panic recovery status = %d, want %d", rr.Code, http.StatusInternalServerError)
+	}
+
+	var resp map[string]interface{}
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("failed to parse panic response JSON: %v", err)
+	}
+	errObj, ok := resp["error"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected error object in panic response")
+	}
+	if errObj["code"] != "INTERNAL_ERROR" {
+		t.Errorf("error code = %q, want %q", errObj["code"], "INTERNAL_ERROR")
+	}
+}
+
+func TestAuthMiddleware(t *testing.T) {
+	auth := DefaultAuthenticator()
+
+	mux := http.NewServeMux()
+	mux.HandleFunc("/test", func(w http.ResponseWriter, r *http.Request) {
+		id := IdentityFromContext(r.Context())
+		if id == nil {
+			t.Error("expected identity in context")
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(id)
+	})
+	handler := authMiddleware(auth)(mux)
+
+	req := httptest.NewRequest("GET", "/test", nil)
+	rr := httptest.NewRecorder()
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("auth middleware status = %d, want %d", rr.Code, http.StatusOK)
+	}
+
+	var id Identity
+	if err := json.Unmarshal(rr.Body.Bytes(), &id); err != nil {
+		t.Fatalf("failed to parse identity response: %v", err)
+	}
+	if id.UserID != "NOUI_SYSTEM" {
+		t.Errorf("identity userId = %q, want %q", id.UserID, "NOUI_SYSTEM")
+	}
+}
+
 // Unused import guard
 var _ = time.Now
+var _ = math.Abs

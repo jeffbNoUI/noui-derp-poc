@@ -92,6 +92,7 @@ func (h *Handlers) PostDeathNotification(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	var req models.DeathNotificationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body: "+err.Error())
@@ -142,6 +143,7 @@ func (h *Handlers) PostSurvivorClaim(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	var req models.SurvivorClaimRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body: "+err.Error())

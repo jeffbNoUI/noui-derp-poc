@@ -65,9 +65,23 @@ NoUI operates a split architecture where AI services run in the cloud while cust
 | NoUI Cloud Boundary | AI services, pattern knowledge, structural intelligence | NoUI cloud controls |
 | Analytics Bridge | Anonymized/structural data crossing boundary | Enforced data sanitization |
 
-### Key Security Property
+### Key Security Property — Tiered by Product
 
-**No PII leaves the customer boundary.** The Analytics Bridge enforces structural constraints that prevent PII transmission. AI services operate on anonymized patterns, not member data.
+**NoUI Standard (Tier 1): No data leaves the customer boundary.** Zero external API calls. All processing is local. The Analytics Bridge enforces structural constraints that prevent any PII transmission. AI services operate on anonymized patterns, not member data.
+
+**NoUI Intelligence (Tier 2): Member context is sent to the Claude API for workspace composition.** The following data is transmitted with Zero Data Retention (ZDR) enabled — Anthropic does not store or train on any request data:
+
+| Transmitted (with ZDR) | NEVER Transmitted |
+|------------------------|-------------------|
+| Member name | Social Security Number |
+| Dates (birth, hire, retirement) | Bank account / routing numbers |
+| Tier classification | Medical / disability information |
+| Salary history & AMS | Home address |
+| Service credit totals | Beneficiary SSNs or financial details |
+| Eligibility status | |
+| Benefit calculation results | |
+
+The composition service strips Restricted-class data (Level 1 per Section 3) before any external API call. Only Confidential-class data (Level 2) necessary for workspace composition is included. This is enforced architecturally in the Node.js composition service, not by policy alone.
 
 ---
 

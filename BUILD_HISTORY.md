@@ -2572,3 +2572,95 @@ Each step shows: AI role, Human role, and artifact output. Governing principles 
 
 ### Backtrack Points
 - **BT-020:** Days 12-15 complete. 429 frontend tests, Go edge case tests, visual polish, change management demo, demo script, architecture overview, fallback plan. Return here as demo-ready baseline.
+
+---
+
+## Rearchitecture — February 28, 2026
+
+### Context
+The architecture challenge (docs/ARCHITECTURE_CHALLENGE.md) surfaced 45 findings across five themes. Research into Claude Agent SDK revealed it's the wrong tool for workspace composition — spawns subprocess agents meant for file editing. The correct approach is the Anthropic Messages API with structured outputs: simpler, cheaper, faster, and has built-in Zero Data Retention (ZDR).
+
+### Phase 1: Foundation Hardening (Complete)
+
+**Files Modified:**
+| File | Change |
+|------|--------|
+| services/connector/internal/api/router.go | Added recoverMiddleware (panic→500 JSON), corsMiddleware (configurable ALLOWED_ORIGINS), authMiddleware chain |
+| services/connector/internal/api/auth.go | NEW — Authenticator interface, Identity struct, NoopAuthenticator, authMiddleware, IdentityFromContext |
+| services/connector/internal/api/handlers_test.go | Updated TestCORSHeaders for origin-based check, added TestPanicRecovery, TestAuthMiddleware |
+| services/connector/internal/db/postgres.go | DB_PASS now required (no default), DB_SSLMODE defaults to "require", added ConnMaxLifetime/IdleTime |
+| services/connector/internal/db/queries.go | CASE_ID generation uses nextval('case_hist_case_id_seq') |
+| services/connector/internal/api/refund_handlers.go | Added MaxBytesReader to SaveRefundApplication |
+| services/connector/internal/api/death_handlers.go | Added MaxBytesReader to PostDeathNotification and PostSurvivorClaim |
+| services/intelligence/internal/api/router.go | Same hardening: recoverMiddleware, configurable CORS, authMiddleware |
+| services/intelligence/internal/api/auth.go | NEW — same interface as connector |
+| database/schema/005_case_id_sequence.sql | NEW — case_hist_case_id_seq sequence |
+
+### Phase 2: Audit Trail + Repository Abstraction (Complete)
+
+**Files Created:**
+| File | Purpose |
+|------|---------|
+| database/schema/006_audit_schema.sql | AUDIT_LOG table with indexes on timestamp, member_id, request_id, user_id |
+| services/connector/internal/api/audit.go | AuditWriter with fire-and-forget DB writes |
+| services/connector/internal/repository/interfaces.go | 10 repository interfaces (Health, Member, Employment, Salary, ServiceCredit, Beneficiary, DRO, Contribution, Case, DeathRecord, Employer, Vendor) |
+| services/connector/internal/repository/legacy.go | LegacyAdapter wrapping db.Queries — compile-time interface verification |
+
+### Phase 3A-E: Strategic Document Fixes (Complete)
+
+| Document | Changes |
+|----------|---------|
+| docs/REARCHITECTURE_SKETCH.md | Agent SDK → Messages API + structured outputs; removed hooks section; simplified Skills to prompt sections |
+| docs/COST_MODEL.md | Single request pricing ($0.015-0.035/composition, down from $0.04-0.09) |
+| docs/PRODUCT_TIERS_AND_COST_STRATEGY.md | Tiered data policy (Standard: no data leaves; Intelligence: member context via ZDR) |
+| docs/noui-security-architecture.md | Replaced blanket "no PII" claim with tiered framing |
+| docs/NoUI_Business_Plan_Rev5.md | "heals itself" → "AI-accelerated change management" |
+
+### Phase 3F: Domain Schema DDL (Complete)
+
+| File | Purpose |
+|------|---------|
+| database/schema/100_domain_schema.sql | Clean target schema: member, employment_event, salary_record, service_credit, beneficiary, dro_order, contribution, case_record, case_lifecycle. Includes chk_purchased_exclusion constraint enforcing service credit eligibility rules at the DB level. |
+
+### Phase 4: Frontend API Interface + Standard Tier (Complete)
+
+| File | Change |
+|------|--------|
+| services/frontend/src/api/api-interface.ts | NEW — explicit ApiInterface type (14 methods), ApiMode type |
+| services/frontend/src/api/client.ts | Three-mode resolution (demo/live/agent), getPurchaseQuote stub on liveApi, agentApi stub |
+| services/frontend/src/pages/PurchaseExplorer.tsx | Uses api (unified) instead of demoApi (direct import) |
+
+### Phase 5: Composition Service (Complete)
+
+| File | Purpose |
+|------|---------|
+| services/composition/package.json | Node.js service deps: @anthropic-ai/sdk, express |
+| services/composition/src/index.ts | Express server on port 8084 with POST /api/v1/compose |
+| services/composition/src/compose.ts | Parallel-fetches member data from connector, calculations from intelligence, calls Claude Messages API with structured output |
+| services/composition/src/schema.ts | JSON schema for WorkspaceSpec (stages, conditional_components, rationale, alerts, knowledge_context) |
+| services/composition/src/system-prompt.ts | ~2,500 token system prompt encoding composition rules, DERP tier reference, process-specific stage rules |
+| services/composition/src/fallback.ts | Static composition mirroring frontend rules.ts — used when API key unset or API fails |
+| services/composition/src/types.ts | ComposeRequest, WorkspaceSpec, WorkspaceStage, etc. |
+| services/composition/src/config.ts | Environment variable configuration |
+| services/composition/src/health.ts | GET /healthz handler |
+| services/frontend/src/hooks/useWorkspace.ts | NEW — useWorkspace hook for agent-mode composition |
+| services/frontend/vite.config.ts | Added /api/v1/compose proxy to port 8084 |
+
+### Phase 6: MCP Servers (In Progress)
+
+Three MCP servers wrapping Go services as MCP tools for future Agent SDK integration:
+- mcp-connector: 9 tools wrapping connector REST endpoints
+- mcp-intelligence: 8 tools wrapping intelligence REST endpoints
+- mcp-knowledge: Provision search/retrieval from rules/definitions/ YAML
+
+### Test Summary
+
+| Service | Tests | Status |
+|---------|-------|--------|
+| Frontend | 638 | All pass |
+| Connector Go | 36+ | All pass |
+| Intelligence Go (excl. refund) | 150+ | All pass |
+| Intelligence refund | 2 | Pre-existing precision issue (not caused by rearchitecture) |
+
+### Backtrack Points
+- **BT-021:** Rearchitecture complete. All Phase 1-5 delivered. Phase 6 (MCP) in progress.

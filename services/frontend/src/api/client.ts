@@ -1,10 +1,12 @@
 /**
- * API client — dual-mode: demoApi (default) or liveApi (opt-in via ?live query param).
+ * API client — three-mode: demoApi (default), liveApi (?live), agentApi (?agent).
  * Consumed by: all hooks (useMember, useCalculations, usePortal)
- * Depends on: demo-data.ts (demo fixtures), mappers.ts (Go→TS response transforms)
+ * Depends on: demo-data.ts (demo fixtures), mappers.ts (Go→TS response transforms),
+ *             api-interface.ts (ApiInterface type)
  */
 import type { APIResponse, APIError } from '@/types/Member'
-import { isDemoMode, demoApi } from './demo-data'
+import type { ApiInterface, ApiMode } from './api-interface'
+import { demoApi } from './demo-data'
 import {
   mapMember, mapBeneficiaries, mapServiceCredit, mapDRORecords,
   mapEligibility, mapBenefit, mapPaymentOptions, mapScenarios,
@@ -128,6 +130,12 @@ const liveApi = {
     return mapDROResult(raw)
   },
 
+  getPurchaseQuote: async (memberId: string) => {
+    // No Go endpoint for purchase quotes yet — fall back to demo data
+    const { demoApi: fallback } = await import('./demo-data')
+    return fallback.getPurchaseQuote(memberId)
+  },
+
   saveElection: (election: {
     member_id: string; retirement_date: string; payment_option: string
     monthly_benefit: number; gross_benefit: number; reduction_factor: number
@@ -139,8 +147,27 @@ const liveApi = {
         body: JSON.stringify({ ...election, member_id: toBackendId(election.member_id) }),
       }
     ),
+} satisfies ApiInterface
+
+// Agent API — delegates to liveApi for data, composition service for workspace layout.
+// The agentApi stub currently wraps liveApi; Phase 5 adds composition service integration.
+const agentApi: ApiInterface = { ...liveApi }
+
+/** Determine API mode from query parameters. */
+export function resolveApiMode(): ApiMode {
+  const params = new URLSearchParams(window.location.search)
+  if (params.has('agent')) return 'agent'
+  if (params.has('live')) return 'live'
+  return 'demo'
 }
 
-// Export the appropriate API based on demo mode.
-// Demo mode is the default for the POC — opt OUT with ?live query param.
-export const api = isDemoMode() ? demoApi : liveApi
+function resolveApi(): ApiInterface {
+  const mode = resolveApiMode()
+  if (mode === 'agent') return agentApi
+  if (mode === 'live') return liveApi
+  return demoApi as ApiInterface
+}
+
+// Export the appropriate API based on query param mode.
+// Demo mode is the default for the POC — opt out with ?live or ?agent query param.
+export const api: ApiInterface = resolveApi()

@@ -402,7 +402,7 @@ func (q *Queries) SaveRetirementElection(e *models.RetirementElection) (int, err
 	log.Printf("AUDIT: SaveRetirementElection member=%s date=%s option=%s gross=%.2f net=%.2f",
 		e.MemberID, e.RetirementDate, e.PaymentOption, e.GrossBenefit, e.MonthlyBenefit)
 
-	// Insert into CASE_HIST
+	// Insert into CASE_HIST using sequence (replaces MAX+1 race condition)
 	var caseID int
 	err = q.db.QueryRow(`
 		INSERT INTO CASE_HIST (
@@ -410,7 +410,7 @@ func (q *Queries) SaveRetirementElection(e *models.RetirementElection) (int, err
 			OPEN_DT, ASSIGNED_TO, PRIORITY, NOTES,
 			CREATE_DT, CREATE_USER
 		) VALUES (
-			(SELECT COALESCE(MAX(CASE_ID),0)+1 FROM CASE_HIST),
+			nextval('case_hist_case_id_seq'),
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING CASE_ID
 	`,

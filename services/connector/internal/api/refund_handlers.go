@@ -121,6 +121,7 @@ func (h *Handlers) SaveRefundApplication(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB limit
 	var app models.RefundApplication
 	if err := json.NewDecoder(r.Body).Decode(&app); err != nil {
 		WriteError(w, r, http.StatusBadRequest, "INVALID_REQUEST", "Invalid request body: "+err.Error())

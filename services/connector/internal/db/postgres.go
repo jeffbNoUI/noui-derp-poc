@@ -14,31 +14,39 @@ import (
 )
 
 // Connect establishes a connection to the PostgreSQL database using environment variables.
+// DB_PASS is required (no default) to prevent accidental use of hardcoded credentials.
+// DB_SSLMODE defaults to "require" — override to "disable" for local dev via docker-compose.
 // Retries up to 10 times with 2-second intervals to handle container startup ordering.
 func Connect() (*sql.DB, error) {
 	host := envOrDefault("DB_HOST", "localhost")
 	port := envOrDefault("DB_PORT", "5432")
 	user := envOrDefault("DB_USER", "derp_app")
-	pass := envOrDefault("DB_PASS", "derp_app_pwd")
 	name := envOrDefault("DB_NAME", "derp_legacy")
-	sslmode := envOrDefault("DB_SSLMODE", "disable")
+	sslmode := envOrDefault("DB_SSLMODE", "require")
+
+	pass := os.Getenv("DB_PASS")
+	if pass == "" {
+		return nil, fmt.Errorf("DB_PASS environment variable is required")
+	}
 
 	dsn := fmt.Sprintf(
 		"host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		host, port, user, pass, name, sslmode,
 	)
 
-	db, err := sql.Open("postgres", dsn)
+	database, err := sql.Open("postgres", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}
 
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
+	database.SetMaxOpenConns(25)
+	database.SetMaxIdleConns(5)
+	database.SetConnMaxLifetime(30 * time.Minute)
+	database.SetConnMaxIdleTime(5 * time.Minute)
 
 	// Retry ping to handle container startup ordering
 	for attempt := 1; attempt <= 10; attempt++ {
-		if err := db.Ping(); err != nil {
+		if err := database.Ping(); err != nil {
 			if attempt == 10 {
 				return nil, fmt.Errorf("failed to ping database after %d attempts: %w", attempt, err)
 			}
@@ -49,7 +57,7 @@ func Connect() (*sql.DB, error) {
 		break
 	}
 
-	return db, nil
+	return database, nil
 }
 
 func envOrDefault(key, fallback string) string {

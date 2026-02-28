@@ -13,8 +13,8 @@ Executive Summary
 NoUI is a AI-accelerated AI platform that modernizes pension
 administration without replacing legacy systems. The platform reads
 governing documents, drafts rule configurations for human certification, builds its own
-tests, composes task-specific workspaces, and heals itself when laws
-change. A coordinated AI ensemble ensures accuracy through multi-model
+tests, composes task-specific workspaces, and provides AI-accelerated
+change management when laws change. A coordinated AI ensemble ensures accuracy through multi-model
 verification. Absolute data isolation protects every customer while a
 shared pattern knowledge base creates a compounding intelligence moat.
 
@@ -33,6 +33,8 @@ components: a minimum \$250,000 implementation fee, a \$500,000 initial
 product license fee, and an ongoing annual per-member license fee.
 
 Pricing Model
+
+> **Note:** The pricing model below reflects the original premium pricing strategy. For the current two-tier pricing model (NoUI Standard and NoUI Intelligence), see **PRODUCT_TIERS_AND_COST_STRATEGY.md**, which supersedes the pricing sections in this document.
 
 Three-Component Structure
 
@@ -188,8 +190,9 @@ platform at no additional charge.
 |                                                                       |
 | When an agency asks "why \$750K?" the answer is: "You're getting a    |
 | system that took weeks to deploy instead of years, that catches       |
-| calculation errors before they become liabilities, that heals itself  |
-| when laws change, that finds data problems you didn't know you had,   |
+| calculation errors before they become liabilities, that provides      |
+| AI-accelerated change management when laws change, that finds data    |
+| problems you didn't know you had,                                     |
 | and that will give you a modern database within 18 months --- all     |
 | without touching your legacy system. The alternative is a \$20-80M    |
 | replacement project with a coin-flip chance of success. \$750K is not |
