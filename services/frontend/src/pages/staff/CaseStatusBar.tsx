@@ -10,6 +10,8 @@ import type { ApplicationIntake } from '@/types/Member'
 
 export interface CaseStatusBarProps {
   intake?: ApplicationIntake
+  /** Composition service alerts — displayed as color-coded badges after status items */
+  compositionAlerts?: { severity: string; code: string; message: string }[]
 }
 
 /** Compute the number of days between two date strings (YYYY-MM-DD) */
@@ -19,7 +21,7 @@ function daysBetween(from: string, to: string): number {
   return Math.round((b.getTime() - a.getTime()) / (1000 * 60 * 60 * 24))
 }
 
-export function CaseStatusBar({ intake }: CaseStatusBarProps) {
+export function CaseStatusBar({ intake, compositionAlerts }: CaseStatusBarProps) {
   if (!intake) return null
 
   // Use current date (or today) to compute case age
@@ -48,6 +50,23 @@ export function CaseStatusBar({ intake }: CaseStatusBarProps) {
           <span style={{ color: C.textSecondary, fontSize: '9.5px', fontWeight: 600 }}>{item.value}</span>
         </div>
       ))}
+      {compositionAlerts && compositionAlerts.length > 0 && (
+        <>
+          <span style={{ color: C.borderSubtle, fontSize: '10px', margin: '0 4px' }}>{'\u2502'}</span>
+          {compositionAlerts.map((alert, i) => {
+            const color = alert.severity === 'error' ? '#EF4444'
+              : alert.severity === 'warning' ? '#F59E0B' : '#60A5FA'
+            return (
+              <span key={i} style={{
+                padding: '1px 6px', borderRadius: '3px', fontSize: '9px', fontWeight: 600,
+                background: `${color}22`, color, marginLeft: i > 0 ? '3px' : 0,
+              }} title={alert.message}>
+                {alert.code}
+              </span>
+            )
+          })}
+        </>
+      )}
     </div>
   )
 }

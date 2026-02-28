@@ -12,6 +12,8 @@ import { useEligibility, useBenefitCalculation, usePaymentOptions, useDROCalcula
 import type { BenefitResult, ServiceCreditSummary, DROResult, PaymentOptionsResult } from '@/types/Member'
 import { C, tierMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { CompositionRationale } from '@/components/shared/CompositionRationale'
+import { useWorkspace } from '@/hooks/useWorkspace'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 import { CaseCompleteSummary } from '@/pages/staff/CaseCompleteSummary'
 
@@ -407,6 +409,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
   const hasDRO = !!dros.data && dros.data.length > 0
   const droCalc = useDROCalculation(memberId, retirementDate, retirementDate !== '' && hasDRO)
   const saveElection = useSaveElection()
+  const workspace = useWorkspace(memberId, 'retirement', !!retirementDate, eligibility.data?.reduction_factor, retirementDate)
 
   // Reset state when member changes
   useEffect(() => {
@@ -556,6 +559,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               <span style={{ color: t.c, fontWeight: 600 }}>{t.v}</span>
             </div>
           ))}
+          {workspace.agent && <CompositionRationale spec={workspace.agent} />}
         </div>
       </div>
 

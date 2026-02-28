@@ -11,7 +11,7 @@ import { composeWorkspace } from '@/composition/rules'
 import { useMember, useDROs } from '@/hooks/useMember'
 import type { CompositionResult } from '@/composition/rules'
 
-interface AgentWorkspaceSpec {
+export interface AgentWorkspaceSpec {
   stages: { id: string; label: string; order: number; components: string[] }[]
   conditional_components: Record<string, boolean>
   rationale: Record<string, string>

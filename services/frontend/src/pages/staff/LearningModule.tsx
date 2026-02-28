@@ -24,6 +24,10 @@ export interface LearningModuleProps {
   isLastStage: boolean
   allConfirmed: boolean
   saveStatus: string
+  /** Agent composition rationale — per-component reasoning from the composition service */
+  agentRationale?: Record<string, string>
+  /** Agent composition knowledge context — relevant plan provisions from the composition service */
+  agentKnowledge?: { provision_id: string; title: string; citation: string; relevance: string }[]
   onToggleCheck: (index: number) => void
   onToggleLayer: (layer: keyof LayerState) => void
   onConfirm: () => void
@@ -34,7 +38,7 @@ export interface LearningModuleProps {
 
 export function LearningModule({
   wide, stage, confirmed, checkedItems, autoCheckedItems, layers, canConfirm,
-  isLastStage, allConfirmed, saveStatus,
+  isLastStage, allConfirmed, saveStatus, agentRationale, agentKnowledge,
   onToggleCheck, onToggleLayer, onConfirm, onNext, onUnconfirm, onSave,
 }: LearningModuleProps) {
   const isConfirmed = confirmed.has(stage.id)
@@ -91,6 +95,45 @@ export function LearningModule({
               {stage.onboarding}
             </div>
             {stage.whatIf && <WhatIfSection scenarios={stage.whatIf} />}
+          </div>
+        )}
+
+        {/* Agent composition reasoning — shown above rules when available */}
+        {layers.rules && agentRationale && Object.keys(agentRationale).length > 0 && (
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
+              letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
+            }}>Composition Reasoning</div>
+            {Object.entries(agentRationale).map(([componentId, reason]) => (
+              <div key={componentId} style={{
+                padding: '4px 0', borderBottom: `1px solid ${C.borderSubtle}`,
+              }}>
+                <div style={{ color: C.text, fontSize: '10.5px', fontWeight: 600 }}>{componentId}</div>
+                <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '1px' }}>{reason}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Agent knowledge context — additional provisions from composition service */}
+        {layers.rules && agentKnowledge && agentKnowledge.length > 0 && (
+          <div style={{ marginBottom: '14px' }}>
+            <div style={{
+              color: C.textSecondary, fontSize: '9px', textTransform: 'uppercase' as const,
+              letterSpacing: '1px', fontWeight: 600, marginBottom: '4px',
+            }}>AI-Identified Provisions</div>
+            {agentKnowledge.map((kc) => (
+              <div key={kc.provision_id} style={{
+                padding: '4px 0', borderBottom: `1px solid ${C.borderSubtle}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Badge text={kc.citation} bg="#8B5CF622" color="#8B5CF6" />
+                </div>
+                <div style={{ color: C.text, fontSize: '11px', marginTop: '2px' }}>{kc.title}</div>
+                <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>{kc.relevance}</div>
+              </div>
+            ))}
           </div>
         )}
 

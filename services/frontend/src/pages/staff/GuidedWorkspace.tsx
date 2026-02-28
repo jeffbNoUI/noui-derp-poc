@@ -19,8 +19,11 @@ import {
 } from '@/hooks/useCalculations'
 import { C, tierMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { CompositionRationale } from '@/components/shared/CompositionRationale'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
 import { composeStages } from './guided-composition'
+import { useWorkspace } from '@/hooks/useWorkspace'
+import { composeStagesFromAgent } from '@/composition/agent-adapter'
 import { computeAllSignals } from './guided-signals'
 import { computeStageDepth } from './guided-depth'
 import { computeAllAutoChecks, mergeChecks } from './guided-autochecks'
@@ -119,8 +122,13 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     }
   }, [state.viewMode])
 
-  // Compose stages based on member data
-  const stages = composeStages(sc, dros.data)
+  // Agent composition: fetch from composition service when ?agent is active
+  const workspace = useWorkspace(memberId, 'retirement', !!retirementDate, elig?.reduction_factor, retirementDate)
+
+  // Compose stages — agent-composed when available, static fallback otherwise
+  const stages = workspace.agent
+    ? composeStagesFromAgent(workspace.agent)
+    : composeStages(sc, dros.data)
   const currentStage = stages[state.currentIndex]
   const isLastStage = state.currentIndex === stages.length - 1
   const allConfirmed = stages.every(s => state.confirmed.has(s.id))
@@ -392,6 +400,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
                 <span style={{ color: t.c, fontWeight: 600 }}>{t.v}</span>
               </div>
             ))}
+            {workspace.agent && <CompositionRationale spec={workspace.agent} />}
           </div>
           {/* Static benefit display — guided mode only (expert mode shows it in LiveSummary) */}
           {state.viewMode === 'guided' && (
@@ -416,7 +425,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
       </div>
 
       {/* Case status bar (F-7) */}
-      <CaseStatusBar intake={intake.data} />
+      <CaseStatusBar intake={intake.data} compositionAlerts={workspace.agent?.alerts} />
 
       {/* Progress bar — guided mode only (expert mode uses StageNav instead) */}
       {state.viewMode === 'guided' && (
@@ -536,6 +545,8 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
                 isLastStage={isLastStage}
                 allConfirmed={allConfirmed}
                 saveStatus={state.saveStatus}
+                agentRationale={workspace.agent?.rationale}
+                agentKnowledge={workspace.agent?.knowledge_context}
                 onToggleCheck={(index) =>
                   dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
                 onToggleLayer={originalToggleLayer}
@@ -635,6 +646,8 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
                   isLastStage={isLastStage}
                   allConfirmed={allConfirmed}
                   saveStatus={state.saveStatus}
+                  agentRationale={workspace.agent?.rationale}
+                  agentKnowledge={workspace.agent?.knowledge_context}
                   onToggleCheck={(index) =>
                     dispatch({ type: 'TOGGLE_CHECK', stageId: focusedStage.id, index })}
                   onToggleLayer={originalToggleLayer}
