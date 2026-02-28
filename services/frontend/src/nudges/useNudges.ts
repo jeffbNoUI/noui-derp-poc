@@ -49,6 +49,8 @@ export function useNudges(ctx: NudgeContext) {
 
     for (const rule of NUDGE_RULES) {
       if (dismissed.has(rule.id)) continue
+      // Rec #2,3: skip out-of-order nudges for experienced analysts
+      if (rule.maxCases != null && ctx.casesCompleted != null && ctx.casesCompleted > rule.maxCases) continue
       if (rule.trigger.type === 'out-of-order') {
         const { confirmedBefore, notVisited } = rule.trigger
         if (ctx.confirmed.has(confirmedBefore) && !ctx.visitedStages.has(notVisited)) {

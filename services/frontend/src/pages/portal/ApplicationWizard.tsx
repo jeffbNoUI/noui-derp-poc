@@ -5,7 +5,7 @@
  * Consumed by: router.tsx (route /portal/apply/:appId)
  * Depends on: useTheme, usePortalAuth, useMember, useCalculations, usePortal, step components
  */
-import { useReducer, useCallback } from 'react'
+import { useReducer, useCallback, useEffect } from 'react'
 import { useKioskRegister } from '@/kiosk'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
@@ -62,12 +62,37 @@ export function ApplicationWizard() {
   const paymentOptions = usePaymentOptions(memberId, retDate)
   const submitMutation = useSubmitApplication()
 
-  const [draft, dispatch] = useReducer(draftReducer, {
-    ...INITIAL_DRAFT,
-    retirement_date: retDate,
-    last_day_worked: retDate ? new Date(new Date(retDate + 'T12:00:00').getTime() - 86400000).toISOString().split('T')[0] : '',
+  // Rec #5,6,9-12: auto-save draft to sessionStorage to prevent abandonment
+  const DRAFT_KEY = 'noui:wizard-draft'
+  const [draft, dispatch] = useReducer(draftReducer, undefined, () => {
+    const saved = sessionStorage.getItem(DRAFT_KEY)
+    if (saved) {
+      try { return { ...INITIAL_DRAFT, ...JSON.parse(saved) } }
+      catch { /* fall through */ }
+    }
+    return {
+      ...INITIAL_DRAFT,
+      retirement_date: retDate,
+      last_day_worked: retDate ? new Date(new Date(retDate + 'T12:00:00').getTime() - 86400000).toISOString().split('T')[0] : '',
+    }
   })
   useKioskRegister('wizard', dispatch as (action: Record<string, unknown>) => void)
+
+  // Persist draft on every change
+  useEffect(() => {
+    sessionStorage.setItem(DRAFT_KEY, JSON.stringify(draft))
+  }, [draft])
+
+  // Warn before navigating away with unsaved progress
+  useEffect(() => {
+    const handler = (e: BeforeUnloadEvent) => {
+      if (draft.step > 0 || draft.personal_confirmed) {
+        e.preventDefault()
+      }
+    }
+    window.addEventListener('beforeunload', handler)
+    return () => window.removeEventListener('beforeunload', handler)
+  }, [draft.step, draft.personal_confirmed])
 
   const step = draft.step
 
@@ -88,7 +113,10 @@ export function ApplicationWizard() {
   const handleSubmit = () => {
     submitMutation.mutate(
       { memberId, retirementDate: draft.retirement_date, paymentOption: draft.payment_option },
-      { onSuccess: (data) => navigate(`/portal/status/${data.app_id}`) },
+      { onSuccess: (data) => {
+        sessionStorage.removeItem(DRAFT_KEY)
+        navigate(`/portal/status/${data.app_id}`)
+      }},
     )
   }
 

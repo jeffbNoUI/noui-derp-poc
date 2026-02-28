@@ -69,8 +69,12 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
   const [compactOverlayOpen, setCompactOverlayOpen] = useState(false)
   const [retirementDate, setRetirementDate] = useState(DEFAULT_RETIREMENT_DATES[memberId] || '')
   const [state, dispatch] = useReducer(reducer, undefined, () => {
-    const layerDefaults = computeLayerDefaults(readProficiency())
-    return createInitialState(defaultMode, layerDefaults)
+    const proficiency = readProficiency()
+    const layerDefaults = computeLayerDefaults(proficiency)
+    // Rec #1: default to expert mode for analysts with >50 completed cases
+    const effectiveMode = defaultMode === 'guided' && proficiency.casesCompleted > 50
+      ? 'expert' : defaultMode
+    return createInitialState(effectiveMode, layerDefaults)
   })
   useKioskRegister('guided', dispatch as (action: Record<string, unknown>) => void)
 
@@ -126,6 +130,18 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
       dispatch({ type: 'VISIT_STAGE', stageId: currentStage.id })
     }
   }, [state.currentIndex])
+
+  // Rec #4,7,8,13: auto-expand rules layer on bottleneck stages for novice analysts
+  const BOTTLENECK_STAGES = new Set([
+    'benefit-comparison', 'survivor-verification', 'vesting-check', 'payment-options',
+  ])
+  useEffect(() => {
+    const stageId = currentStage?.id
+    if (!stageId) return
+    if (BOTTLENECK_STAGES.has(stageId) && proficiency.casesCompleted <= 10 && !state.layers.rules) {
+      dispatch({ type: 'TOGGLE_LAYER', layer: 'rules' })
+    }
+  }, [currentStage?.id])
 
   // Set adoption flag when toggling layers
   const originalToggleLayer = useCallback((layer: 'onboarding' | 'rules' | 'checklist') => {
@@ -246,11 +262,15 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     })
   }, [memberId, retirementDate, ben, elig, state.electedOption, hasDRO, opts, dro, saveElection])
 
+  // Proficiency ref for nudge context and bottleneck rules layer (Recs #2-4)
+  const proficiency = readProficiency()
+
   // Smart nudges — behavior-based contextual hints (must be before early return)
   const { activeNudge, dismiss: dismissNudge } = useNudges({
     currentStageId: currentStage?.id ?? '',
     confirmed: state.confirmed,
     visitedStages: state.visitedStages,
+    casesCompleted: proficiency.casesCompleted,
   })
 
   if (!m) {

@@ -13,10 +13,12 @@ export interface NudgeRule {
   trigger: NudgeTrigger
   message: string
   hint: string
+  maxCases?: number  // Only fire if analyst has completed <= this many cases
 }
 
 export interface NudgeContext {
   currentStageId: string
   confirmed: Set<string>
   visitedStages: Set<string>
+  casesCompleted?: number  // From proficiency data
 }

@@ -23,11 +23,13 @@ export const NUDGE_RULES: NudgeRule[] = [
     trigger: { type: 'out-of-order', confirmedBefore: 'eligibility', notVisited: 'service-credit' },
     message: 'Service credit not reviewed yet',
     hint: 'Confirming eligibility before reviewing service credit may miss purchased service that affects the Rule of 75/85 calculation.',
+    maxCases: 10,  // Rec #3: skip for experienced analysts (0% effectiveness beyond 10 cases)
   },
   {
     id: 'out-of-order-payment-before-benefit',
     trigger: { type: 'out-of-order', confirmedBefore: 'payment-options', notVisited: 'benefit-calc' },
     message: 'Benefit not yet calculated',
     hint: 'Payment options depend on the base benefit amount. Review the benefit calculation stage first for accurate comparison.',
+    maxCases: 10,  // Rec #2: skip for experienced analysts (0% effectiveness beyond 10 cases)
   },
 ]
