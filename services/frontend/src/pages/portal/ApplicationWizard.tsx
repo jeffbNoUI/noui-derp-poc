@@ -5,10 +5,11 @@
  * Consumed by: router.tsx (route /portal/apply/:appId)
  * Depends on: useTheme, usePortalAuth, useMember, useCalculations, usePortal, step components
  */
-import { useReducer, useCallback, useEffect } from 'react'
+import { useState, useReducer, useCallback, useEffect } from 'react'
 import { useKioskRegister } from '@/kiosk'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
+import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
 import { useMember, useServiceCredit } from '@/hooks/useMember'
 import { useEligibility, useBenefitCalculation, usePaymentOptions } from '@/hooks/useCalculations'
@@ -48,10 +49,17 @@ const STEPS = [
 
 // ─── Wizard Container ───────────────────────────────────────────
 
+// Map wizard step index to stage IDs used in STAGE_RELEVANCE
+const WIZARD_STAGE_IDS = [
+  'wizard-personal-info', 'wizard-retirement-date', 'wizard-benefit-estimate',
+  'wizard-payment-option', 'wizard-death-benefit', 'wizard-insurance-tax', 'wizard-review-submit',
+]
+
 export function ApplicationWizard() {
   const T = useTheme()
   const navigate = useNavigate()
   const { memberId } = usePortalAuth()
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const retDate = DEFAULT_RETIREMENT_DATES[memberId] || '2026-04-01'
 
   // Data hooks — same fixtures used by staff workspace for consistency
@@ -136,7 +144,11 @@ export function ApplicationWizard() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px' }}>
+    <div style={{
+      maxWidth: knowledgeOpen ? 1100 : 720, margin: '0 auto', padding: '24px 20px',
+      display: 'flex', gap: 0, transition: 'max-width 0.3s ease',
+    }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* 7-segment progress bar */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 24 }}>
         {STEPS.map((s, i) => (
@@ -224,6 +236,17 @@ export function ApplicationWizard() {
           )}
         </div>
       </div>
+    </div>
+    <KnowledgeSidebar
+      collapsed={!knowledgeOpen}
+      onToggle={() => setKnowledgeOpen(v => !v)}
+      colors={knowledgeColorsFromTheme(T)}
+      member={member.data}
+      eligibility={eligibility.data}
+      benefit={benefit.data}
+      serviceCredit={service.data}
+      currentStageId={WIZARD_STAGE_IDS[step]}
+    />
     </div>
   )
 }

@@ -4,18 +4,23 @@
  * Consumed by: router.tsx (route /portal/status/:appId)
  * Depends on: useTheme, usePortalAuth, usePortal hooks, Portal types
  */
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { formatDate } from '@/lib/utils'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
+import { useMember } from '@/hooks/useMember'
 import { useApplication, useApplicationDocuments, useApplicationMessages, useApplicationHistory } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
+import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
 export function ApplicationStatus() {
   const T = useTheme()
   const navigate = useNavigate()
   const { memberId } = usePortalAuth()
+  const member = useMember(memberId)
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const application = useApplication(memberId)
   const documents = useApplicationDocuments(memberId)
   const messages = useApplicationMessages(memberId)
@@ -52,7 +57,11 @@ export function ApplicationStatus() {
   const currentStageIdx = PROGRESS_STAGES.findIndex(s => s.key === app.status)
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px' }}>
+    <div style={{
+      maxWidth: knowledgeOpen ? 1100 : 720, margin: '0 auto', padding: '24px 20px',
+      display: 'flex', gap: 0, transition: 'max-width 0.3s ease',
+    }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
@@ -233,6 +242,13 @@ export function ApplicationStatus() {
         border: `1px solid ${T.border.base}`, background: 'transparent',
         color: T.text.secondary, cursor: 'pointer',
       }}>← Back to Dashboard</button>
+    </div>
+    <KnowledgeSidebar
+      collapsed={!knowledgeOpen}
+      onToggle={() => setKnowledgeOpen(v => !v)}
+      colors={knowledgeColorsFromTheme(T)}
+      member={member.data}
+    />
     </div>
   )
 }

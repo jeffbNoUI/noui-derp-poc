@@ -17,6 +17,7 @@ export interface MemberEnhancement {
 // Stage IDs must match those defined in guided-composition.ts (composeStages)
 
 const STAGE_RELEVANCE: Record<string, string[]> = {
+  // Staff retirement workspace stages
   'application-intake': ['application-deadline'],
   'member-verify': ['vesting', 'rule-75', 'rule-85'],
   'service-credit': ['purchased-service-eligibility', 'vesting'],
@@ -26,6 +27,28 @@ const STAGE_RELEVANCE: Record<string, string[]> = {
   'supplemental': ['lump-sum-death', 'ipr'],
   'dro': ['dro-basics'],
   'review-certify': [],
+  // Death processing stages
+  'death-notification': ['lump-sum-death'],
+  'survivor-determination': ['lump-sum-death', 'payment-options'],
+  'survivor-benefit': ['benefit-formula', 'lump-sum-death'],
+  'overpayment-review': [],
+  'death-benefit-installments': ['lump-sum-death'],
+  'processing-review': [],
+  // Refund processing stages
+  'refund-eligibility': ['vesting'],
+  'contribution-summary': [],
+  'interest-calculation': [],
+  'refund-options': [],
+  'vested-decision': ['vesting', 'benefit-formula'],
+  'refund-review': [],
+  // Portal wizard step IDs (mapped from step index)
+  'wizard-personal-info': ['application-deadline'],
+  'wizard-retirement-date': ['rule-75', 'rule-85', 'early-retirement', 'early-retirement-tier3'],
+  'wizard-benefit-estimate': ['benefit-formula', 'ams-window', 'leave-payout'],
+  'wizard-payment-option': ['payment-options', 'spousal-consent'],
+  'wizard-death-benefit': ['lump-sum-death'],
+  'wizard-insurance-tax': ['ipr'],
+  'wizard-review-submit': ['application-deadline'],
 }
 
 /** Returns knowledge entry IDs relevant to the given stage */

@@ -15,6 +15,7 @@ import { useApplication } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
 import { DEFAULT_RETIREMENT_DATES, fmt } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
+import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
 
@@ -35,6 +36,8 @@ export function MemberDashboard() {
   const elig = eligibility.data
   const ben = benefit.data
   const app = application.data
+
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   // What-If scenario calculator state
   const [scenarioOpen, setScenarioOpen] = useState(false)
@@ -61,7 +64,11 @@ export function MemberDashboard() {
   const tierLabel = m ? `Tier ${m.tier}` : ''
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px' }}>
+    <div style={{
+      maxWidth: knowledgeOpen ? 1100 : 720, margin: '0 auto', padding: '24px 20px',
+      display: 'flex', gap: 0, transition: 'max-width 0.3s ease',
+    }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* Welcome */}
       <div style={{ marginBottom: 24 }}>
         <div style={{
@@ -414,6 +421,16 @@ export function MemberDashboard() {
           </div>
         ))}
       </div>
+    </div>
+    <KnowledgeSidebar
+      collapsed={!knowledgeOpen}
+      onToggle={() => setKnowledgeOpen(v => !v)}
+      colors={knowledgeColorsFromTheme(T)}
+      member={m}
+      eligibility={elig}
+      benefit={ben}
+      serviceCredit={svc}
+    />
     </div>
   )
 }

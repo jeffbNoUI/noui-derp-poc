@@ -9,7 +9,9 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useTheme } from '@/theme'
 import { fmt } from '@/lib/constants'
+import { useMember } from '@/hooks/useMember'
 import { vendorDemoApi, DEMO_ENROLLMENT_QUEUE } from '@/api/vendor-demo-data'
+import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
 import type { IPRVerification, EnrollmentQueueItem } from '@/types/Vendor'
 
 const TIER_COLORS: Record<number, { color: string; bg: string }> = {
@@ -24,6 +26,9 @@ export function VendorMemberDetail() {
   const T = useTheme()
   const navigate = useNavigate()
   const { memberId } = useParams<{ memberId: string }>()
+  // Vendor member IDs (10001-10006) align with main demo fixtures
+  const member = useMember(memberId ?? '')
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
   const [ipr, setIpr] = useState<IPRVerification | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [actionStatus, setActionStatus] = useState<ActionStatus>('idle')
@@ -101,7 +106,11 @@ export function VendorMemberDetail() {
   const isFlagged = actionStatus === 'flagged'
 
   return (
-    <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 20px' }}>
+    <div style={{
+      maxWidth: knowledgeOpen ? 1100 : 800, margin: '0 auto', padding: '24px 20px',
+      display: 'flex', gap: 0, transition: 'max-width 0.3s ease',
+    }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* Back link */}
       <button onClick={() => navigate('/vendor')} style={{
         background: 'none', border: 'none', color: T.accent.primary,
@@ -377,6 +386,13 @@ export function VendorMemberDetail() {
           </div>
         </>
       )}
+    </div>
+    <KnowledgeSidebar
+      collapsed={!knowledgeOpen}
+      onToggle={() => setKnowledgeOpen(v => !v)}
+      colors={knowledgeColorsFromTheme(T)}
+      member={member.data}
+    />
     </div>
   )
 }

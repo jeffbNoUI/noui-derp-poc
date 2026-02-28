@@ -10,6 +10,7 @@ import { useTheme } from '@/theme'
 import { usePortalAuth } from '@/portal/auth/AuthContext'
 import { useMember } from '@/hooks/useMember'
 import { formatDate } from '@/lib/utils'
+import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
 
 interface AddressRecord {
   type: 'home' | 'mailing'
@@ -200,6 +201,7 @@ export function MemberProfile() {
   const { memberId } = usePortalAuth()
   const member = useMember(memberId)
   const m = member.data
+  const [knowledgeOpen, setKnowledgeOpen] = useState(false)
 
   // Local editable state — in production these would persist to API
   const [contact, setContact] = useState<ContactInfo>({
@@ -238,7 +240,11 @@ export function MemberProfile() {
   }
 
   return (
-    <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px 20px' }}>
+    <div style={{
+      maxWidth: knowledgeOpen ? 1100 : 720, margin: '0 auto', padding: '24px 20px',
+      display: 'flex', gap: 0, transition: 'max-width 0.3s ease',
+    }}>
+    <div style={{ flex: 1, minWidth: 0 }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 24 }}>
         <button onClick={() => navigate('/portal')} style={{
@@ -385,6 +391,13 @@ export function MemberProfile() {
           ))}
         </div>
       </div>
+    </div>
+    <KnowledgeSidebar
+      collapsed={!knowledgeOpen}
+      onToggle={() => setKnowledgeOpen(v => !v)}
+      colors={knowledgeColorsFromTheme(T)}
+      member={m}
+    />
     </div>
   )
 }

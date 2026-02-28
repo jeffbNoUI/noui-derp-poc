@@ -9,6 +9,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { C, tierMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { KnowledgeSidebar, knowledgeColorsFromLegacy } from '@/components/shared/knowledge'
 import { refundDemoApi, DEMO_REFUND_MEMBERS } from '@/api/refund-demo-data'
 import type { RefundCalculation } from '@/types/Refund'
 import { RefundEligibility } from './stages/refund/RefundEligibility'
@@ -49,6 +50,7 @@ export function RefundWorkspace({ memberId }: { memberId: string }) {
   const [confirmed, setConfirmed] = useState<Set<string>>(new Set())
   const [calc, setCalc] = useState<RefundCalculation | null>(null)
   const [error, setError] = useState('')
+  const [knowledgeCollapsed, setKnowledgeCollapsed] = useState(true)
 
   const m = DEMO_REFUND_MEMBERS[memberId] ?? null
 
@@ -222,11 +224,20 @@ export function RefundWorkspace({ memberId }: { memberId: string }) {
         {confirmed.has(currentStage.id) && <Badge text="Confirmed" bg={C.successMuted} color={C.success} />}
       </div>
 
-      {/* Stage content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          {renderStage()}
+      {/* Stage content + Knowledge sidebar */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px', minWidth: 0 }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            {renderStage()}
+          </div>
         </div>
+        <KnowledgeSidebar
+          collapsed={knowledgeCollapsed}
+          onToggle={() => setKnowledgeCollapsed(v => !v)}
+          colors={knowledgeColorsFromLegacy(C)}
+          member={m}
+          currentStageId={currentStage.id}
+        />
       </div>
 
       {/* Bottom navigation */}

@@ -8,6 +8,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
+import { KnowledgeSidebar, knowledgeColorsFromLegacy } from '@/components/shared/knowledge'
 import {
   deathSurvivorDemoApi,
   case9Member, case10Member,
@@ -56,6 +57,7 @@ export function DeathWorkspace({ memberId }: { memberId: string }) {
   const [status, setStatus] = useState<DeathBenefitStatus | null>(null)
   const [summary, setSummary] = useState<DeathProcessingSummary | null>(null)
   const [error, setError] = useState('')
+  const [knowledgeCollapsed, setKnowledgeCollapsed] = useState(true)
 
   useEffect(() => {
     setCurrentIndex(0)
@@ -186,11 +188,20 @@ export function DeathWorkspace({ memberId }: { memberId: string }) {
         {confirmed.has(currentStage.id) && <Badge text="Confirmed" bg={C.successMuted} color={C.success} />}
       </div>
 
-      {/* Stage content */}
-      <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-          <StageComponent {...stageProps} />
+      {/* Stage content + Knowledge sidebar */}
+      <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
+        <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px', minWidth: 0 }}>
+          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
+            <StageComponent {...stageProps} />
+          </div>
         </div>
+        <KnowledgeSidebar
+          collapsed={knowledgeCollapsed}
+          onToggle={() => setKnowledgeCollapsed(v => !v)}
+          colors={knowledgeColorsFromLegacy(C)}
+          member={m}
+          currentStageId={currentStage.id}
+        />
       </div>
 
       {/* Bottom navigation */}
