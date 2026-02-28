@@ -16,6 +16,7 @@ import { StaffWelcomeScreen } from '@/pages/StaffWelcomeScreen'
 import { ComparisonView } from '@/pages/staff/ComparisonView'
 import { StaffCaseView } from '@/pages/StaffCaseView'
 import { StaffGuidedView } from '@/pages/StaffGuidedView'
+import { StaffWorksheetView } from '@/pages/StaffWorksheetView'
 import { StaffDeathView } from '@/pages/StaffDeathView'
 import { StaffRefundView } from '@/pages/StaffRefundView'
 import { MemberDashboard } from '@/pages/portal/MemberDashboard'
@@ -53,6 +54,7 @@ import { ContributionReview } from '@/pages/staff/ContributionReview'
 import { MemberLookup } from '@/pages/staff/MemberLookup'
 import { EmployerLookup } from '@/pages/staff/EmployerLookup'
 import { MemberProfile } from '@/pages/portal/MemberProfile'
+import { BenefitStatement } from '@/pages/portal/BenefitStatement'
 import { ContributionReportBuilder } from '@/pages/employer/ContributionReportBuilder'
 // Auth pages
 import { StaffLoginPage } from '@/pages/auth/StaffLoginPage'
@@ -88,6 +90,7 @@ export const router = createBrowserRouter([
       { index: true, element: <StaffWelcomeScreen /> },
       { path: 'case/:memberId', element: <StaffCaseView /> },
       { path: 'case/:memberId/guided', element: <StaffGuidedView /> },
+      { path: 'case/:memberId/worksheet', element: <StaffWorksheetView /> },
       { path: 'death/:memberId', element: <StaffDeathView /> },
       { path: 'refund/:memberId', element: <StaffRefundView /> },
       { path: 'compare', element: <ComparisonView /> },
@@ -112,6 +115,7 @@ export const router = createBrowserRouter([
       { path: 'messages', element: <MessagesPage /> },
       { path: 'documents', element: <DocumentsPage /> },
       { path: 'profile', element: <MemberProfile /> },
+      { path: 'statement', element: <BenefitStatement /> },
       { path: 'life-events', element: <LifeEventHub /> },
       { path: 'life-events/:eventId', element: <LifeEventFlow /> },
       { path: 'forms/:formId', element: <FormWizardPage /> },

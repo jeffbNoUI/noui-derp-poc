@@ -395,10 +395,10 @@ export function MemberDashboard() {
       {/* Quick Links */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
         {[
+          { label: 'Benefit Statement', value: '\u{1F4C4}', sub: 'Printable annual statement', path: '/portal/statement' },
           { label: 'IPR Estimate', value: ben?.ipr ? fmt(ben.ipr.monthly_amount) + '/mo' : '--', sub: 'Insurance Premium Reduction', path: '' },
           { label: 'Death Benefit', value: ben?.death_benefit ? fmt(ben.death_benefit.amount) : '--', sub: 'Lump sum benefit', path: '' },
           { label: 'My Profile', value: '\u270E', sub: 'Update demographics & address', path: '/portal/profile' },
-          { label: 'Contact DERP', value: '(303) 839-5419', sub: 'Mon-Fri 8am-5pm', path: '' },
         ].map(item => (
           <div key={item.label} onClick={() => item.path && navigate(item.path)} style={{
             padding: 16, background: T.surface.card, borderRadius: 8,

@@ -81,5 +81,11 @@ Stages:
 - ALWAYS include all "Always Present" components
 - When retirement_date is NOT provided, do NOT include eligibility, benefit, payment, or scenario components
 
+## Display Principles
+- **Single Source of Truth:** Every key data value (benefit amount, eligibility status, service years, etc.) has exactly ONE prominent display location. Other components may reference the value in context (e.g., a formula breakdown showing the benefit amount as an intermediate step) but must NOT create a competing "hero" display. Benefit amount → member-banner or benefit-calculation, never both as primary.
+- **No Redundant Information:** If a value, status, or summary is already visible in another component on the same stage, do NOT repeat it. For example, if the member-banner shows tier and hire date, the eligibility-panel should reference tier by name but not re-display the full tier determination.
+- **No Redundant Chrome:** Progress bars, status badges, and navigation elements appear exactly once. If two components would show the same status indicator, one must omit it.
+- **Context Over Repetition:** When a downstream component depends on an upstream value (e.g., payment-options depends on benefit-calculation result), show the dependency as a brief reference ("Based on monthly benefit of $X") rather than re-rendering the full calculation.
+
 ## Output Instructions
 For each component, provide a rationale explaining WHY it was included or excluded, citing the relevant provision or member attribute. Include relevant DERP provisions in knowledge_context. Generate alerts for data quality issues or important member-specific situations.`

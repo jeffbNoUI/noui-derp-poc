@@ -1,10 +1,13 @@
 /**
  * Vendor reports page — report cards with generate/download workflow and preview data.
+ * Downloads enriched CSVs from actual demo data fixtures.
  * Consumed by: router.tsx (/vendor/reports route)
- * Depends on: useTheme (vendor theme colors)
+ * Depends on: useTheme, vendor-demo-data fixtures, csv-export utility
  */
 import { useState } from 'react'
 import { useTheme } from '@/theme'
+import { generateCSV, downloadCSV } from '@/lib/csv-export'
+import { DEMO_ENROLLMENT_QUEUE, DEMO_IPR_VERIFICATIONS } from '@/api/vendor-demo-data'
 
 interface ReportDef {
   id: string
@@ -38,6 +41,44 @@ const REPORTS: ReportDef[] = [
   },
 ]
 
+/** Build enriched CSV content per report type from demo fixtures. */
+function buildVendorReportCSV(reportId: string): string {
+  switch (reportId) {
+    case 'enrollment-summary': {
+      const headers = ['Member ID', 'Name', 'Tier', 'Retirement Date', 'Enrollment Type', 'Status', 'IPR Eligible', 'IPR Monthly']
+      const rows = DEMO_ENROLLMENT_QUEUE.map(e => [
+        e.member_id, e.member_name, String(e.tier), e.retirement_date,
+        e.enrollment_type, e.status, e.ipr_eligible ? 'Yes' : 'No',
+        e.ipr_monthly?.toFixed(2) ?? '',
+      ])
+      return generateCSV(headers, rows)
+    }
+    case 'ipr-verification': {
+      const headers = ['Member ID', 'Name', 'Tier', 'Earned Years', 'Pre-Medicare Rate', 'Pre-Medicare Monthly', 'Post-Medicare Monthly', 'Phase']
+      const rows = Object.values(DEMO_IPR_VERIFICATIONS).map(v => [
+        v.member_id, v.member_name, String(v.tier),
+        v.earned_service_years.toFixed(2),
+        '$12.50/yr', v.pre_medicare_monthly.toFixed(2),
+        v.post_medicare_monthly.toFixed(2), v.current_phase,
+      ])
+      return generateCSV(headers, rows)
+    }
+    case 'coverage-status': {
+      const headers = ['Member ID', 'Name', 'Tier', 'Enrollment Type', 'Status', 'IPR Monthly']
+      const rows = DEMO_ENROLLMENT_QUEUE
+        .filter(e => e.status === 'enrolled' || e.status === 'verified')
+        .map(e => [
+          e.member_id, e.member_name, String(e.tier),
+          e.enrollment_type, e.status,
+          e.ipr_monthly?.toFixed(2) ?? '',
+        ])
+      return generateCSV(headers, rows)
+    }
+    default:
+      return `Report: ${reportId}\nGenerated: ${new Date().toISOString()}\n`
+  }
+}
+
 export function VendorReports() {
   const T = useTheme()
   const [generating, setGenerating] = useState<string | null>(null)
@@ -45,7 +86,6 @@ export function VendorReports() {
 
   const handleGenerate = (reportId: string) => {
     setGenerating(reportId)
-    // Simulate report generation
     setTimeout(() => {
       setGenerating(null)
       setGenerated(prev => new Set(prev).add(reportId))
@@ -53,15 +93,8 @@ export function VendorReports() {
   }
 
   const handleDownload = (report: ReportDef) => {
-    // Simulate CSV download by creating a blob
-    const csvContent = `Report: ${report.title}\nGenerated: ${new Date().toISOString()}\n\n${report.preview.replace(/ \| /g, '\n')}\n`
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${report.id}-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const csv = buildVendorReportCSV(report.id)
+    downloadCSV(`${report.id}-${new Date().toISOString().slice(0, 10)}.csv`, csv)
   }
 
   return (

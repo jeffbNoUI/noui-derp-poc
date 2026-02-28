@@ -41,6 +41,7 @@ import {
   Stage7DRO, Stage8ReviewCertify,
 } from './stages'
 import { useNudges, NudgeToast } from '@/nudges'
+import { CaseCompleteSummary } from './CaseCompleteSummary'
 
 // ─── Leave payout constant (same as BenefitWorkspace) ────────
 const LEAVE_PAYOUTS: Record<string, number> = {
@@ -482,7 +483,36 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
           <>
             <div style={{ flex: 1, overflow: 'auto', padding: '12px 16px 24px' }}>
               <div style={{ maxWidth: contentMaxWidth, margin: '0 auto' }}>
-              {currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
+              {state.saveStatus === 'saved' && elig && ben ? (
+                <>
+                  <CaseCompleteSummary
+                    caseId={state.savedCaseId ?? null}
+                    member={m}
+                    eligibility={elig}
+                    benefit={ben}
+                    paymentOptions={opts}
+                    droCalc={dro}
+                    serviceCredit={sc}
+                    retirementDate={retirementDate}
+                    electedOption={state.electedOption || (hasDRO ? 'j&s_75' : 'maximum')}
+                    leavePayout={leavePayout}
+                  />
+                  <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                    <a href={`/staff/case/${memberId}/worksheet`} style={{
+                      padding: '7px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: C.surface, border: `1px solid ${C.border}`, color: C.text,
+                      textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5,
+                    }}>
+                      <span style={{ fontSize: 13 }}>&#x1F5A8;</span> Print Worksheet
+                    </a>
+                    <a href="/staff/queue" style={{
+                      padding: '7px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                      background: 'transparent', border: `1px solid ${C.borderSubtle}`, color: C.textSecondary,
+                      textDecoration: 'none',
+                    }}>Return to Queue</a>
+                  </div>
+                </>
+              ) : currentStage && currentDepth === 'summary' && currentStage.summaryFields ? (
                 <StageSummary
                   summaryFields={currentStage.summaryFields}
                   signal={signals[currentStage.id]}

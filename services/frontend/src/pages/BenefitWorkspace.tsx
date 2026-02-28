@@ -13,6 +13,7 @@ import type { BenefitResult, ServiceCreditSummary, DROResult, PaymentOptionsResu
 import { C, tierMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
+import { CaseCompleteSummary } from '@/pages/staff/CaseCompleteSummary'
 
 
 // ─── Supplemental salary period data for demo display ───────────
@@ -580,6 +581,10 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
         }}>
           {confirmed.size}/{panelIds.length}
         </span>
+        <a href={`/staff/case/${memberId}/worksheet`} title="Print Worksheet"
+          style={{ color: C.textMuted, fontSize: 13, textDecoration: 'none', flexShrink: 0 }}>
+          &#x1F5A8;
+        </a>
       </div>
 
       {/* Save status banner */}
@@ -600,8 +605,38 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
       {/* Workspace: panels + sidebar */}
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
 
-        {/* PANELS (scrollable) */}
+        {/* PANELS (scrollable) — or Case Complete Summary when saved */}
         <div ref={scrollRef} style={{ flex: 1, overflow: 'auto', padding: '10px 14px 60px' }}>
+        {saveStatus === 'saved' && elig && ben ? (
+          <>
+            <CaseCompleteSummary
+              caseId={savedCaseId}
+              member={m}
+              eligibility={elig}
+              benefit={ben}
+              paymentOptions={opts}
+              droCalc={dro}
+              serviceCredit={sc}
+              retirementDate={retirementDate}
+              electedOption={elOpt}
+              leavePayout={leavePayout}
+            />
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+              <a href={`/staff/case/${memberId}/worksheet`} style={{
+                padding: '7px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: C.surface, border: `1px solid ${C.border}`, color: C.text,
+                textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+                <span style={{ fontSize: 13 }}>&#x1F5A8;</span> Print Worksheet
+              </a>
+              <a href="/staff/queue" style={{
+                padding: '7px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
+                background: 'transparent', border: `1px solid ${C.borderSubtle}`, color: C.textSecondary,
+                textDecoration: 'none',
+              }}>Return to Queue</a>
+            </div>
+          </>
+        ) : (<>
 
           {/* ─── Confirmed chips row ─── */}
           {panelIds.some(id => confirmed.has(id) && id !== focused) && (
@@ -912,6 +947,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
           </Panel>}
 
+        </>)}
         </div>
 
         {/* LIVE SUMMARY SIDEBAR */}

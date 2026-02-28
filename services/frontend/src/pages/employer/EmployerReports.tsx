@@ -1,10 +1,16 @@
 /**
  * Employer reports catalog — report cards with generate/download workflow.
+ * Downloads enriched CSVs from actual demo data fixtures.
  * Consumed by: router.tsx (employer/reports route)
- * Depends on: employerTheme
+ * Depends on: employerTheme, employer-demo-data fixtures, csv-export utility
  */
 import { useState } from 'react'
 import { employerTheme as T } from '@/theme'
+import { generateCSV, downloadCSV } from '@/lib/csv-export'
+import {
+  DEMO_EMPLOYER_EMPLOYEES, DEMO_PENDING_RETIREMENTS,
+  EMPLOYEE_RATE, EMPLOYER_RATE, DEMO_DEPARTMENTS,
+} from '@/api/employer-demo-data'
 
 interface ReportCard {
   id: string
@@ -45,13 +51,55 @@ const REPORT_CATALOG: ReportCard[] = [
   },
 ]
 
+/** Build enriched CSV content per report type from demo fixtures. */
+function buildReportCSV(reportId: string): string {
+  const date = new Date().toISOString().slice(0, 10)
+  switch (reportId) {
+    case 'monthly-contribution': {
+      const headers = ['Department', 'Employees', 'Gross Payroll', 'Employee Contrib (8.45%)', 'Employer Contrib (17.95%)', 'Total']
+      const rows = DEMO_DEPARTMENTS.map(d => {
+        const emps = DEMO_EMPLOYER_EMPLOYEES.filter(e => e.department === d.code && e.status === 'active')
+        const payroll = emps.reduce((s, e) => s + e.monthly_salary, 0)
+        const ee = Math.round(payroll * EMPLOYEE_RATE * 100) / 100
+        const er = Math.round(payroll * EMPLOYER_RATE * 100) / 100
+        return [d.name, String(emps.length), payroll.toFixed(2), ee.toFixed(2), er.toFixed(2), (ee + er).toFixed(2)]
+      })
+      return generateCSV(headers, rows)
+    }
+    case 'annual-census': {
+      const headers = ['Member ID', 'Name', 'Department', 'Tier', 'Hire Date', 'Years of Service', 'Monthly Salary', 'Status']
+      const rows = DEMO_EMPLOYER_EMPLOYEES.map(e => [
+        e.member_id, `${e.first_name} ${e.last_name}`, e.department,
+        String(e.tier), e.hire_date, e.years_of_service.toFixed(2),
+        e.monthly_salary.toFixed(2), e.status,
+      ])
+      return generateCSV(headers, rows)
+    }
+    case 'termination-report': {
+      // No terminations in demo — generate empty report with header
+      const headers = ['Member ID', 'Name', 'Department', 'Termination Date', 'Vested', 'Refund Eligible', 'Contribution Balance']
+      return generateCSV(headers, [])
+    }
+    case 'retirement-activity': {
+      const headers = ['Member ID', 'Name', 'Tier', 'Department', 'Retirement Date', 'Status', 'Est. Benefit', 'Last Day']
+      const rows = DEMO_PENDING_RETIREMENTS.map(r => [
+        r.member_id, r.member_name, String(r.tier), r.department,
+        r.retirement_date, r.application_status,
+        r.estimated_benefit?.toFixed(2) ?? '', r.last_day_worked ?? '',
+      ])
+      return generateCSV(headers, rows)
+    }
+    default:
+      return `Report: ${reportId}\nGenerated: ${date}\n`
+  }
+}
+
 export function EmployerReports() {
   const [generating, setGenerating] = useState<string | null>(null)
   const [generated, setGenerated] = useState<Set<string>>(new Set())
 
   const handleGenerate = (reportId: string) => {
     setGenerating(reportId)
-    // Simulate report generation
     setTimeout(() => {
       setGenerating(null)
       setGenerated(prev => new Set(prev).add(reportId))
@@ -59,15 +107,8 @@ export function EmployerReports() {
   }
 
   const handleDownload = (report: ReportCard) => {
-    // Simulate CSV download
-    const csvContent = `Report: ${report.title}\nGenerated: ${new Date().toISOString()}\nFrequency: ${report.frequency}\nLast Generated: ${report.lastGenerated}\n`
-    const blob = new Blob([csvContent], { type: 'text/csv' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `${report.id}-${new Date().toISOString().slice(0, 10)}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
+    const csv = buildReportCSV(report.id)
+    downloadCSV(`${report.id}-${new Date().toISOString().slice(0, 10)}.csv`, csv)
   }
 
   return (

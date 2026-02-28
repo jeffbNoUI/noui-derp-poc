@@ -162,12 +162,14 @@ func (q *Queries) GetOverpaymentRecords(memberID string) ([]models.OverpaymentRe
 	return records, rows.Err()
 }
 
-// SaveDeathNotification creates a new death record and suspends the member's benefit.
+// SaveDeathNotification creates a new death record and suspends the member's benefit
+// within a single transaction. If the member status update fails, the death record
+// insert is rolled back — a deceased member must not remain active.
 // Returns the generated death record ID.
 func (q *Queries) SaveDeathNotification(req *models.DeathNotificationRequest) (int, error) {
 	now := time.Now().UTC()
 
-	// Look up member's current status
+	// Read-only lookup outside the transaction
 	member, err := q.GetMember(req.MemberID)
 	if err != nil {
 		return 0, fmt.Errorf("lookup member %s: %w", req.MemberID, err)
@@ -186,33 +188,39 @@ func (q *Queries) SaveDeathNotification(req *models.DeathNotificationRequest) (i
 	}
 
 	var deathRecID int
-	err = q.db.QueryRow(`
-		INSERT INTO DEATH_RECORD (
-			MBR_ID, DEATH_DT, NOTIFY_DT, NOTIFY_SRC,
-			NOTIFY_CONTACT, NOTIFY_PHONE,
-			MBR_STATUS_PREV, MBR_STATUS_CURR,
-			STATUS_CD, SUSPEND_DT, NOTES,
-			CREATE_DT, CREATE_USER
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-		RETURNING DEATH_REC_ID
-	`,
-		req.MemberID, deathDate, now, req.NotifySource,
-		req.NotifyContact, req.NotifyPhone,
-		member.StatusCode, "S", // S = Suspended
-		"NOTIFIED", now, req.Notes,
-		now, "NOUI_SYSTEM",
-	).Scan(&deathRecID)
-	if err != nil {
-		return 0, fmt.Errorf("insert death record: %w", err)
-	}
+	err = q.RunInTx(func(txq *Queries) error {
+		// INSERT DEATH_RECORD
+		txErr := txq.db.QueryRow(`
+			INSERT INTO DEATH_RECORD (
+				MBR_ID, DEATH_DT, NOTIFY_DT, NOTIFY_SRC,
+				NOTIFY_CONTACT, NOTIFY_PHONE,
+				MBR_STATUS_PREV, MBR_STATUS_CURR,
+				STATUS_CD, SUSPEND_DT, NOTES,
+				CREATE_DT, CREATE_USER
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+			RETURNING DEATH_REC_ID
+		`,
+			req.MemberID, deathDate, now, req.NotifySource,
+			req.NotifyContact, req.NotifyPhone,
+			member.StatusCode, "S", // S = Suspended
+			"NOTIFIED", now, req.Notes,
+			now, "NOUI_SYSTEM",
+		).Scan(&deathRecID)
+		if txErr != nil {
+			return fmt.Errorf("insert death record: %w", txErr)
+		}
 
-	// Suspend the member's benefit — update MEMBER_MASTER status
-	_, err = q.db.Exec(`
-		UPDATE MEMBER_MASTER SET STATUS_CD = 'S' WHERE MBR_ID = $1
-	`, req.MemberID)
+		// UPDATE MEMBER_MASTER — must succeed or entire operation rolls back
+		_, txErr = txq.db.Exec(`
+			UPDATE MEMBER_MASTER SET STATUS_CD = 'S' WHERE MBR_ID = $1
+		`, req.MemberID)
+		if txErr != nil {
+			return fmt.Errorf("suspend member %s: %w", req.MemberID, txErr)
+		}
+		return nil
+	})
 	if err != nil {
-		log.Printf("WARNING: Failed to update member status to suspended: %v", err)
-		// Don't fail the whole operation — death record was created
+		return 0, err
 	}
 
 	log.Printf("AUDIT: Death notification recorded for member %s, death_rec_id=%d", req.MemberID, deathRecID)

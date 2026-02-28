@@ -76,6 +76,42 @@
     page-break-inside: avoid;
   }
 
+  /* Worksheet — clean white background for print */
+  [data-print="worksheet"] {
+    background: #fff !important;
+    color: #1a1a1a !important;
+    padding: 0 !important;
+  }
+
+  [data-print="worksheet-header"] {
+    text-align: center;
+    border-bottom: 2px solid #333 !important;
+    padding-bottom: 10px;
+    margin-bottom: 14px;
+  }
+
+  [data-print="worksheet-table"] {
+    width: 100% !important;
+    border-collapse: collapse;
+  }
+
+  [data-print="worksheet-table"] th,
+  [data-print="worksheet-table"] td {
+    border: 1px solid #ccc !important;
+    padding: 4px 6px !important;
+  }
+
+  [data-print="worksheet-section"] {
+    page-break-inside: avoid;
+  }
+
+  /* Benefit statement — member portal printout */
+  [data-print="benefit-statement"] {
+    background: #fff !important;
+    color: #1a1a1a !important;
+    padding: 0 !important;
+  }
+
   /* Page margins */
   @page {
     margin: 1in;

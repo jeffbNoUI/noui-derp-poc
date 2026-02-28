@@ -15,22 +15,53 @@ import (
 	"github.com/noui-derp-poc/connector/internal/models"
 )
 
+// DBTX is satisfied by both *sql.DB and *sql.Tx, allowing query methods
+// to run inside or outside a transaction.
+type DBTX interface {
+	Exec(query string, args ...interface{}) (sql.Result, error)
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+}
+
 // Queries provides database query methods for the connector service.
 type Queries struct {
-	db *sql.DB
+	db   DBTX    // active executor — either *sql.DB or *sql.Tx
+	pool *sql.DB // connection pool — always *sql.DB, used for Begin()
 }
 
 // NewQueries creates a new Queries instance.
 func NewQueries(db *sql.DB) *Queries {
-	return &Queries{db: db}
+	return &Queries{db: db, pool: db}
+}
+
+// WithTx returns a copy of Queries that executes against the given transaction.
+func (q *Queries) WithTx(tx *sql.Tx) *Queries {
+	return &Queries{db: tx, pool: q.pool}
+}
+
+// RunInTx executes fn within a database transaction. If fn returns an error
+// the transaction is rolled back; otherwise it is committed.
+func (q *Queries) RunInTx(fn func(txq *Queries) error) error {
+	if q.pool == nil {
+		return fmt.Errorf("begin tx: connection pool is nil")
+	}
+	tx, err := q.pool.Begin()
+	if err != nil {
+		return fmt.Errorf("begin tx: %w", err)
+	}
+	if err := fn(q.WithTx(tx)); err != nil {
+		tx.Rollback()
+		return err
+	}
+	return tx.Commit()
 }
 
 // Ping checks database connectivity (used by /readyz).
 func (q *Queries) Ping() error {
-	if q.db == nil {
+	if q.pool == nil {
 		return fmt.Errorf("database connection is nil")
 	}
-	return q.db.Ping()
+	return q.pool.Ping()
 }
 
 // MemberSearchResult is a minimal member record for search results.
@@ -358,7 +389,8 @@ func (q *Queries) GetContributionSummary(memberID string) (*models.ContributionS
 	return s, nil
 }
 
-// SaveRetirementElection inserts a benefit payment record and a retirement case.
+// SaveRetirementElection inserts a benefit payment record and a retirement case
+// within a single transaction — if either write fails, both are rolled back.
 // Returns the generated case ID.
 func (q *Queries) SaveRetirementElection(e *models.RetirementElection) (int, error) {
 	retDate, err := time.Parse("2006-01-02", e.RetirementDate)
@@ -367,63 +399,68 @@ func (q *Queries) SaveRetirementElection(e *models.RetirementElection) (int, err
 	}
 
 	now := time.Now().UTC()
-
-	// Insert into BENEFIT_PAYMENT
 	droFlg := "N"
 	if e.DRODeduction > 0 {
 		droFlg = "Y"
 	}
-	_, err = q.db.Exec(`
-		INSERT INTO BENEFIT_PAYMENT (
-			MBR_ID, EFF_DT, GROSS_BENEFIT, PAY_OPTION,
-			NET_BENEFIT, DRO_FLG, DRO_DEDUCT_AMT,
-			IPR_AMT, DEATH_BEN_AMT, CALC_DT, CALC_USER,
-			CREATE_DT, STATUS_CD
-		) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
-		ON CONFLICT (MBR_ID, EFF_DT) DO UPDATE SET
-			GROSS_BENEFIT = EXCLUDED.GROSS_BENEFIT,
-			PAY_OPTION = EXCLUDED.PAY_OPTION,
-			NET_BENEFIT = EXCLUDED.NET_BENEFIT,
-			DRO_FLG = EXCLUDED.DRO_FLG,
-			DRO_DEDUCT_AMT = EXCLUDED.DRO_DEDUCT_AMT,
-			IPR_AMT = EXCLUDED.IPR_AMT,
-			DEATH_BEN_AMT = EXCLUDED.DEATH_BEN_AMT,
-			CALC_DT = EXCLUDED.CALC_DT,
-			STATUS_CD = EXCLUDED.STATUS_CD
-	`,
-		e.MemberID, retDate, e.GrossBenefit, e.PaymentOption,
-		e.MonthlyBenefit, droFlg, e.DRODeduction,
-		e.IPRAmount, e.DeathBenefit, now, "NOUI_SYSTEM",
-		now, "A",
-	)
-	if err != nil {
-		return 0, fmt.Errorf("insert benefit_payment: %w", err)
-	}
-	log.Printf("AUDIT: SaveRetirementElection member=%s date=%s option=%s gross=%.2f net=%.2f",
-		e.MemberID, e.RetirementDate, e.PaymentOption, e.GrossBenefit, e.MonthlyBenefit)
 
-	// Insert into CASE_HIST using sequence (replaces MAX+1 race condition)
 	var caseID int
-	err = q.db.QueryRow(`
-		INSERT INTO CASE_HIST (
-			CASE_ID, MBR_ID, CASE_TYPE, CASE_STATUS,
-			OPEN_DT, ASSIGNED_TO, PRIORITY, NOTES,
-			CREATE_DT, CREATE_USER
-		) VALUES (
-			nextval('case_hist_case_id_seq'),
-			$1, $2, $3, $4, $5, $6, $7, $8, $9
-		) RETURNING CASE_ID
-	`,
-		e.MemberID, "SVC_RET", "IN_REVIEW",
-		retDate, "NOUI_SYSTEM", 1,
-		fmt.Sprintf("Retirement application submitted via NoUI. Retirement date: %s. Payment option: %s. Monthly benefit: $%.2f.",
-			e.RetirementDate, e.PaymentOption, e.MonthlyBenefit),
-		now, "NOUI_SYSTEM",
-	).Scan(&caseID)
-	if err != nil {
-		return 0, fmt.Errorf("insert case_hist: %w", err)
-	}
-	log.Printf("AUDIT: Created retirement case #%d for member %s", caseID, e.MemberID)
+	err = q.RunInTx(func(txq *Queries) error {
+		// INSERT BENEFIT_PAYMENT
+		_, txErr := txq.db.Exec(`
+			INSERT INTO BENEFIT_PAYMENT (
+				MBR_ID, EFF_DT, GROSS_BENEFIT, PAY_OPTION,
+				NET_BENEFIT, DRO_FLG, DRO_DEDUCT_AMT,
+				IPR_AMT, DEATH_BEN_AMT, CALC_DT, CALC_USER,
+				CREATE_DT, STATUS_CD
+			) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+			ON CONFLICT (MBR_ID, EFF_DT) DO UPDATE SET
+				GROSS_BENEFIT = EXCLUDED.GROSS_BENEFIT,
+				PAY_OPTION = EXCLUDED.PAY_OPTION,
+				NET_BENEFIT = EXCLUDED.NET_BENEFIT,
+				DRO_FLG = EXCLUDED.DRO_FLG,
+				DRO_DEDUCT_AMT = EXCLUDED.DRO_DEDUCT_AMT,
+				IPR_AMT = EXCLUDED.IPR_AMT,
+				DEATH_BEN_AMT = EXCLUDED.DEATH_BEN_AMT,
+				CALC_DT = EXCLUDED.CALC_DT,
+				STATUS_CD = EXCLUDED.STATUS_CD
+		`,
+			e.MemberID, retDate, e.GrossBenefit, e.PaymentOption,
+			e.MonthlyBenefit, droFlg, e.DRODeduction,
+			e.IPRAmount, e.DeathBenefit, now, "NOUI_SYSTEM",
+			now, "A",
+		)
+		if txErr != nil {
+			return fmt.Errorf("insert benefit_payment: %w", txErr)
+		}
 
+		// INSERT CASE_HIST
+		txErr = txq.db.QueryRow(`
+			INSERT INTO CASE_HIST (
+				CASE_ID, MBR_ID, CASE_TYPE, CASE_STATUS,
+				OPEN_DT, ASSIGNED_TO, PRIORITY, NOTES,
+				CREATE_DT, CREATE_USER
+			) VALUES (
+				nextval('case_hist_case_id_seq'),
+				$1, $2, $3, $4, $5, $6, $7, $8, $9
+			) RETURNING CASE_ID
+		`,
+			e.MemberID, "SVC_RET", "IN_REVIEW",
+			retDate, "NOUI_SYSTEM", 1,
+			fmt.Sprintf("Retirement application submitted via NoUI. Retirement date: %s. Payment option: %s. Monthly benefit: $%.2f.",
+				e.RetirementDate, e.PaymentOption, e.MonthlyBenefit),
+			now, "NOUI_SYSTEM",
+		).Scan(&caseID)
+		if txErr != nil {
+			return fmt.Errorf("insert case_hist: %w", txErr)
+		}
+		return nil
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	log.Printf("AUDIT: SaveRetirementElection member=%s date=%s option=%s gross=%.2f net=%.2f case=%d",
+		e.MemberID, e.RetirementDate, e.PaymentOption, e.GrossBenefit, e.MonthlyBenefit, caseID)
 	return caseID, nil
 }

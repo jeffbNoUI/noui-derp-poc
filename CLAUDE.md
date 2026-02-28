@@ -107,6 +107,13 @@ prominent display location. Other components may reference the value in context
 (e.g., formula breakdown) but must not create a competing "hero" display.
 Benefit amount → member banner. Progress → header bar. Eligibility → stage 3 content.
 
+### No Redundant Information
+If a value, status, or summary is already visible in another component on the same
+screen, do NOT repeat it. When a downstream component depends on an upstream value
+(e.g., payment options depend on the benefit calculation result), show a brief
+reference ("Based on monthly benefit of $X") rather than re-rendering the full
+calculation or re-displaying the number as a hero element.
+
 ### No Redundant Chrome
 Each piece of UI chrome (progress bars, status badges, navigation) appears exactly
 once. If two areas show the same information, one must be removed.
