@@ -146,6 +146,7 @@ function EmployerProfile({ deptId }: { deptId: string }) {
   const pending = DEMO_PENDING_RETIREMENTS.filter(r => r.department === deptId)
   const users = MOCK_USERS[deptId] || []
   const [activeTab, setActiveTab] = useState<'roster' | 'contributions' | 'users'>('roster')
+  const [expandedReport, setExpandedReport] = useState<string | null>(null)
 
   if (!dept) {
     return (
@@ -272,27 +273,94 @@ function EmployerProfile({ deptId }: { deptId: string }) {
                 discrepancy: { bg: C.dangerMuted, color: C.danger },
               }
               const sc = statusColors[r.status] || statusColors.draft
+              const isExpanded = expandedReport === r.report_id
               return (
                 <div key={r.report_id} style={{
-                  padding: '12px', background: C.surface,
-                  border: `1px solid ${C.borderSubtle}`, borderRadius: '8px',
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  background: C.surface, borderRadius: '8px',
+                  border: `1px solid ${r.status === 'discrepancy' ? C.danger : C.borderSubtle}`,
+                  overflow: 'hidden', transition: 'border-color 0.15s',
                 }}>
-                  <div>
-                    <div style={{ color: C.text, fontWeight: 600, fontSize: '12px' }}>
-                      {r.period}
+                  <div
+                    onClick={() => setExpandedReport(isExpanded ? null : r.report_id)}
+                    style={{
+                      padding: '12px', cursor: 'pointer',
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      transition: 'background 0.1s',
+                    }}
+                    onMouseEnter={e => (e.currentTarget.style.background = C.elevated)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{
+                        color: C.textDim, fontSize: '10px', transition: 'transform 0.15s',
+                        display: 'inline-block',
+                        transform: isExpanded ? 'rotate(90deg)' : 'rotate(0deg)',
+                      }}>{'\u25B6'}</span>
+                      <div>
+                        <div style={{ color: C.text, fontWeight: 600, fontSize: '12px' }}>
+                          {r.period}
+                        </div>
+                        <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>
+                          {r.employee_count} employees &middot; {fmt(r.total_gross_payroll)} gross
+                        </div>
+                      </div>
                     </div>
-                    <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>
-                      {r.employee_count} employees &middot; {fmt(r.total_gross_payroll)} gross
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ textAlign: 'right' as const }}>
+                        <div style={{ color: C.textSecondary, fontSize: '10px' }}>EE {fmt(r.total_employee_contributions)}</div>
+                        <div style={{ color: C.textSecondary, fontSize: '10px' }}>ER {fmt(r.total_employer_contributions)}</div>
+                      </div>
+                      <Badge text={r.status} bg={sc.bg} color={sc.color} />
                     </div>
                   </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ textAlign: 'right' as const }}>
-                      <div style={{ color: C.textSecondary, fontSize: '10px' }}>EE {fmt(r.total_employee_contributions)}</div>
-                      <div style={{ color: C.textSecondary, fontSize: '10px' }}>ER {fmt(r.total_employer_contributions)}</div>
+                  {isExpanded && (
+                    <div style={{ borderTop: `1px solid ${C.borderSubtle}`, padding: '14px 16px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '14px', marginBottom: r.discrepancies?.length ? 14 : 0 }}>
+                        <div>
+                          <div style={{ fontSize: '9px', color: C.textDim, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '3px' }}>Submitted</div>
+                          <div style={{ fontSize: '12px', color: C.text }}>{r.submitted_at ? new Date(r.submitted_at).toLocaleDateString() : 'Not submitted'}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '9px', color: C.textDim, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '3px' }}>Report ID</div>
+                          <div style={{ fontSize: '11px', color: C.text, fontFamily: "'SF Mono',monospace" }}>{r.report_id}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '9px', color: C.textDim, textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '3px' }}>Contribution Rates</div>
+                          <div style={{ fontSize: '12px', color: C.text }}>EE 8.45% / ER 17.95%</div>
+                        </div>
+                      </div>
+                      {/* Discrepancy details */}
+                      {r.discrepancies && r.discrepancies.length > 0 && (
+                        <div>
+                          <div style={{ fontSize: '10px', fontWeight: 700, color: C.danger, marginBottom: '8px' }}>
+                            Discrepancies ({r.discrepancies.length})
+                          </div>
+                          {r.discrepancies.map((d, i) => (
+                            <div key={i} style={{
+                              display: 'flex', gap: '10px', padding: '8px 10px', marginBottom: '4px',
+                              borderRadius: '6px', background: d.severity === 'error' ? C.dangerMuted : C.warmMuted,
+                              border: `1px solid ${d.severity === 'error' ? `${C.danger}30` : `${C.warm}30`}`,
+                            }}>
+                              <span style={{
+                                fontSize: '9px', fontWeight: 700, padding: '2px 5px', borderRadius: '3px',
+                                color: d.severity === 'error' ? C.danger : C.warm,
+                                textTransform: 'uppercase' as const, alignSelf: 'flex-start' as const,
+                              }}>{d.severity}</span>
+                              <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '11px', color: C.text, fontWeight: 500 }}>
+                                  {d.member_name} ({d.member_id}) — {d.field}
+                                </div>
+                                <div style={{ fontSize: '10px', color: C.textSecondary, marginTop: '2px' }}>
+                                  Expected: {fmt(d.expected)} | Actual: {fmt(d.actual)}
+                                </div>
+                                <div style={{ fontSize: '10px', color: C.textMuted, marginTop: '2px' }}>{d.message}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <Badge text={r.status} bg={sc.bg} color={sc.color} />
-                  </div>
+                  )}
                 </div>
               )
             })}

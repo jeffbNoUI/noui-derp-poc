@@ -1,8 +1,9 @@
 /**
  * Vendor member detail — IPR verification panel with formula transparency.
  * Shows earned service years (purchased excluded), pre/post-Medicare rates, and current IPR.
+ * Full verification workflow: verify IPR, confirm enrollment, flag issues.
  * Consumed by: router.tsx (/vendor/member/:memberId route)
- * Depends on: vendor-demo-data.ts (IPR verifications, queue), useTheme, fmt
+ * Depends on: vendor-demo-data.ts (IPR verifications, queue, mutations), useTheme, fmt
  */
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
@@ -17,16 +18,28 @@ const TIER_COLORS: Record<number, { color: string; bg: string }> = {
   3: { color: '#2e7d32', bg: 'rgba(46,125,50,0.08)' },
 }
 
+type ActionStatus = 'idle' | 'verifying' | 'verified' | 'enrolling' | 'enrolled' | 'flagging' | 'flagged'
+
 export function VendorMemberDetail() {
   const T = useTheme()
   const navigate = useNavigate()
   const { memberId } = useParams<{ memberId: string }>()
   const [ipr, setIpr] = useState<IPRVerification | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [actionStatus, setActionStatus] = useState<ActionStatus>('idle')
+  const [flagModalOpen, setFlagModalOpen] = useState(false)
+  const [flagText, setFlagText] = useState('')
+  const [flaggedReason, setFlaggedReason] = useState('')
 
   // Find the enrollment queue item for additional context
   const queueItem: EnrollmentQueueItem | undefined =
     DEMO_ENROLLMENT_QUEUE.find(e => e.member_id === memberId)
+
+  // Seed initial status from queue item
+  useEffect(() => {
+    if (queueItem?.status === 'verified') setActionStatus('verified')
+    else if (queueItem?.status === 'enrolled') setActionStatus('enrolled')
+  }, [queueItem?.status])
 
   useEffect(() => {
     if (!memberId) return
@@ -34,6 +47,31 @@ export function VendorMemberDetail() {
       .then(setIpr)
       .catch(() => setError(`No IPR verification data for member ${memberId}`))
   }, [memberId])
+
+  const handleVerifyIPR = async () => {
+    if (!memberId) return
+    setActionStatus('verifying')
+    await vendorDemoApi.updateEnrollmentStatus(memberId, 'verified')
+    // Brief delay for UX feedback
+    setTimeout(() => setActionStatus('verified'), 600)
+  }
+
+  const handleConfirmEnrollment = async () => {
+    if (!memberId) return
+    setActionStatus('enrolling')
+    await vendorDemoApi.updateEnrollmentStatus(memberId, 'enrolled')
+    setTimeout(() => setActionStatus('enrolled'), 600)
+  }
+
+  const handleFlagSubmit = async () => {
+    if (!memberId || !flagText.trim()) return
+    setActionStatus('flagging')
+    await vendorDemoApi.updateEnrollmentStatus(memberId, 'declined')
+    setFlaggedReason(flagText.trim())
+    setFlagText('')
+    setFlagModalOpen(false)
+    setTimeout(() => setActionStatus('flagged'), 400)
+  }
 
   if (error) {
     return (
@@ -57,6 +95,11 @@ export function VendorMemberDetail() {
 
   const tierStyle = TIER_COLORS[ipr.tier] ?? TIER_COLORS[1]
 
+  // Action button states
+  const isVerified = actionStatus === 'verified' || actionStatus === 'enrolled' || actionStatus === 'enrolling'
+  const isEnrolled = actionStatus === 'enrolled'
+  const isFlagged = actionStatus === 'flagged'
+
   return (
     <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 20px' }}>
       {/* Back link */}
@@ -78,13 +121,59 @@ export function VendorMemberDetail() {
           <div style={{ fontSize: 12, color: T.text.muted, marginTop: 4 }}>
             Member ID: {ipr.member_id}
             {queueItem && ` | Retirement: ${queueItem.retirement_date}`}
+            {queueItem?.assigned_at && ` | Assigned: ${new Date(queueItem.assigned_at).toLocaleDateString()}`}
           </div>
         </div>
-        <span style={{
-          fontSize: 11, fontWeight: 700, color: tierStyle.color,
-          background: tierStyle.bg, padding: '4px 12px', borderRadius: 10,
-        }}>Tier {ipr.tier}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {/* Workflow status badge */}
+          {(isVerified || isEnrolled || isFlagged) && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: '4px 10px', borderRadius: 10,
+              color: isFlagged ? T.status.danger : isEnrolled ? T.status.success : T.status.info,
+              background: isFlagged ? T.status.dangerBg : isEnrolled ? T.status.successBg : T.status.infoBg,
+              textTransform: 'uppercase' as const, letterSpacing: 0.5,
+            }}>
+              {isFlagged ? 'Flagged' : isEnrolled ? 'Enrolled' : 'Verified'}
+            </span>
+          )}
+          <span style={{
+            fontSize: 11, fontWeight: 700, color: tierStyle.color,
+            background: tierStyle.bg, padding: '4px 12px', borderRadius: 10,
+          }}>Tier {ipr.tier}</span>
+        </div>
       </div>
+
+      {/* Flagged issue banner */}
+      {isFlagged && flaggedReason && (
+        <div style={{
+          background: T.status.dangerBg, borderRadius: 10, padding: 16, marginBottom: 20,
+          border: `1px solid ${T.status.danger}30`,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.status.danger, marginBottom: 4 }}>
+            Issue Flagged
+          </div>
+          <div style={{ fontSize: 12, color: T.text.primary }}>{flaggedReason}</div>
+          <div style={{ fontSize: 10, color: T.text.muted, marginTop: 6 }}>
+            Flagged on {new Date().toLocaleDateString()} — pending resolution
+          </div>
+        </div>
+      )}
+
+      {/* Enrolled success banner */}
+      {isEnrolled && (
+        <div style={{
+          background: T.status.successBg, borderRadius: 10, padding: 16, marginBottom: 20,
+          border: `1px solid ${T.status.success}30`,
+        }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: T.status.success, marginBottom: 4 }}>
+            Enrollment Confirmed
+          </div>
+          <div style={{ fontSize: 12, color: T.text.primary }}>
+            {ipr.member_name} has been enrolled with a monthly IPR of {fmt(ipr.monthly_ipr)}.
+            Coverage is effective as of the retirement date.
+          </div>
+        </div>
+      )}
 
       {/* IPR Verification Panel */}
       <div style={{
@@ -179,23 +268,115 @@ export function VendorMemberDetail() {
           </div>
         )}
 
-        {/* Action buttons */}
+        {/* Action buttons — state-driven */}
         <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
-          <button style={{
-            padding: '8px 20px', background: T.accent.primary, color: '#fff',
-            border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-          }}>Verify IPR</button>
-          <button style={{
-            padding: '8px 20px', background: T.status.success, color: '#fff',
-            border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 600,
-          }}>Confirm Enrollment</button>
-          <button style={{
-            padding: '8px 20px', background: 'transparent', color: T.status.danger,
-            border: `1px solid ${T.status.danger}`, borderRadius: 6, cursor: 'pointer',
-            fontSize: 13, fontWeight: 600,
-          }}>Flag Issue</button>
+          {/* Verify IPR */}
+          <button
+            onClick={handleVerifyIPR}
+            disabled={isVerified || isFlagged || actionStatus === 'verifying'}
+            style={{
+              padding: '8px 20px',
+              background: isVerified ? T.status.successBg : actionStatus === 'verifying' ? T.border.subtle : T.accent.primary,
+              color: isVerified ? T.status.success : actionStatus === 'verifying' ? T.text.muted : '#fff',
+              border: isVerified ? `1px solid ${T.status.success}` : 'none',
+              borderRadius: 6, cursor: isVerified || isFlagged ? 'default' : 'pointer',
+              fontSize: 13, fontWeight: 600, opacity: isFlagged ? 0.5 : 1,
+            }}
+          >
+            {actionStatus === 'verifying' ? 'Verifying...' : isVerified ? '\u2713 IPR Verified' : 'Verify IPR'}
+          </button>
+
+          {/* Confirm Enrollment — only enabled after verification */}
+          <button
+            onClick={handleConfirmEnrollment}
+            disabled={!isVerified || isEnrolled || isFlagged || actionStatus === 'enrolling'}
+            style={{
+              padding: '8px 20px',
+              background: isEnrolled ? T.status.successBg
+                : actionStatus === 'enrolling' ? T.border.subtle
+                : isVerified && !isFlagged ? T.status.success : T.border.subtle,
+              color: isEnrolled ? T.status.success
+                : isVerified && !isFlagged ? '#fff' : T.text.muted,
+              border: isEnrolled ? `1px solid ${T.status.success}` : 'none',
+              borderRadius: 6,
+              cursor: isVerified && !isEnrolled && !isFlagged ? 'pointer' : 'default',
+              fontSize: 13, fontWeight: 600,
+            }}
+          >
+            {actionStatus === 'enrolling' ? 'Enrolling...' : isEnrolled ? '\u2713 Enrolled' : 'Confirm Enrollment'}
+          </button>
+
+          {/* Flag Issue */}
+          <button
+            onClick={() => setFlagModalOpen(true)}
+            disabled={isEnrolled || isFlagged}
+            style={{
+              padding: '8px 20px', background: 'transparent',
+              color: isFlagged ? T.text.muted : T.status.danger,
+              border: `1px solid ${isFlagged ? T.border.subtle : T.status.danger}`,
+              borderRadius: 6, cursor: isEnrolled || isFlagged ? 'default' : 'pointer',
+              fontSize: 13, fontWeight: 600,
+              opacity: isEnrolled || isFlagged ? 0.5 : 1,
+            }}
+          >
+            {isFlagged ? 'Issue Flagged' : 'Flag Issue'}
+          </button>
         </div>
       </div>
+
+      {/* Flag Issue Modal */}
+      {flagModalOpen && (
+        <>
+          <div onClick={() => setFlagModalOpen(false)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: T.surface.card, borderRadius: 12, border: `1px solid ${T.border.base}`,
+            boxShadow: T.shadowLg, zIndex: 201, width: 420, overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '16px 20px', borderBottom: `1px solid ${T.border.subtle}`,
+              fontSize: 14, fontWeight: 700, color: T.status.danger,
+            }}>Flag Issue — {ipr.member_name}</div>
+            <div style={{ padding: 20 }}>
+              <div style={{
+                fontSize: 11, color: T.text.muted, textTransform: 'uppercase' as const,
+                letterSpacing: 0.5, fontWeight: 600, marginBottom: 6,
+              }}>Describe the Issue</div>
+              <textarea
+                value={flagText}
+                onChange={e => setFlagText(e.target.value)}
+                placeholder="e.g., Earned service years do not match source records..."
+                rows={4}
+                style={{
+                  width: '100%', padding: '10px 12px', fontSize: 13, borderRadius: 6,
+                  border: `1px solid ${T.border.base}`, background: T.surface.bg,
+                  color: T.text.primary, fontFamily: 'inherit', resize: 'vertical' as const,
+                  boxSizing: 'border-box' as const,
+                }}
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 14 }}>
+                <button onClick={() => { setFlagModalOpen(false); setFlagText('') }} style={{
+                  padding: '8px 16px', borderRadius: 6, fontSize: 12,
+                  background: 'transparent', border: `1px solid ${T.border.base}`,
+                  color: T.text.secondary, cursor: 'pointer',
+                }}>Cancel</button>
+                <button
+                  onClick={handleFlagSubmit}
+                  disabled={!flagText.trim()}
+                  style={{
+                    padding: '8px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                    background: flagText.trim() ? T.status.danger : T.border.subtle,
+                    color: flagText.trim() ? '#fff' : T.text.muted,
+                    border: 'none', cursor: flagText.trim() ? 'pointer' : 'default',
+                  }}
+                >Submit Flag</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

@@ -52,6 +52,7 @@ import { ContributionReview } from '@/pages/staff/ContributionReview'
 import { MemberLookup } from '@/pages/staff/MemberLookup'
 import { EmployerLookup } from '@/pages/staff/EmployerLookup'
 import { MemberProfile } from '@/pages/portal/MemberProfile'
+import { ContributionReportBuilder } from '@/pages/employer/ContributionReportBuilder'
 
 export const router = createBrowserRouter([
   {
@@ -106,6 +107,7 @@ export const router = createBrowserRouter([
       { path: 'roster', element: <EmployeeRoster /> },
       { path: 'contributions', element: <ContributionReporting /> },
       { path: 'contributions/upload', element: <ContributionUpload /> },
+      { path: 'contributions/new', element: <ContributionReportBuilder /> },
       { path: 'retirements', element: <RetirementCoordination /> },
       { path: 'reports', element: <EmployerReports /> },
     ],

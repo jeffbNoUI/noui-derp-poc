@@ -150,8 +150,11 @@ function delay<T>(data: T, ms = 150): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(data), ms))
 }
 
+// Mutable copy for runtime status mutations
+let enrollmentQueueStore = [...DEMO_ENROLLMENT_QUEUE]
+
 export const vendorDemoApi = {
-  getQueue: () => delay(DEMO_ENROLLMENT_QUEUE),
+  getQueue: () => delay([...enrollmentQueueStore]),
 
   getIPRVerification: (memberId: string) => {
     const v = DEMO_IPR_VERIFICATIONS[memberId]
@@ -160,4 +163,15 @@ export const vendorDemoApi = {
   },
 
   getStats: () => delay(computeStats()),
+
+  /** Update enrollment queue item status (verify, enroll, decline, flag) */
+  updateEnrollmentStatus: (
+    memberId: string,
+    status: EnrollmentQueueItem['status'],
+  ): Promise<EnrollmentQueueItem | null> => {
+    const item = enrollmentQueueStore.find(e => e.member_id === memberId)
+    if (!item) return delay(null)
+    item.status = status
+    return delay({ ...item })
+  },
 }

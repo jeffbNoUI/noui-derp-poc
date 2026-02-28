@@ -61,6 +61,7 @@ export interface PendingRetirement {
   documents_complete: boolean
   last_day_worked?: string
   estimated_benefit?: number
+  application_submitted_at?: string  // ISO timestamp when application was submitted
 }
 
 export interface EmployerDashboardStats {

@@ -73,6 +73,14 @@ export function VendorDashboard() {
           ? <span style={{ color: T.status.success, fontWeight: 600 }}>Yes {row.ipr_monthly ? `(${fmt(row.ipr_monthly)}/mo)` : ''}</span>
           : <span style={{ color: T.text.muted }}>No</span>,
     },
+    {
+      key: 'assigned_at', label: 'Assigned', sortable: true,
+      render: (row: EnrollmentQueueItem) => (
+        <span style={{ fontSize: 11, color: T.text.muted }}>
+          {new Date(row.assigned_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+        </span>
+      ),
+    },
   ]
 
   const tableColors = {

@@ -10,7 +10,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { C, tierMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { fmt } from '@/lib/constants'
-import { DEMO_EMPLOYER_EMPLOYEES } from '@/api/employer-demo-data'
+import { DEMO_EMPLOYER_EMPLOYEES, DEMO_DEPARTMENTS } from '@/api/employer-demo-data'
 import { useMember, useEmployment, useServiceCredit } from '@/hooks/useMember'
 import { useEligibility, useBenefitCalculation } from '@/hooks/useCalculations'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
@@ -341,6 +341,51 @@ function MemberProfile({ memberId }: { memberId: string }) {
                 formula={`${fmt(empFallback.monthly_salary)} \u00D7 17.95% = ${fmt(empFallback.monthly_salary * 0.1795)} (RMC \u00A718-407)`} />
             </ProfileCard>
           )}
+
+          {/* Employer Associations — a member may work for multiple employers */}
+          {(() => {
+            const associations = DEMO_EMPLOYER_EMPLOYEES.filter(e => e.member_id === memberId)
+            if (associations.length === 0) return null
+            return (
+              <ProfileCard title="Employer Associations">
+                {associations.map((assoc, i) => {
+                  const dept = DEMO_DEPARTMENTS.find(d => d.dept_id === assoc.department)
+                  return (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                      padding: '6px 0', borderBottom: i < associations.length - 1 ? `1px solid ${C.borderSubtle}` : 'none',
+                    }}>
+                      <div>
+                        <button onClick={() => navigate(`/staff/employers/${assoc.department}`)} style={{
+                          background: 'none', border: 'none', color: C.accent, cursor: 'pointer',
+                          fontSize: '12px', fontWeight: 600, padding: 0,
+                        }}>{dept?.name || assoc.department}</button>
+                        <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '1px' }}>
+                          {assoc.status} &middot; Hired {assoc.hire_date}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' as const }}>
+                        <div style={{ fontSize: '11px', color: C.text, fontFamily: "'SF Mono',monospace" }}>
+                          {fmt(assoc.monthly_salary)}/mo
+                        </div>
+                        <div style={{ fontSize: '9px', color: C.textDim }}>
+                          {assoc.years_of_service.toFixed(1)}y service
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+                {associations.length > 1 && (
+                  <div style={{
+                    marginTop: '6px', padding: '6px 8px', borderRadius: '4px',
+                    background: C.warmMuted, fontSize: '10px', color: C.warm,
+                  }}>
+                    Multiple concurrent employers — contributions from all employers count toward benefit.
+                  </div>
+                )}
+              </ProfileCard>
+            )
+          })()}
         </div>
       </div>
     </div>

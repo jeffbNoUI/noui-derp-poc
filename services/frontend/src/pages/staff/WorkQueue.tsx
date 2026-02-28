@@ -3,6 +3,7 @@
  * Consumed by: router.tsx (/staff/queue)
  * Depends on: usePendingSubmissions, DataTable, LIFE_EVENTS, C theme
  */
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { C } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
@@ -27,6 +28,13 @@ const STATUS_BADGE: Record<string, { text: string; color: string; bg: string }> 
 export function WorkQueue() {
   const navigate = useNavigate()
   const { data: pending = [], isLoading } = usePendingSubmissions()
+
+  // Auto-navigate to staff home when queue is empty (all items processed)
+  useEffect(() => {
+    if (!isLoading && pending.length === 0) {
+      navigate('/staff')
+    }
+  }, [isLoading, pending.length, navigate])
 
   const columns = [
     {

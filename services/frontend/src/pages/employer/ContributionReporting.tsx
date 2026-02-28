@@ -3,7 +3,7 @@
  * Consumed by: router.tsx (employer/contributions route)
  * Depends on: employerDemoApi, useEmployerAuth, fmt, employerTheme, Employer types
  */
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useEmployerAuth } from '@/employer/auth/EmployerAuthContext'
 import { employerDemoApi } from '@/api/employer-demo-data'
@@ -23,10 +23,30 @@ export function ContributionReporting() {
   const navigate = useNavigate()
   const [reports, setReports] = useState<ContributionReport[]>([])
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [newMenuOpen, setNewMenuOpen] = useState(false)
+  const [copyModalOpen, setCopyModalOpen] = useState(false)
+  const [copySource, setCopySource] = useState<string | null>(null)
+  const [newPeriod, setNewPeriod] = useState('')
+  const [submittingId, setSubmittingId] = useState<string | null>(null)
 
-  useEffect(() => {
+  const loadReports = useCallback(() => {
     employerDemoApi.getContributionReports(deptId).then(setReports)
   }, [deptId])
+
+  useEffect(() => { loadReports() }, [loadReports])
+
+  // Handle verify & submit for draft reports
+  const handleVerifySubmit = async (reportId: string) => {
+    setSubmittingId(reportId)
+    await employerDemoApi.updateContributionReportStatus(reportId, 'submitted')
+    // Update local state to reflect the change
+    setReports(prev => prev.map(r =>
+      r.report_id === reportId
+        ? { ...r, status: 'submitted' as const, submitted_at: new Date().toISOString() }
+        : r
+    ))
+    setSubmittingId(null)
+  }
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -41,15 +61,66 @@ export function ContributionReporting() {
             <span style={{ margin: '0 8px', color: T.border.base }}>|</span>
             Employer: <strong style={{ color: T.text.primary }}>17.95%</strong>
           </div>
-          <button
-            onClick={() => navigate('/employer/contributions/upload')}
-            style={{
-              padding: '6px 14px', borderRadius: 6, fontSize: 11, fontWeight: 600,
-              background: T.accent.primary, color: T.accent.on, border: 'none', cursor: 'pointer',
-            }}
-          >
-            Upload New Report
-          </button>
+          <div style={{ position: 'relative' }}>
+            <div style={{ display: 'flex', borderRadius: 6, overflow: 'hidden' }}>
+              <button
+                onClick={() => navigate('/employer/contributions/upload')}
+                style={{
+                  padding: '6px 14px', fontSize: 11, fontWeight: 600,
+                  background: T.accent.primary, color: T.accent.on, border: 'none', cursor: 'pointer',
+                  borderRight: '1px solid rgba(255,255,255,0.2)',
+                }}
+              >
+                Upload Report
+              </button>
+              <button
+                onClick={() => setNewMenuOpen(v => !v)}
+                style={{
+                  padding: '6px 8px', fontSize: 11,
+                  background: T.accent.primary, color: T.accent.on, border: 'none', cursor: 'pointer',
+                }}
+              >{'\u25BE'}</button>
+            </div>
+            {newMenuOpen && (
+              <>
+                <div onClick={() => setNewMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 98 }} />
+                <div style={{
+                  position: 'absolute', top: '100%', right: 0, marginTop: 4,
+                  background: T.surface.card, border: `1px solid ${T.border.base}`,
+                  borderRadius: 8, boxShadow: T.shadowLg, zIndex: 99, minWidth: 200,
+                  overflow: 'hidden',
+                }}>
+                  <button onClick={() => { setCopyModalOpen(true); setNewMenuOpen(false) }} style={{
+                    display: 'block', width: '100%', textAlign: 'left' as const,
+                    padding: '10px 14px', background: 'none', border: 'none',
+                    cursor: 'pointer', fontSize: 12, color: T.text.primary,
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = T.surface.cardAlt)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    <div style={{ fontWeight: 600 }}>Copy from Prior Report</div>
+                    <div style={{ fontSize: 10, color: T.text.muted, marginTop: 2 }}>
+                      Start with data from a previous period
+                    </div>
+                  </button>
+                  <div style={{ borderTop: `1px solid ${T.border.subtle}` }} />
+                  <button onClick={() => { navigate('/employer/contributions/new'); setNewMenuOpen(false) }} style={{
+                    display: 'block', width: '100%', textAlign: 'left' as const,
+                    padding: '10px 14px', background: 'none', border: 'none',
+                    cursor: 'pointer', fontSize: 12, color: T.text.primary,
+                  }}
+                    onMouseEnter={e => (e.currentTarget.style.background = T.surface.cardAlt)}
+                    onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  >
+                    <div style={{ fontWeight: 600 }}>Create Blank Report</div>
+                    <div style={{ fontSize: 10, color: T.text.muted, marginTop: 2 }}>
+                      Start a new report from scratch
+                    </div>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
@@ -72,8 +143,8 @@ export function ContributionReporting() {
               <div
                 onClick={() => setExpandedId(isExpanded ? null : report.report_id)}
                 style={{
-                  display: 'grid', gridTemplateColumns: '100px 100px 1fr 1fr 1fr 90px 90px',
-                  alignItems: 'center', gap: 12, padding: '14px 16px', cursor: 'pointer',
+                  display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 1fr 70px 90px 90px',
+                  alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer',
                 }}
                 onMouseEnter={e => { e.currentTarget.style.background = T.surface.cardAlt }}
                 onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}
@@ -90,6 +161,11 @@ export function ContributionReporting() {
                   <span style={{ color: T.text.muted, fontSize: 10 }}>ER: </span>{fmt(report.total_employer_contributions)}
                 </div>
                 <div style={{ fontSize: 12, color: T.text.secondary }}>{report.employee_count} emp</div>
+                <div style={{ fontSize: 10, color: T.text.muted }}>
+                  {report.submitted_at
+                    ? new Date(report.submitted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                    : '\u2014'}
+                </div>
                 <div>
                   <span style={{
                     display: 'inline-block', padding: '3px 8px', borderRadius: 10,
@@ -115,10 +191,19 @@ export function ContributionReporting() {
                     </div>
                     <div>
                       {report.status === 'draft' && (
-                        <button style={{
-                          padding: '8px 16px', background: T.accent.primary, color: '#ffffff',
-                          border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        }}>Verify &amp; Submit</button>
+                        <button
+                          onClick={() => handleVerifySubmit(report.report_id)}
+                          disabled={submittingId === report.report_id}
+                          style={{
+                            padding: '8px 16px',
+                            background: submittingId === report.report_id ? T.border.subtle : T.accent.primary,
+                            color: submittingId === report.report_id ? T.text.muted : '#ffffff',
+                            border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                            cursor: submittingId === report.report_id ? 'default' : 'pointer',
+                          }}
+                        >
+                          {submittingId === report.report_id ? 'Submitting...' : 'Verify & Submit'}
+                        </button>
                       )}
                     </div>
                   </div>
@@ -166,6 +251,82 @@ export function ContributionReporting() {
           )
         })}
       </div>
+
+      {/* Copy from Prior Report modal */}
+      {copyModalOpen && (
+        <>
+          <div onClick={() => setCopyModalOpen(false)} style={{
+            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 200,
+          }} />
+          <div style={{
+            position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
+            background: T.surface.card, borderRadius: 12, border: `1px solid ${T.border.base}`,
+            boxShadow: T.shadowLg, zIndex: 201, width: 420, overflow: 'hidden',
+          }}>
+            <div style={{
+              padding: '16px 20px', borderBottom: `1px solid ${T.border.subtle}`,
+              fontSize: 14, fontWeight: 700, color: T.text.primary,
+            }}>Copy from Prior Report</div>
+            <div style={{ padding: '20px' }}>
+              <div style={{ marginBottom: 16 }}>
+                <div style={{
+                  fontSize: 11, color: T.text.muted, textTransform: 'uppercase' as const,
+                  letterSpacing: 0.5, fontWeight: 600, marginBottom: 6,
+                }}>Source Report</div>
+                <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+                  {reports.filter(r => r.status === 'verified' || r.status === 'submitted').map(r => (
+                    <button key={r.report_id} onClick={() => setCopySource(r.report_id)} style={{
+                      padding: '10px 12px', borderRadius: 6, textAlign: 'left' as const,
+                      border: `2px solid ${copySource === r.report_id ? T.accent.primary : T.border.subtle}`,
+                      background: copySource === r.report_id ? T.accent.surface : T.surface.cardAlt,
+                      cursor: 'pointer',
+                    }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: T.text.primary }}>{r.period}</div>
+                      <div style={{ fontSize: 10, color: T.text.muted }}>
+                        {r.employee_count} employees &middot; {fmt(r.total_gross_payroll)} gross
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: 20 }}>
+                <div style={{
+                  fontSize: 11, color: T.text.muted, textTransform: 'uppercase' as const,
+                  letterSpacing: 0.5, fontWeight: 600, marginBottom: 6,
+                }}>New Period</div>
+                <input
+                  type="text" placeholder="e.g. 2026-03" value={newPeriod}
+                  onChange={e => setNewPeriod(e.target.value)}
+                  style={{
+                    width: '100%', padding: '8px 12px', fontSize: 13, borderRadius: 6,
+                    border: `1px solid ${T.border.base}`, background: T.surface.bg,
+                    color: T.text.primary, fontFamily: 'inherit',
+                    boxSizing: 'border-box' as const,
+                  }}
+                />
+              </div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button onClick={() => { setCopyModalOpen(false); setCopySource(null); setNewPeriod('') }} style={{
+                  padding: '8px 16px', borderRadius: 6, fontSize: 12,
+                  background: 'transparent', border: `1px solid ${T.border.base}`,
+                  color: T.text.secondary, cursor: 'pointer',
+                }}>Cancel</button>
+                <button onClick={() => {
+                  if (copySource && newPeriod) {
+                    navigate(`/employer/contributions/new?copy=${copySource}&period=${newPeriod}`)
+                  }
+                  setCopyModalOpen(false); setCopySource(null); setNewPeriod('')
+                }} style={{
+                  padding: '8px 16px', borderRadius: 6, fontSize: 12, fontWeight: 600,
+                  background: copySource && newPeriod ? T.accent.primary : T.border.subtle,
+                  color: copySource && newPeriod ? T.accent.on : T.text.muted,
+                  border: 'none', cursor: copySource && newPeriod ? 'pointer' : 'default',
+                }}>Create Report</button>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   )
 }

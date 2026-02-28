@@ -97,11 +97,16 @@ export function EmployeeRoster() {
   return (
     <div style={{ maxWidth: 1040 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: T.text.primary }}>
-          Employee Roster
-          <span style={{ fontSize: 12, fontWeight: 400, color: T.text.muted, marginLeft: 8 }}>
-            {filtered.length} employee{filtered.length !== 1 ? 's' : ''}
-          </span>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: T.text.primary }}>
+            Employee Roster
+            <span style={{ fontSize: 12, fontWeight: 400, color: T.text.muted, marginLeft: 8 }}>
+              {filtered.length} employee{filtered.length !== 1 ? 's' : ''}
+            </span>
+          </div>
+          <div style={{ fontSize: 10, color: T.text.muted, marginTop: 2 }}>
+            Last updated: {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </div>
         </div>
 
         <div style={{ display: 'flex', gap: 10 }}>

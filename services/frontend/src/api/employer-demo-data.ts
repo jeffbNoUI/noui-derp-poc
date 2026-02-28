@@ -9,8 +9,8 @@ import type {
 } from '@/types/Employer'
 
 // ─── Contribution rates from RMC §18-407 ────────────────────────────────────
-const EMPLOYEE_RATE = 0.0845  // 8.45% employee contribution
-const EMPLOYER_RATE = 0.1795  // 17.95% employer contribution
+export const EMPLOYEE_RATE = 0.0845  // 8.45% employee contribution
+export const EMPLOYER_RATE = 0.1795  // 17.95% employer contribution
 
 // ─── Departments ─────────────────────────────────────────────────────────────
 
@@ -221,18 +221,21 @@ export const DEMO_PENDING_RETIREMENTS: PendingRetirement[] = [
     department: 'PW', retirement_date: '2026-04-01',
     application_status: 'In Review', documents_complete: true,
     last_day_worked: '2026-03-31', estimated_benefit: 6117.03,
+    application_submitted_at: '2026-02-10T14:30:00Z',
   },
   {
     member_id: '10002', member_name: 'Jennifer Kim', tier: 2,
     department: 'PR', retirement_date: '2026-05-01',
     application_status: 'Documentation', documents_complete: false,
     last_day_worked: '2026-04-30', estimated_benefit: 1992.53,
+    application_submitted_at: '2026-02-10T15:45:00Z',
   },
   {
     member_id: '10003', member_name: 'David Washington', tier: 3,
     department: 'PW', retirement_date: '2026-04-01',
     application_status: 'Initial Review', documents_complete: false,
     last_day_worked: '2026-03-31', estimated_benefit: 1191.64,
+    application_submitted_at: '2026-03-01T09:15:00Z',
   },
 ]
 
