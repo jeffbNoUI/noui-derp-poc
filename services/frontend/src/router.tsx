@@ -1,6 +1,7 @@
 /**
  * Central route definitions — maps URLs to layouts and page components.
  * Routes: / (platform showcase), /staff/*, /portal/*, /employer/*, /vendor/*, /demos/*.
+ * Auth login routes are standalone (no layout chrome) and placed before layout routes.
  * Consumed by: main.tsx (via RouterProvider)
  * Depends on: all layout and page components, react-router-dom
  */
@@ -53,6 +54,15 @@ import { MemberLookup } from '@/pages/staff/MemberLookup'
 import { EmployerLookup } from '@/pages/staff/EmployerLookup'
 import { MemberProfile } from '@/pages/portal/MemberProfile'
 import { ContributionReportBuilder } from '@/pages/employer/ContributionReportBuilder'
+// Auth pages
+import { StaffLoginPage } from '@/pages/auth/StaffLoginPage'
+import { MemberLoginPage } from '@/pages/auth/MemberLoginPage'
+import { MemberRegisterPage } from '@/pages/auth/MemberRegisterPage'
+import { MemberForgotPasswordPage } from '@/pages/auth/MemberForgotPasswordPage'
+import { EmployerLoginPage } from '@/pages/auth/EmployerLoginPage'
+import { VendorLoginPage } from '@/pages/auth/VendorLoginPage'
+import { AccessManagement } from '@/pages/staff/AccessManagement'
+import { UserManagement } from '@/pages/employer/UserManagement'
 
 export const router = createBrowserRouter([
   {
@@ -63,6 +73,14 @@ export const router = createBrowserRouter([
     path: '/demo',
     element: <DemoLanding />,
   },
+  // ─── Standalone auth routes (no layout chrome) ───────────────────────────────
+  { path: '/staff/login', element: <StaffLoginPage /> },
+  { path: '/portal/login', element: <MemberLoginPage /> },
+  { path: '/portal/register', element: <MemberRegisterPage /> },
+  { path: '/portal/forgot-password', element: <MemberForgotPasswordPage /> },
+  { path: '/employer/login', element: <EmployerLoginPage /> },
+  { path: '/vendor/login', element: <VendorLoginPage /> },
+  // ─── Layout routes ───────────────────────────────────────────────────────────
   {
     path: '/staff',
     element: <StaffLayout />,
@@ -81,6 +99,7 @@ export const router = createBrowserRouter([
       { path: 'members/:memberId', element: <MemberLookup /> },
       { path: 'employers', element: <EmployerLookup /> },
       { path: 'employers/:deptId', element: <EmployerLookup /> },
+      { path: 'access', element: <AccessManagement /> },
     ],
   },
   {
@@ -110,6 +129,7 @@ export const router = createBrowserRouter([
       { path: 'contributions/new', element: <ContributionReportBuilder /> },
       { path: 'retirements', element: <RetirementCoordination /> },
       { path: 'reports', element: <EmployerReports /> },
+      { path: 'users', element: <UserManagement /> },
     ],
   },
   {

@@ -14,6 +14,7 @@ interface Card {
   icon: string
   iconBg: string
   path: string
+  loginPath?: string
 }
 
 interface Section {
@@ -30,22 +31,22 @@ const SECTIONS: Section[] = [
       {
         id: 'staff', name: 'Staff Portal', subtitle: 'Benefits Analyst Workspace',
         description: 'Process retirement applications, verify eligibility, calculate benefits.',
-        icon: 'N', iconBg: '#00363a', path: '/staff',
+        icon: 'N', iconBg: '#00363a', path: '/staff', loginPath: '/staff/login',
       },
       {
         id: 'member', name: 'Member Portal', subtitle: 'MyDERP · Your Retirement Journey',
         description: 'Start your retirement application, track progress, manage documents.',
-        icon: 'D', iconBg: '#00796b', path: '/portal',
+        icon: 'D', iconBg: '#00796b', path: '/portal', loginPath: '/portal/login',
       },
       {
         id: 'employer', name: 'Employer Portal', subtitle: 'Department Reporting',
         description: 'Employee rosters, contribution reporting, retirement coordination.',
-        icon: 'E', iconBg: '#1e293b', path: '/employer',
+        icon: 'E', iconBg: '#1e293b', path: '/employer', loginPath: '/employer/login',
       },
       {
         id: 'vendor', name: 'Vendor Portal', subtitle: 'Insurance Enrollment',
         description: 'Enrollment queue, IPR verification, coverage management.',
-        icon: 'V', iconBg: '#059669', path: '/vendor',
+        icon: 'V', iconBg: '#059669', path: '/vendor', loginPath: '/vendor/login',
       },
     ],
   },
@@ -170,6 +171,15 @@ export function PortalSwitcher() {
                   <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 3 }}>{card.name}</div>
                   <div style={{ fontSize: 10, color: '#5a7878', marginBottom: 8 }}>{card.subtitle}</div>
                   <div style={{ fontSize: 12, color: '#4a6363', lineHeight: 1.5 }}>{card.description}</div>
+                  {card.loginPath && (
+                    <div
+                      onClick={e => { e.stopPropagation(); navigate(card.loginPath!) }}
+                      style={{
+                        fontSize: 10, color: card.iconBg, marginTop: 8,
+                        cursor: 'pointer', fontWeight: 600,
+                      }}
+                    >Sign In {'\u2192'}</div>
+                  )}
                 </button>
               ))}
             </div>
