@@ -13,6 +13,8 @@ import { useMember } from '@/hooks/useMember'
 import { useApplication, useApplicationDocuments, useApplicationMessages, useApplicationHistory } from '@/hooks/usePortal'
 import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
 import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
+import { useWorkspace } from '@/hooks/useWorkspace'
+import { CompositionRationale } from '@/components/shared/CompositionRationale'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
 export function ApplicationStatus() {
@@ -25,6 +27,8 @@ export function ApplicationStatus() {
   const documents = useApplicationDocuments(memberId)
   const messages = useApplicationMessages(memberId)
   const history = useApplicationHistory(memberId)
+
+  const workspace = useWorkspace(memberId, 'retirement')
 
   const app = application.data
   const docs = documents.data || []
@@ -67,7 +71,11 @@ export function ApplicationStatus() {
         <div style={{
           fontSize: 20, fontWeight: 700, color: T.text.primary,
           fontFamily: "'Plus Jakarta Sans', sans-serif",
-        }}>Application Status</div>
+          display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          Application Status
+          {workspace.agent && <CompositionRationale spec={workspace.agent} />}
+        </div>
         <div style={{ fontSize: 13, color: T.text.secondary, marginTop: 4 }}>
           Application #{app.app_id} · Submitted {app.submitted_at ? formatDate(app.submitted_at) : ''}
         </div>
@@ -248,6 +256,9 @@ export function ApplicationStatus() {
       onToggle={() => setKnowledgeOpen(v => !v)}
       colors={knowledgeColorsFromTheme(T)}
       member={member.data}
+      agentRationale={workspace.agent?.rationale}
+      agentKnowledge={workspace.agent?.knowledge_context}
+      hideIdentity
     />
     </div>
   )

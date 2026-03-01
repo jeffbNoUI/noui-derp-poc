@@ -11,6 +11,7 @@ import { useTheme } from '@/theme'
 import { PortalAuthProvider, usePortalAuth, DEMO_MEMBERS } from '@/portal/auth/AuthContext'
 import { AuthGate } from '@/components/shared/AuthGate'
 import { isDemoMode } from '@/api/demo-data'
+import { resolveApiMode } from '@/api/client'
 
 function MemberLayoutInner() {
   const T = useTheme()
@@ -123,6 +124,20 @@ function MemberLayoutInner() {
             </div>
           </div>
         </div>
+
+        {/* Agent mode banner — visible when ?agent sets session to agent mode */}
+        {resolveApiMode() === 'agent' && (
+          <div style={{
+            background: 'linear-gradient(90deg, #e0f2f1, #b2dfdb)',
+            padding: '6px 0', textAlign: 'center' as const,
+            borderBottom: `1px solid ${T.accent.light}`,
+          }}>
+            <span style={{
+              fontSize: 11, fontWeight: 600, color: '#00695c',
+              letterSpacing: 0.3,
+            }}>AI-Personalized Portal · Content tailored by the composition service</span>
+          </div>
+        )}
 
         {/* Content */}
         <Outlet />

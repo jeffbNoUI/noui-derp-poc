@@ -16,6 +16,8 @@ import { STATUS_DISPLAY, PROGRESS_STAGES } from '@/types/Portal'
 import { DEFAULT_RETIREMENT_DATES, fmt } from '@/lib/constants'
 import { formatDate } from '@/lib/utils'
 import { KnowledgeSidebar, knowledgeColorsFromTheme } from '@/components/shared/knowledge'
+import { useWorkspace } from '@/hooks/useWorkspace'
+import { CompositionRationale } from '@/components/shared/CompositionRationale'
 import type { ApplicationStatus as AppStatus } from '@/types/Portal'
 
 
@@ -38,6 +40,7 @@ export function MemberDashboard() {
   const app = application.data
 
   const [knowledgeOpen, setKnowledgeOpen] = useState(false)
+  const workspace = useWorkspace(memberId, 'retirement', true, elig?.reduction_factor, retDate)
 
   // What-If scenario calculator state
   const [scenarioOpen, setScenarioOpen] = useState(false)
@@ -80,6 +83,26 @@ export function MemberDashboard() {
         </div>
       </div>
 
+      {/* Agent mode alerts — member-friendly callouts from composition service */}
+      {workspace.agent && workspace.agent.alerts.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column' as const, gap: 8, marginBottom: 16 }}>
+          {workspace.agent.alerts.map((alert, i) => {
+            const color = alert.severity === 'error' ? T.status.danger
+              : alert.severity === 'warning' ? T.status.warning : T.accent.primary
+            const bg = alert.severity === 'error' ? T.status.dangerBg
+              : alert.severity === 'warning' ? T.status.warningBg : T.accent.surface
+            return (
+              <div key={i} style={{
+                padding: '10px 14px', borderRadius: 8, background: bg,
+                borderLeft: `3px solid ${color}`, fontSize: 12, color,
+              }}>
+                <span style={{ fontWeight: 600 }}>{alert.code}: </span>{alert.message}
+              </div>
+            )
+          })}
+        </div>
+      )}
+
       {/* Retirement Readiness Card */}
       <div style={{
         background: T.surface.card, borderRadius: 12,
@@ -90,7 +113,10 @@ export function MemberDashboard() {
           padding: '14px 20px', borderBottom: `1px solid ${T.border.subtle}`,
           display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>Retirement Readiness</span>
+          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ fontSize: 14, fontWeight: 700, color: T.text.primary }}>Retirement Readiness</span>
+            {workspace.agent && <CompositionRationale spec={workspace.agent} />}
+          </span>
           <span style={{
             fontSize: 10, padding: '2px 8px', borderRadius: 99,
             background: T.tier[`t${m?.tier || 1}bg` as keyof typeof T.tier],
@@ -430,6 +456,9 @@ export function MemberDashboard() {
       eligibility={elig}
       benefit={ben}
       serviceCredit={svc}
+      agentRationale={workspace.agent?.rationale}
+      agentKnowledge={workspace.agent?.knowledge_context}
+      hideIdentity
     />
     </div>
   )

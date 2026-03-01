@@ -23,6 +23,12 @@ interface KnowledgeMiniPanelProps {
   currentStageId?: string
   /** Optional theme colors — falls back to legacy C when not provided */
   colors?: KnowledgeColors
+  /** AI composition rationale per component — rendered in "AI Insights" section */
+  agentRationale?: Record<string, string>
+  /** AI composition knowledge context — DERP provision citations from agent */
+  agentKnowledge?: { provision_id: string; title: string; citation: string; relevance: string }[]
+  /** Hide member identity indicator — portal header already shows member name/tier */
+  hideIdentity?: boolean
 }
 
 const SUGGESTIONS = [
@@ -48,6 +54,7 @@ const KNOWLEDGE_BY_ID = new Map(KNOWLEDGE_BASE.map(e => [e.id, e]))
 
 export function KnowledgeMiniPanel({
   member, eligibility, benefit, serviceCredit, currentStageId, colors,
+  agentRationale, agentKnowledge, hideIdentity,
 }: KnowledgeMiniPanelProps) {
   // Use provided colors or fall back to legacy C — zero impact on existing UtilityRail usage
   const k = colors ?? C
@@ -91,8 +98,8 @@ export function KnowledgeMiniPanel({
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column' as const, height: '100%' }}>
-      {/* Connected mode indicator */}
-      {isConnected && (
+      {/* Connected mode indicator — hidden in portal where header already shows member identity */}
+      {isConnected && !hideIdentity && (
         <div style={{
           padding: '5px 10px', fontSize: '9px', fontWeight: 600,
           color: k.accent, background: k.accentMuted,
@@ -104,6 +111,48 @@ export function KnowledgeMiniPanel({
             background: k.accent, display: 'inline-block',
           }} />
           Showing for: {member.first_name} {member.last_name}
+        </div>
+      )}
+
+      {/* AI Insights — rationale and knowledge context from composition service */}
+      {agentRationale && Object.keys(agentRationale).length > 0 && (
+        <div style={{ padding: '8px 10px', borderBottom: `1px solid ${k.borderSubtle}` }}>
+          <div style={{
+            fontSize: '9px', fontWeight: 700, color: '#8B5CF6',
+            textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '6px',
+          }}>AI Insights</div>
+          {Object.entries(agentRationale)
+            .filter(([id]) => !currentStageId || id.includes(currentStageId.replace('wizard-', '').replace(/-/g, '_')) || !currentStageId.startsWith('wizard'))
+            .slice(0, 5)
+            .map(([componentId, reason]) => (
+            <div key={componentId} style={{
+              padding: '4px 0', borderBottom: `1px solid ${k.borderSubtle}`,
+            }}>
+              <div style={{ fontSize: '9.5px', fontWeight: 600, color: k.text }}>{componentId.replace(/-/g, ' ')}</div>
+              <div style={{ fontSize: '9px', color: k.textSecondary, marginTop: '1px', lineHeight: 1.4 }}>{reason}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {agentKnowledge && agentKnowledge.length > 0 && (
+        <div style={{ padding: '8px 10px', borderBottom: `1px solid ${k.borderSubtle}` }}>
+          <div style={{
+            fontSize: '9px', fontWeight: 700, color: '#8B5CF6',
+            textTransform: 'uppercase' as const, letterSpacing: '0.5px', marginBottom: '6px',
+          }}>Relevant Provisions</div>
+          {agentKnowledge.map((kc) => (
+            <div key={kc.provision_id} style={{
+              padding: '4px 0', borderBottom: `1px solid ${k.borderSubtle}`,
+            }}>
+              <div style={{ fontSize: '9.5px', fontWeight: 600, color: k.text }}>{kc.title}</div>
+              <div style={{
+                fontSize: '8px', fontFamily: "'SF Mono',monospace", color: k.accent,
+                background: k.accentMuted, padding: '1px 5px', borderRadius: '3px',
+                display: 'inline-block', marginTop: '2px',
+              }}>{kc.citation}</div>
+              <div style={{ fontSize: '9px', color: k.textSecondary, marginTop: '2px', lineHeight: 1.4 }}>{kc.relevance}</div>
+            </div>
+          ))}
         </div>
       )}
 

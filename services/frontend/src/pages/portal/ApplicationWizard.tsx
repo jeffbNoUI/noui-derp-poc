@@ -16,6 +16,7 @@ import { useEligibility, useBenefitCalculation, usePaymentOptions } from '@/hook
 import { useSubmitApplication } from '@/hooks/usePortal'
 import { INITIAL_DRAFT, type ApplicationDraft } from '@/types/Portal'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
+import { useWorkspace } from '@/hooks/useWorkspace'
 import {
   Step1PersonalInfo, Step2RetirementDate, Step3BenefitEstimate,
   Step4PaymentOption, Step5DeathBenefit, Step6InsuranceTax, Step7ReviewSubmit,
@@ -47,6 +48,15 @@ const STEPS = [
   { title: 'Review & Submit', icon: '7', desc: 'Confirm your elections and submit' },
 ]
 
+// Map wizard step to relevant alert codes for filtering
+const STEP_ALERT_CODES: Record<number, string[]> = {
+  0: ['MEMBER-'],        // Personal Info: member-related alerts
+  2: ['BENEFIT-', 'LEAVE-PAYOUT', 'EARLY-RETIREMENT', 'AMS-'],  // Benefit Estimate
+  3: ['PAYMENT-', 'DRO-'],  // Payment Option
+  5: ['IPR-', 'INSURANCE-'],  // Insurance & Tax
+  6: [],  // Review: show all alerts
+}
+
 // ─── Wizard Container ───────────────────────────────────────────
 
 // Map wizard step index to stage IDs used in STAGE_RELEVANCE
@@ -69,6 +79,7 @@ export function ApplicationWizard() {
   const benefit = useBenefitCalculation(memberId, retDate)
   const paymentOptions = usePaymentOptions(memberId, retDate)
   const submitMutation = useSubmitApplication()
+  const workspace = useWorkspace(memberId, 'retirement', true, eligibility.data?.reduction_factor, retDate)
 
   // Rec #5,6,9-12: auto-save draft to sessionStorage to prevent abandonment
   const DRAFT_KEY = 'noui:wizard-draft'
@@ -191,6 +202,32 @@ export function ApplicationWizard() {
           </div>
         </div>
 
+        {/* Per-step agent alerts — filtered by step relevance */}
+        {workspace.agent && workspace.agent.alerts.length > 0 && (() => {
+          const prefixes = STEP_ALERT_CODES[step]
+          const filtered = prefixes !== undefined
+            ? (prefixes.length === 0 ? workspace.agent!.alerts : workspace.agent!.alerts.filter(a => prefixes.some(p => a.code.startsWith(p))))
+            : []
+          return filtered.length > 0 ? (
+            <div style={{ padding: '12px 24px 0', display: 'flex', flexDirection: 'column' as const, gap: 6 }}>
+              {filtered.map((alert, i) => {
+                const color = alert.severity === 'error' ? T.status.danger
+                  : alert.severity === 'warning' ? T.status.warning : T.accent.primary
+                const bg = alert.severity === 'error' ? T.status.dangerBg
+                  : alert.severity === 'warning' ? T.status.warningBg : T.accent.surface
+                return (
+                  <div key={i} style={{
+                    padding: '8px 12px', borderRadius: 6, background: bg,
+                    borderLeft: `3px solid ${color}`, fontSize: 11, color,
+                  }}>
+                    <span style={{ fontWeight: 600 }}>{alert.code}: </span>{alert.message}
+                  </div>
+                )
+              })}
+            </div>
+          ) : null
+        })()}
+
         {/* Step content — delegated to individual step components */}
         <div style={{ padding: '20px 24px' }}>
           {step === 0 && <Step1PersonalInfo {...stepProps} />}
@@ -246,6 +283,9 @@ export function ApplicationWizard() {
       benefit={benefit.data}
       serviceCredit={service.data}
       currentStageId={WIZARD_STAGE_IDS[step]}
+      agentRationale={workspace.agent?.rationale}
+      agentKnowledge={workspace.agent?.knowledge_context}
+      hideIdentity
     />
     </div>
   )

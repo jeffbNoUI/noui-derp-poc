@@ -18,11 +18,18 @@ interface KnowledgeSidebarProps {
   benefit?: BenefitResult
   serviceCredit?: ServiceCreditSummary
   currentStageId?: string
+  /** AI composition rationale per component — from useWorkspace agent mode */
+  agentRationale?: Record<string, string>
+  /** AI composition knowledge context — DERP provision citations from agent */
+  agentKnowledge?: { provision_id: string; title: string; citation: string; relevance: string }[]
+  /** Hide member identity section (name/tier/ID) — set true in portal where header already shows it */
+  hideIdentity?: boolean
 }
 
 export function KnowledgeSidebar({
   collapsed, onToggle, colors,
   member, eligibility, benefit, serviceCredit, currentStageId,
+  agentRationale, agentKnowledge, hideIdentity,
 }: KnowledgeSidebarProps) {
   if (collapsed) {
     return (
@@ -85,6 +92,9 @@ export function KnowledgeSidebar({
           serviceCredit={serviceCredit}
           currentStageId={currentStageId}
           colors={colors}
+          agentRationale={agentRationale}
+          agentKnowledge={agentKnowledge}
+          hideIdentity={hideIdentity}
         />
       </div>
     </div>
