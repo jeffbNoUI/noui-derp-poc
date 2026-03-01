@@ -1,6 +1,6 @@
 /**
  * Member self-registration page — 3-step inline flow: verify identity, create credentials, confirmation.
- * MyDERP branding, standalone page rendered outside MemberLayout chrome.
+ * MyCOPERA branding, standalone page rendered outside MemberLayout chrome.
  * Consumed by: router.tsx (/portal/register route)
  * Depends on: auth-demo-data.ts (DEMO_MEMBER_USERS, simulateCreateMemberAccount), react-router-dom
  */
@@ -96,10 +96,10 @@ export function MemberRegisterPage() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 12,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>D</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>C</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2e2e', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            Create Your MyDERP Account
+            Create Your MyCOPERA Account
           </div>
         </div>
 
@@ -123,7 +123,7 @@ export function MemberRegisterPage() {
         {step === 'verify' && (
           <form onSubmit={handleVerify}>
             <div style={{ fontSize: 13, color: '#4a6363', marginBottom: 16, lineHeight: 1.5 }}>
-              Enter your DERP Member ID and personal information to verify your identity.
+              Enter your COPERA Member ID and personal information to verify your identity.
             </div>
 
             <label style={labelStyle}>Member ID</label>
@@ -202,7 +202,7 @@ export function MemberRegisterPage() {
               Account Created
             </div>
             <div style={{ fontSize: 13, color: '#4a6363', lineHeight: 1.6, marginBottom: 24 }}>
-              Welcome, {createdName}! Your MyDERP account has been created successfully.
+              Welcome, {createdName}! Your MyCOPERA account has been created successfully.
               You can now sign in to view your retirement information and start your application.
             </div>
             <Link to="/portal/login" style={{

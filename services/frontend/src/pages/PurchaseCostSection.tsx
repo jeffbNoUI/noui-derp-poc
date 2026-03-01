@@ -58,7 +58,7 @@ export function PurchaseCostSection({ quote }: { quote: ServicePurchaseQuote }) 
       }}>
         <div style={{
           color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1.5px',
-        }}>RULE-PURCHASE-COST-FACTOR -- RMC &sect;18-415(c)</div>
+        }}>RULE-PURCHASE-COST-FACTOR -- C.R.S. &sect;24-51-504</div>
         <div style={{
           color: C.accent, fontSize: '22px', fontWeight: 700, fontFamily: 'monospace',
           marginTop: '4px', textShadow: `0 0 25px ${C.accentGlow}`,
@@ -70,8 +70,8 @@ export function PurchaseCostSection({ quote }: { quote: ServicePurchaseQuote }) 
 
       {/* Cost Breakdown */}
       <Field label="Cost Factor" value={quote.cost_factor.toFixed(4)}
-        sub={`Tier ${quote.tier}, age ${quote.member_age} -- actuarial table`}
-        badge={{ text: 'RMC §18-415(c)', bg: C.accentMuted, color: C.accent }} />
+        sub={`HAS Table ${quote.has_table}, age ${quote.member_age} -- actuarial table`}
+        badge={{ text: 'C.R.S. §24-51-505', bg: C.accentMuted, color: C.accent }} />
       <Field label="Current Annual Salary" value={fmt(quote.current_annual_salary)} />
       <Field label="Years Purchased" value={`${quote.years_requested.toFixed(1)} years`} />
       <Field label="Cost Per Year" value={fmt(quote.cost_per_year)}
@@ -83,7 +83,7 @@ export function PurchaseCostSection({ quote }: { quote: ServicePurchaseQuote }) 
         <div style={{
           color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const,
           letterSpacing: '1px', fontWeight: 600, marginBottom: '6px',
-        }}>Payment Options -- RMC &sect;18-415(d)</div>
+        }}>Payment Options -- C.R.S. &sect;24-51-504</div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '6px' }}>
           {/* Lump Sum */}

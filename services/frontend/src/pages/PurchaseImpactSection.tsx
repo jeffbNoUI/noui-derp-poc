@@ -6,12 +6,13 @@
  * Depends on: Member.ts (ServicePurchaseQuote), theme.ts (C, fmt)
  */
 import type { ServicePurchaseQuote } from '@/types/Member'
-import { C, fmt } from '@/theme'
+import { C, hasTableMeta, fmt } from '@/theme'
 
 export function PurchaseImpactSection({ quote }: { quote: ServicePurchaseQuote }) {
   const bi = quote.benefit_impact
   const ex = quote.eligibility_exclusion
-  const ruleThreshold = quote.tier === 3 ? 85 : 75
+  const ht = hasTableMeta[quote.has_table] || hasTableMeta[1]
+  const ruleThreshold = ht.ruleOfN
   const ruleLabel = `Rule of ${ruleThreshold}`
 
   return (
@@ -33,8 +34,8 @@ export function PurchaseImpactSection({ quote }: { quote: ServicePurchaseQuote }
             color: C.textSecondary, fontSize: '20px', fontWeight: 700, fontFamily: 'monospace', marginTop: '4px',
           }}>{fmt(bi.current_monthly)}</div>
           <div style={{ color: C.textMuted, fontSize: '9px', marginTop: '2px' }}>
-            {/* 1.5% x $6,500 x 20.33 -- RMC §18-408 */}
-            {(quote.tier === 1 ? 2.0 : 1.5).toFixed(1)}% x {fmt(quote.current_annual_salary / 12)} x {(bi.current_monthly / ((quote.tier === 1 ? 0.02 : 0.015) * (quote.current_annual_salary / 12))).toFixed(2)}y
+            {/* Multiplier x HAS x Service — C.R.S. §24-51-604 */}
+            Multiplier x {fmt(quote.current_annual_salary / 12)} x Service
           </div>
         </div>
 
@@ -109,14 +110,14 @@ export function PurchaseImpactSection({ quote }: { quote: ServicePurchaseQuote }
           display: 'flex', alignItems: 'center', gap: '6px',
         }}>
           <span style={{ fontSize: '14px' }}>&#9888;</span>
-          PURCHASED SERVICE EXCLUSION -- RMC &sect;18-415(a)
+          PURCHASED SERVICE EXCLUSION -- C.R.S. &sect;24-51-505
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.5' }}>
           Purchased service credit of <strong>{quote.years_requested.toFixed(1)} years</strong>{' '}
           counts toward the <span style={{ color: C.success, fontWeight: 600 }}>benefit calculation</span>{' '}
           (increases monthly benefit) but is{' '}
           <span style={{ color: C.danger, fontWeight: 600 }}>EXCLUDED</span>{' '}
-          from {ruleLabel} eligibility and IPR calculation.
+          from {ruleLabel} eligibility calculation.
         </div>
 
         <div style={{
@@ -149,7 +150,7 @@ export function PurchaseImpactSection({ quote }: { quote: ServicePurchaseQuote }
         </div>
 
         <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '6px', fontStyle: 'italic' }}>
-          The purchase increases Chen's benefit amount but does NOT change her eligibility status.
+          The purchase increases the member's benefit amount but does NOT change eligibility status.
           {ruleLabel} sum remains {ex.rule_of_n_sum_with.toFixed(2)} &lt; {ruleThreshold}.
         </div>
       </div>

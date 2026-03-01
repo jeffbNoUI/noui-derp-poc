@@ -4,44 +4,45 @@ import type { Member, ServiceCreditSummary, DRORecord } from '@/types/Member'
 
 // Test fixtures matching demo cases
 const case1Member: Member = {
-  member_id: '10001',
-  first_name: 'Robert',
-  last_name: 'Martinez',
-  date_of_birth: '1963-06-15',
-  hire_date: '1998-09-14',
-  tier: 1,
-  status: 'A',
-  department: 'Public Works',
-  position: 'Senior Engineer',
+  member_id: 'COPERA-001',
+  first_name: 'Maria',
+  last_name: 'Garcia',
+  date_of_birth: '1963-07-20',
+  hire_date: '1998-01-01',
+  division: 'State',
+  has_table: 1,
+  has_table_name: 'PERA 1',
+  status: 'Active',
+  department: 'Department of Revenue',
+  position: 'Senior Financial Analyst',
 }
 
 const case2Member: Member = {
-  member_id: '10002',
-  first_name: 'Jennifer',
-  last_name: 'Kim',
-  date_of_birth: '1970-03-22',
-  hire_date: '2005-06-01',
-  tier: 2,
-  status: 'A',
-  department: 'Finance',
-  position: 'Budget Analyst III',
+  member_id: 'COPERA-002',
+  first_name: 'James',
+  last_name: 'Chen',
+  date_of_birth: '1968-09-15',
+  hire_date: '2005-03-01',
+  division: 'School',
+  has_table: 6,
+  has_table_name: 'PERA 6',
+  status: 'Active',
+  department: 'Jefferson County Schools',
+  position: 'Assistant Principal',
 }
 
 const case3Member: Member = {
-  member_id: '10003',
-  first_name: 'Marcus',
-  last_name: 'Thompson',
-  date_of_birth: '1965-11-08',
-  hire_date: '2012-03-15',
-  tier: 3,
-  status: 'A',
-  department: 'Parks & Recreation',
-  position: 'Program Manager',
-}
-
-const case4Member: Member = {
-  ...case1Member,
-  member_id: '10004',
+  member_id: 'COPERA-003',
+  first_name: 'Sarah',
+  last_name: 'Williams',
+  date_of_birth: '1970-04-10',
+  hire_date: '2002-07-01',
+  division: 'DPS',
+  has_table: 10,
+  has_table_name: 'DPS 1',
+  status: 'Active',
+  department: 'Denver Police',
+  position: 'Detective Sergeant',
 }
 
 const purchasedServiceCredit: ServiceCreditSummary = {
@@ -65,48 +66,48 @@ const droRecord: DRORecord = {
 }
 
 describe('Workspace Composition', () => {
-  it('Case 1: Tier 1, Rule of 75, leave payout — should show leave payout, no DRO', () => {
+  it('Case 1: State PERA 1, Rule of 80, unreduced — no DRO, no early reduction', () => {
     const result = composeWorkspace(case1Member, undefined, [], true, 1.0)
 
     const validation = validateComposition(
       result,
-      ['member-banner', 'salary-table', 'benefit-calculation', 'leave-payout', 'payment-options'],
-      ['dro-impact', 'early-retirement-reduction']
+      ['member-banner', 'salary-table', 'benefit-calculation', 'payment-options', 'annual-increase'],
+      ['dro-impact', 'early-retirement-reduction', 'anti-spiking-detail']
     )
     expect(validation.errors).toEqual([])
     expect(validation.valid).toBe(true)
   })
 
-  it('Case 2: Tier 2, early retirement, purchased service — should show reduction AND leave payout (hired 2005, before 2010)', () => {
-    const result = composeWorkspace(case2Member, purchasedServiceCredit, [], true, 0.70)
+  it('Case 2: School PERA 6, early retirement, anti-spiking — should show reduction and anti-spiking', () => {
+    const result = composeWorkspace(case2Member, purchasedServiceCredit, [], true, 0.70, true)
 
     const validation = validateComposition(
       result,
-      ['member-banner', 'benefit-calculation', 'early-retirement-reduction', 'service-credit-summary', 'leave-payout'],
+      ['member-banner', 'benefit-calculation', 'early-retirement-reduction', 'service-credit-summary', 'anti-spiking-detail'],
       ['dro-impact']
     )
     expect(validation.errors).toEqual([])
     expect(validation.valid).toBe(true)
   })
 
-  it('Case 3: Tier 3 — should NOT show leave payout (Tier 3), no DRO', () => {
-    const result = composeWorkspace(case3Member, undefined, [], true, 0.88)
+  it('Case 3: DPS, Rule of 80 — no early reduction, no anti-spiking', () => {
+    const result = composeWorkspace(case3Member, undefined, [], true, 1.0)
 
     const validation = validateComposition(
       result,
-      ['member-banner', 'benefit-calculation', 'early-retirement-reduction'],
-      ['dro-impact', 'leave-payout']
+      ['member-banner', 'benefit-calculation', 'annual-increase'],
+      ['dro-impact', 'early-retirement-reduction', 'anti-spiking-detail']
     )
     expect(validation.errors).toEqual([])
     expect(validation.valid).toBe(true)
   })
 
-  it('Case 4: Tier 1 with DRO — should show DRO impact panel', () => {
-    const result = composeWorkspace(case4Member, undefined, [droRecord], true, 1.0)
+  it('DRO member — should show DRO impact panel', () => {
+    const result = composeWorkspace(case1Member, undefined, [droRecord], true, 1.0)
 
     const validation = validateComposition(
       result,
-      ['member-banner', 'benefit-calculation', 'dro-impact', 'leave-payout'],
+      ['member-banner', 'benefit-calculation', 'dro-impact'],
       ['early-retirement-reduction']
     )
     expect(validation.errors).toEqual([])
@@ -118,8 +119,8 @@ describe('Workspace Composition', () => {
 
     const validation = validateComposition(
       result,
-      ['member-banner', 'employment-timeline', 'salary-table', 'leave-payout'],
-      ['eligibility-panel', 'benefit-calculation', 'payment-options', 'dro-impact', 'early-retirement-reduction']
+      ['member-banner', 'employment-timeline', 'salary-table'],
+      ['eligibility-panel', 'benefit-calculation', 'payment-options', 'dro-impact', 'early-retirement-reduction', 'annual-increase']
     )
     expect(validation.errors).toEqual([])
     expect(validation.valid).toBe(true)

@@ -49,7 +49,7 @@ describe('Service Purchase Calculator — Case 11: Lisa Chen', () => {
   // ─── Cost Calculation ───────────────────────────────────────────────────
   describe('calculatePurchaseCost', () => {
     it('Case 11: 0.0860 x $78,000 x 3.0 = $20,124.00', () => {
-      // RULE-PURCHASE-COST-FACTOR — RMC §18-415(c)
+      // RULE-PURCHASE-COST-FACTOR — C.R.S. §24-51-504
       // factor 0.0860 x salary $78,000 x 3 years = $20,124.00
       const result = calculatePurchaseCost({
         tier: 2,
@@ -95,7 +95,7 @@ describe('Service Purchase Calculator — Case 11: Lisa Chen', () => {
   // ─── Payroll Deduction ──────────────────────────────────────────────────
   describe('calculatePayrollDeduction', () => {
     it('Case 11: amortize($20,124, 3%/yr, 60 months) = $361.60/mo', () => {
-      // RULE-PURCHASE-PAYMENT-OPTIONS — RMC §18-415(d)
+      // RULE-PURCHASE-PAYMENT-OPTIONS — C.R.S. §24-51-504
       // Standard amortization: P x r(1+r)^n / ((1+r)^n - 1)
       // where r = 0.03/12 = 0.0025, n = 60
       // Formula-correct: 361.6019... → 361.60 (fixture originally had 361.56 — corrected)
@@ -140,7 +140,7 @@ describe('Service Purchase Calculator — Case 11: Lisa Chen', () => {
   // ─── Benefit Impact ─────────────────────────────────────────────────────
   describe('calculateBenefitImpact', () => {
     it('Case 11: benefit increase $292.50/mo, breakeven 69 months', () => {
-      // RULE-PURCHASE-BENEFIT-IMPACT — RMC §18-415(a), §18-409(a)
+      // RULE-PURCHASE-BENEFIT-IMPACT — C.R.S. §24-51-504, §24-51-603
       // Before: 1.5% x $6,500 x 20.33 = $1,982.18
       // After:  1.5% x $6,500 x 23.33 = $2,274.68
       // Increase: $292.50/mo
@@ -183,7 +183,7 @@ describe('Service Purchase Calculator — Case 11: Lisa Chen', () => {
   // ─── Purchase Eligibility ───────────────────────────────────────────────
   describe('checkPurchaseEligibility', () => {
     it('Case 11: active, vested, governmental, 3 years — eligible', () => {
-      // RULE-PURCHASE-ELIGIBILITY — RMC §18-415(a), §18-415(b)
+      // RULE-PURCHASE-ELIGIBILITY — C.R.S. §24-51-504
       const result = checkPurchaseEligibility({
         memberStatus: 'Active',
         earnedYears: 20.33,
@@ -285,7 +285,7 @@ describe('Service Purchase Calculator — Case 11: Lisa Chen', () => {
 
   // ─── Eligibility Exclusion (CRITICAL) ───────────────────────────────────
   describe('Eligibility Exclusion — purchased service excluded from Rule of 75', () => {
-    it('Rule of 75 sum unchanged by purchase — RMC §18-415(a)', () => {
+    it('Rule of 75 sum unchanged by purchase — C.R.S. §24-51-504', () => {
       // CRITICAL: Age 48 + 20.33 earned = 68.33
       // Purchased 3.0 years are EXCLUDED
       // Rule of 75 sum is STILL 68.33, NOT 71.33

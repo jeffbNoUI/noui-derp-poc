@@ -251,7 +251,7 @@ export function generateReport(
   summaries: SessionSummary[],
 ): string {
   const sections = [
-    '# NoUI DERP POC — Workflow Simulation Analysis Report\n',
+    '# NoUI COPERA POC — Workflow Simulation Analysis Report\n',
     `_Generated: ${new Date().toISOString()}_\n`,
     `_Seed: 42 | Sessions: ${summaries.length} | Events: ~${Math.round(summaries.reduce((s, x) => s + x.event_count, 0) / 1000)}K_\n\n`,
     '---\n',

@@ -8,38 +8,33 @@ import { DEFAULT_RETIREMENT_DATES, DEMO_CASES, fmt } from './constants'
 
 describe('Shared Constants', () => {
   describe('DEFAULT_RETIREMENT_DATES', () => {
-    it('contains all 4 demo cases', () => {
-      expect(Object.keys(DEFAULT_RETIREMENT_DATES)).toEqual(['10001', '10002', '10003', '10004'])
+    it('contains all 3 COPERA demo cases', () => {
+      expect(Object.keys(DEFAULT_RETIREMENT_DATES)).toEqual(['COPERA-001', 'COPERA-002', 'COPERA-003'])
     })
 
     it('has correct dates per case', () => {
-      expect(DEFAULT_RETIREMENT_DATES['10001']).toBe('2026-04-01')
-      expect(DEFAULT_RETIREMENT_DATES['10002']).toBe('2026-05-01')
-      expect(DEFAULT_RETIREMENT_DATES['10003']).toBe('2026-04-01')
-      expect(DEFAULT_RETIREMENT_DATES['10004']).toBe('2026-04-01')
+      expect(DEFAULT_RETIREMENT_DATES['COPERA-001']).toBe('2026-01-01')
+      expect(DEFAULT_RETIREMENT_DATES['COPERA-002']).toBe('2026-07-01')
+      expect(DEFAULT_RETIREMENT_DATES['COPERA-003']).toBe('2026-06-01')
     })
   })
 
   describe('DEMO_CASES', () => {
-    it('contains exactly 4 cases', () => {
-      expect(DEMO_CASES).toHaveLength(4)
+    it('contains exactly 3 cases', () => {
+      expect(DEMO_CASES).toHaveLength(3)
     })
 
     it('has correct IDs in order', () => {
-      expect(DEMO_CASES.map(c => c.id)).toEqual(['10001', '10002', '10003', '10004'])
+      expect(DEMO_CASES.map(c => c.id)).toEqual(['COPERA-001', 'COPERA-002', 'COPERA-003'])
     })
 
-    it('has correct tier assignments', () => {
-      expect(DEMO_CASES[0].tier).toBe(1) // Robert Martinez
-      expect(DEMO_CASES[1].tier).toBe(2) // Jennifer Kim
-      expect(DEMO_CASES[2].tier).toBe(3) // David Washington
-      expect(DEMO_CASES[3].tier).toBe(1) // Robert Martinez DRO
-    })
-
-    it('only case 4 has DRO suffix', () => {
-      const withSuffix = DEMO_CASES.filter(c => 'suffix' in c)
-      expect(withSuffix).toHaveLength(1)
-      expect(withSuffix[0].id).toBe('10004')
+    it('has correct division and has_table assignments', () => {
+      expect(DEMO_CASES[0].division).toBe('State')     // Maria Garcia
+      expect(DEMO_CASES[0].has_table).toBe(1)
+      expect(DEMO_CASES[1].division).toBe('School')    // James Chen
+      expect(DEMO_CASES[1].has_table).toBe(6)
+      expect(DEMO_CASES[2].division).toBe('DPS')       // Sarah Williams
+      expect(DEMO_CASES[2].has_table).toBe(10)
     })
   })
 

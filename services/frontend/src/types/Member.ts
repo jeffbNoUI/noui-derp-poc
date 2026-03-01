@@ -1,14 +1,32 @@
+/**
+ * COPERA member domain types — members, employment, salary, eligibility, benefits, payment options.
+ * Consumed by: demo-data.ts, all workspace and portal components
+ * Depends on: nothing (leaf types)
+ *
+ * Key structural notes (COPERA model):
+ *   - tier: number → has_table: number + division: string
+ *   - IPR → removed (replaced by PERACare, out of POC scope)
+ *   - COLA → annual_increase (compound, not discretionary)
+ *   - Payment options: 1/2/3 for PERA, A/B/P2/P3 for DPS
+ *   - Anti-spiking fields added to AMS
+ */
+
 export interface Member {
   member_id: string
   first_name: string
   last_name: string
   date_of_birth: string
   hire_date: string
-  tier: number
+  division: string        // State, School, LocalGov, Judicial, DPS
+  has_table: number       // 1-9 (PERA), 10-13 (DPS)
+  has_table_name: string  // "PERA 1", "DPS 1", etc.
   status: string
   department: string
   position: string
   termination_date?: string
+  marital_status?: string
+  contribution_rate_ee?: number  // Employee contribution rate
+  contribution_rate_er?: number  // Employer contribution rate
 }
 
 export interface EmploymentEvent {
@@ -16,6 +34,8 @@ export interface EmploymentEvent {
   effective_date: string
   department: string
   position: string
+  employer?: string
+  division?: string
   notes?: string
 }
 
@@ -24,8 +44,14 @@ export interface SalaryRecord {
   base_pay: number
   pensionable_pay: number
   overtime?: number
-  leave_payout?: number
-  furlough_days?: number
+}
+
+export interface AntiSpikingYear {
+  year: number
+  actual_pay: number
+  cap_amount: number
+  used_pay: number
+  cap_applied: boolean
 }
 
 export interface AMSResult {
@@ -34,6 +60,9 @@ export interface AMSResult {
   window_start: string
   window_end: string
   monthly_salaries: number[]
+  anti_spiking_applied: boolean
+  anti_spiking_detail?: AntiSpikingYear[]
+  annual_has: number                      // Annual HAS (before dividing by 12)
 }
 
 export interface ServiceCreditSummary {
@@ -67,24 +96,37 @@ export interface DRORecord {
 export interface EligibilityResult {
   member_id: string
   retirement_date: string
-  tier: number
+  division: string
+  has_table: number
+  has_table_name: string
   age_at_retirement: number
   eligible: boolean
   retirement_type: string
   rule_of_n_value?: number
   rule_of_n_threshold?: number
+  rule_of_n_label?: string    // "Rule of 80", "Rule of 85", etc.
   reduction_factor: number
   conditions_met: string[]
   conditions_unmet: string[]
   audit_trail: AuditEntry[]
 }
 
+export interface AnnualIncreaseInfo {
+  rate: number                // 0.015 or 0.010
+  first_eligible_date: string // March 1 of second year after retirement
+  compound_method: string     // "compound"
+  note: string
+}
+
 export interface BenefitResult {
   member_id: string
   retirement_date: string
-  tier: number
+  division: string
+  has_table: number
+  has_table_name: string
   ams: number
   ams_window_months: number
+  annual_has: number
   service_years_for_benefit: number
   multiplier: number
   gross_annual_benefit: number
@@ -93,36 +135,35 @@ export interface BenefitResult {
   retirement_type: string
   net_monthly_benefit: number
   formula_display: string
-  ipr?: IPRResult
+  anti_spiking_applied: boolean
+  anti_spiking_detail?: AntiSpikingYear[]
+  annual_increase?: AnnualIncreaseInfo
   death_benefit?: DeathBenefitResult
   audit_trail: AuditEntry[]
 }
 
-export interface IPRResult {
-  annual_amount: number
-  monthly_amount: number
-  rate_per_year: number
-  eligible_service_years: number
-  medicare_eligible: boolean
-}
-
 export interface DeathBenefitResult {
   amount: number
-  tier: number
+  has_table: number
   retirement_type: string
+  description: string
 }
 
 export interface PaymentOption {
   option_name: string
   option_type: string
+  display_name: string
   monthly_amount: number
   reduction_factor: number
   survivor_pct?: number
+  survivor_amount?: number
+  pop_up_feature?: boolean    // DPS Pop-Up options
   description: string
 }
 
 export interface PaymentOptionsResult {
   base_monthly_benefit: number
+  division: string
   options: PaymentOption[]
 }
 
@@ -210,14 +251,12 @@ export interface APIError {
 }
 
 // ─── Service Purchase Domain Types ──────────────────────────────────────────
-// Used by: purchase-calculator.ts, Stage9ServicePurchase.tsx, demo-data.ts
-// Source: rules/definitions/service-purchase.yaml (8 rules, RMC §18-415)
 
 export interface ServicePurchaseQuote {
   quote_date: string
   expiration_date: string
   member_age: number
-  tier: number
+  has_table: number
   service_type: 'governmental' | 'military' | 'leave_of_absence' | 'furlough'
   years_requested: number
   prior_employer: string

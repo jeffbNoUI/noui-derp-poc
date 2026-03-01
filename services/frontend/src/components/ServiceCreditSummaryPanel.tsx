@@ -1,15 +1,23 @@
+/**
+ * Service credit summary panel — shows earned, purchased, military service with eligibility matrix.
+ * COPERA: purchased service excluded from Rule of N (80/85/88/90) and vesting.
+ * Consumed by: BenefitWorkspace, guided Stage2
+ * Depends on: ServiceCreditSummary type, hasTableMeta from theme
+ */
 import type { ServiceCreditSummary } from '@/types/Member'
+import { hasTableMeta } from '@/theme'
 import { Award, AlertTriangle } from 'lucide-react'
 
 interface ServiceCreditSummaryPanelProps {
   serviceCredit: ServiceCreditSummary
-  tier: number
+  has_table: number
 }
 
-export function ServiceCreditSummaryPanel({ serviceCredit, tier }: ServiceCreditSummaryPanelProps) {
+export function ServiceCreditSummaryPanel({ serviceCredit, has_table }: ServiceCreditSummaryPanelProps) {
   const hasPurchased = serviceCredit.purchased_service_years > 0
   const hasMilitary = serviceCredit.military_service_years > 0
-  const ruleOfN = tier === 3 ? 85 : 75
+  const htm = hasTableMeta[has_table]
+  const ruleOfN = htm?.ruleOfN ?? 80
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
@@ -49,7 +57,7 @@ export function ServiceCreditSummaryPanel({ serviceCredit, tier }: ServiceCredit
             highlight
           />
           <CreditRow
-            label={`Total for Rule of ${ruleOfN} / IPR`}
+            label={`Total for Rule of ${ruleOfN}`}
             value={`${serviceCredit.total_for_eligibility.toFixed(2)} years`}
             description="Earned only — purchased service excluded"
           />
@@ -84,11 +92,6 @@ export function ServiceCreditSummaryPanel({ serviceCredit, tier }: ServiceCredit
                   <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
                   <td className="px-3 py-2 text-center text-red-500 font-semibold">&#10007;</td>
                 </tr>
-                <tr>
-                  <td className="px-3 py-2 text-gray-900">IPR</td>
-                  <td className="px-3 py-2 text-center text-green-600 font-semibold">&#10003;</td>
-                  <td className="px-3 py-2 text-center text-red-500 font-semibold">&#10007;</td>
-                </tr>
               </tbody>
             </table>
           </div>
@@ -100,9 +103,9 @@ export function ServiceCreditSummaryPanel({ serviceCredit, tier }: ServiceCredit
               <p className="mt-1">
                 Purchased service credit of {serviceCredit.purchased_service_years.toFixed(2)} years
                 counts toward the <strong>benefit calculation</strong> (increases the benefit amount)
-                but is <strong>excluded</strong> from Rule of {ruleOfN} eligibility and IPR calculation.
+                but is <strong>excluded</strong> from Rule of {ruleOfN} eligibility.
               </p>
-              <p className="mt-1 text-amber-600">Source: RMC §18-407</p>
+              <p className="mt-1 text-amber-600">Source: C.R.S. §24-51-403</p>
             </div>
           </div>
         </>

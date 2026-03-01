@@ -129,7 +129,7 @@ function MemberRow({ emp, onClick }: { emp: EmployerEmployee; onClick: () => voi
           <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>
             {emp.first_name} {emp.last_name}
           </span>
-          <Badge text={`T${emp.tier}`} bg={t.muted} color={t.color} />
+          <Badge text={`D${emp.tier}`} bg={t.muted} color={t.color} />
           {emp.retirement_status === 'pending' && (
             <Badge text="Retiring" bg={C.warmMuted} color={C.warm} />
           )}
@@ -231,9 +231,9 @@ function MemberProfile({ memberId }: { memberId: string }) {
             <EditableField label="Status"
               value={getField('status', member?.status ?? empFallback?.status ?? 'N/A')}
               onChange={v => setField('status', v)} />
-            <CalculatedField label="Tier" value={tc.label}
+            <CalculatedField label="Division" value={tc.label}
               badge={<Badge text={tc.sub} bg={tc.muted} color={tc.color} />}
-              formula="Determined by hire date: Before Sept 2004 = Tier 1, Sept 2004 - June 2011 = Tier 2, After July 2011 = Tier 3" />
+              formula="Determined by hire date: Before Sept 2004 = Division 1, Sept 2004 - June 2011 = Division 2, After July 2011 = Division 3" />
           </ProfileCard>
 
           {/* Service Credit */}
@@ -255,7 +255,7 @@ function MemberProfile({ memberId }: { memberId: string }) {
                   badge={sc.earned_service_years >= 5
                     ? <Badge text="Met" bg={C.successMuted} color={C.success} />
                     : <Badge text="Not Met" bg={C.dangerMuted} color={C.danger} />}
-                  formula={`${sc.earned_service_years} earned years ${sc.earned_service_years >= 5 ? '>=' : '<'} 5 year requirement (RMC \u00A718-403)`} />
+                  formula={`${sc.earned_service_years} earned years ${sc.earned_service_years >= 5 ? '>=' : '<'} 5 year requirement (C.R.S. \u00A724-51-401)`} />
               </>
             ) : empFallback ? (
               <ProfileField label="Years of Service" value={`${empFallback.years_of_service.toFixed(1)} years`} />
@@ -268,7 +268,7 @@ function MemberProfile({ memberId }: { memberId: string }) {
           {eligibility && (
             <ProfileCard title="Eligibility">
               <CalculatedField label="Type" value={eligibility.retirement_type}
-                formula={`Age ${eligibility.age_at_retirement} at retirement with Tier ${eligibility.tier} provisions${eligibility.rule_of_n_value ? ` \u2014 Rule of ${eligibility.tier === 3 ? '85' : '75'} value: ${eligibility.rule_of_n_value}` : ''}`} />
+                formula={`Age ${eligibility.age_at_retirement} at retirement with Division ${eligibility.tier} provisions${eligibility.rule_of_n_value ? ` \u2014 Rule of ${eligibility.tier === 3 ? '85' : '75'} value: ${eligibility.rule_of_n_value}` : ''}`} />
               <CalculatedField label="Eligible"
                 value={eligibility.eligible ? 'Yes' : 'No'}
                 badge={eligibility.eligible
@@ -287,10 +287,10 @@ function MemberProfile({ memberId }: { memberId: string }) {
           {/* Benefit */}
           {benefit && (
             <ProfileCard title="Benefit Calculation">
-              <CalculatedField label="AMS" value={fmt(benefit.ams)}
-                formula={`Average Monthly Salary over highest ${benefit.ams_window_months} consecutive months`} />
+              <CalculatedField label="HAS" value={fmt(benefit.ams)}
+                formula={`Highest Average Salary over highest ${benefit.ams_window_months} consecutive months`} />
               <CalculatedField label="Multiplier" value={`${(benefit.multiplier * 100).toFixed(1)}%`}
-                formula={`Tier ${benefit.tier}: ${benefit.tier === 1 ? '2.0%' : '1.5%'} per year of service`} />
+                formula={`Division ${benefit.tier}: ${benefit.tier === 1 ? '2.0%' : '1.5%'} per year of service`} />
               <ProfileField label="Service" value={`${benefit.service_years_for_benefit} years`} />
               <CalculatedField label="Monthly Benefit" value={fmt(benefit.net_monthly_benefit)} highlight
                 formula={benefit.formula_display} />
@@ -335,10 +335,10 @@ function MemberProfile({ memberId }: { memberId: string }) {
                 formula={`${fmt(empFallback.monthly_salary)} \u00D7 12 months`} />
               <CalculatedField label="EE Contribution (8.45%)"
                 value={fmt(empFallback.monthly_salary * 0.0845)}
-                formula={`${fmt(empFallback.monthly_salary)} \u00D7 8.45% = ${fmt(empFallback.monthly_salary * 0.0845)} (RMC \u00A718-407)`} />
+                formula={`${fmt(empFallback.monthly_salary)} \u00D7 8.45% = ${fmt(empFallback.monthly_salary * 0.0845)} (C.R.S. \u00A724-51-401)`} />
               <CalculatedField label="ER Contribution (17.95%)"
                 value={fmt(empFallback.monthly_salary * 0.1795)}
-                formula={`${fmt(empFallback.monthly_salary)} \u00D7 17.95% = ${fmt(empFallback.monthly_salary * 0.1795)} (RMC \u00A718-407)`} />
+                formula={`${fmt(empFallback.monthly_salary)} \u00D7 17.95% = ${fmt(empFallback.monthly_salary * 0.1795)} (C.R.S. \u00A724-51-401)`} />
             </ProfileCard>
           )}
 

@@ -1,16 +1,16 @@
 /**
  * Staff benefit workspace — full retirement application processing view.
  * Expandable panels for eligibility, salary/AMS, benefit calculation, payment
- * options, DRO impact, and IPR. Live summary sidebar tracks confirmation progress.
+ * options, DRO impact, and annual increase. Live summary sidebar tracks confirmation progress.
  * Consumed by: StaffCaseView (via /staff/case/:memberId route)
- * Depends on: theme (C, tierMeta, fmt), Badge, DEFAULT_RETIREMENT_DATES,
+ * Depends on: theme (C, divisionMeta, hasTableMeta, fmt), Badge, DEFAULT_RETIREMENT_DATES,
  *   useMember, useCalculations hooks, Member types
  */
 import { useState, useCallback, useEffect, useRef, type ReactNode } from 'react'
 import { useMember, useServiceCredit, useDROs } from '@/hooks/useMember'
 import { useEligibility, useBenefitCalculation, usePaymentOptions, useDROCalculation, useSaveElection } from '@/hooks/useCalculations'
 import type { BenefitResult, ServiceCreditSummary, DROResult, PaymentOptionsResult } from '@/types/Member'
-import { C, tierMeta, fmt } from '@/theme'
+import { C, divisionMeta, hasTableMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { CompositionRationale } from '@/components/shared/CompositionRationale'
 import { useWorkspace } from '@/hooks/useWorkspace'
@@ -20,52 +20,36 @@ import { CaseCompleteSummary } from '@/pages/staff/CaseCompleteSummary'
 
 // ─── Supplemental salary period data for demo display ───────────
 const SALARY_ROWS: Record<string, { period: string; months: number; monthly: number }[]> = {
-  '10001': [
-    { period: '2023 (Apr-Dec)', months: 9, monthly: 8792.75 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 9144.50 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 9420.25 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 9702.83 },
+  'COPERA-001': [
+    // Maria Garcia (State) — HAS = $91,833.33/yr → ~$7,652.78/mo
+    { period: '2023 (Jan-Dec)', months: 12, monthly: 7000.00 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 7350.00 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 7652.78 },
   ],
-  '10002': [
-    { period: '2023 (May-Dec)', months: 8, monthly: 7007.42 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 7287.75 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 7506.33 },
-    { period: '2026 (Jan-Apr)', months: 4, monthly: 7731.50 },
+  'COPERA-002': [
+    // James Chen (School) — HAS = $72,453.33/yr → ~$6,037.78/mo (anti-spiking in 2024)
+    { period: '2023 (Jan-Dec)', months: 12, monthly: 5166.67 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 5833.33 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 6037.78 },
   ],
-  '10003': [
-    { period: '2021 (Apr-Dec)', months: 9, monthly: 6250.00 },
-    { period: '2022 (Jan-Dec)', months: 12, monthly: 6437.50 },
-    { period: '2023 (Jan-Dec)', months: 12, monthly: 6695.00 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 6962.80 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 7171.67 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 7386.82 },
+  'COPERA-003': [
+    // Sarah Williams (DPS) — HAS = $109,000/yr → ~$9,083.33/mo
+    { period: '2023 (Jan-Dec)', months: 12, monthly: 8333.33 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 8750.00 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 9083.33 },
   ],
-  '10004': [
-    { period: '2023 (Apr-Dec)', months: 9, monthly: 8792.75 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 9144.50 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 9420.25 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 9702.83 },
-  ],
-}
-
-const LEAVE_PAYOUTS: Record<string, number> = {
-  '10001': 52000, '10002': 0, '10003': 0, '10004': 52000,
-}
-
-const AMS_NO_LEAVE: Record<string, number> = {
-  '10001': 9194.45, '10004': 9194.45,
 }
 
 // ─── Panel metadata for confirmed chips ─────────────────────────
 const PANEL_META: Record<string, { icon: string; chipLabel: string }> = {
-  confirm: { icon: '📋', chipLabel: 'Retirement' },
-  elig:    { icon: '✓',  chipLabel: 'Eligibility' },
-  purch:   { icon: '📎', chipLabel: 'Purchased Svc' },
-  salary:  { icon: '💰', chipLabel: 'Salary & AMS' },
-  benefit: { icon: '🔢', chipLabel: 'Benefit' },
-  dro:     { icon: '⚖️', chipLabel: 'DRO' },
-  payment: { icon: '💳', chipLabel: 'Payment' },
-  ipr:     { icon: '🏥', chipLabel: 'IPR' },
+  confirm: { icon: '\u{1F4CB}', chipLabel: 'Retirement' },
+  elig:    { icon: '\u2713',  chipLabel: 'Eligibility' },
+  purch:   { icon: '\u{1F4CE}', chipLabel: 'Purchased Svc' },
+  salary:  { icon: '\u{1F4B0}', chipLabel: 'Salary & AMS' },
+  benefit: { icon: '\u{1F522}', chipLabel: 'Benefit' },
+  dro:     { icon: '\u2696\uFE0F', chipLabel: 'DRO' },
+  payment: { icon: '\u{1F4B3}', chipLabel: 'Payment' },
+  'annual-increase': { icon: '\u{1F4C8}', chipLabel: 'Annual Increase' },
 }
 
 // ─── Micro Components ───────────────────────────────────────────
@@ -119,7 +103,7 @@ function Callout({ type = 'info', title, children }: {
 // ─── Confirmed Chip ─────────────────────────────────────────────
 
 function ConfirmedChip({ id, onClick }: { id: string; onClick: (id: string) => void }) {
-  const meta = PANEL_META[id] || { icon: '✓', chipLabel: id }
+  const meta = PANEL_META[id] || { icon: '\u2713', chipLabel: id }
   return (
     <button onClick={() => onClick(id)} style={{
       display: 'inline-flex', alignItems: 'center', gap: '4px',
@@ -133,7 +117,7 @@ function ConfirmedChip({ id, onClick }: { id: string; onClick: (id: string) => v
     >
       <span style={{ fontSize: '12px' }}>{meta.icon}</span>
       {meta.chipLabel}
-      <span style={{ fontSize: '10px', opacity: 0.8 }}>✓</span>
+      <span style={{ fontSize: '10px', opacity: 0.8 }}>{'\u2713'}</span>
     </button>
   )
 }
@@ -180,12 +164,12 @@ function Panel({ id, title, icon, isConfirmed, isFocused, alert, onFocus, onConf
                 background: `linear-gradient(135deg,${C.accent},#00695c)`,
                 color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontSize: '11.5px',
                 boxShadow: `0 2px 8px ${C.accentGlow}`,
-              }}>Confirm ✓</button>
+              }}>Confirm {'\u2713'}</button>
             </div>
           )}
           {isConfirmed && (
             <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ color: C.success, fontSize: '11px', fontWeight: 600 }}>✓ Confirmed</span>
+              <span style={{ color: C.success, fontSize: '11px', fontWeight: 600 }}>{'\u2713'} Confirmed</span>
               <button onClick={e => { e.stopPropagation(); onConfirm(id, true) }} style={{
                 padding: '4px 12px', borderRadius: '5px', border: `1px solid ${C.border}`,
                 background: 'transparent', color: C.textSecondary, cursor: 'pointer', fontSize: '10.5px',
@@ -205,8 +189,8 @@ function Panel({ id, title, icon, isConfirmed, isFocused, alert, onFocus, onConf
 
 // ─── Salary Table ───────────────────────────────────────────────
 
-function SalaryTable({ memberId, windowMonths, leavePayout }: {
-  memberId: string; windowMonths: number; leavePayout: number
+function SalaryTable({ memberId, windowMonths }: {
+  memberId: string; windowMonths: number
 }) {
   const rows = SALARY_ROWS[memberId] || []
   if (rows.length === 0) return null
@@ -224,7 +208,6 @@ function SalaryTable({ memberId, windowMonths, leavePayout }: {
         <div key={i} style={{
           display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
           padding: '4px 8px', fontSize: '10.5px', borderTop: `1px solid ${C.borderSubtle}`,
-          background: i === rows.length - 1 && leavePayout > 0 ? C.warmMuted : 'transparent',
         }}>
           <span style={{ color: C.text }}>{r.period}</span>
           <span style={{ textAlign: 'right', color: C.textSecondary, fontFamily: 'monospace' }}>{r.months}</span>
@@ -232,15 +215,6 @@ function SalaryTable({ memberId, windowMonths, leavePayout }: {
           <span style={{ textAlign: 'right', color: C.textSecondary, fontFamily: 'monospace' }}>{fmt(r.months * r.monthly)}</span>
         </div>
       ))}
-      {leavePayout > 0 && (
-        <div style={{
-          display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
-          padding: '4px 8px', fontSize: '10.5px', borderTop: `1px solid ${C.warmBorder}`, background: C.warmMuted,
-        }}>
-          <span style={{ color: C.warm, fontWeight: 600 }}>+ Leave Payout</span><span /><span />
-          <span style={{ textAlign: 'right', color: C.warm, fontFamily: 'monospace', fontWeight: 600 }}>+{fmt(leavePayout)}</span>
-        </div>
-      )}
       <div style={{
         display: 'grid', gridTemplateColumns: '2.2fr 0.6fr 1fr 1fr',
         padding: '5px 8px', fontSize: '10.5px', background: C.elevated,
@@ -250,7 +224,7 @@ function SalaryTable({ memberId, windowMonths, leavePayout }: {
         <span style={{ textAlign: 'right', color: C.textSecondary, fontFamily: 'monospace' }}>{windowMonths}</span>
         <span />
         <span style={{ textAlign: 'right', color: C.accent, fontFamily: 'monospace' }}>
-          {fmt(rows.reduce((s, r) => s + r.months * r.monthly, 0) + leavePayout)}
+          {fmt(rows.reduce((s, r) => s + r.months * r.monthly, 0))}
         </span>
       </div>
     </div>
@@ -278,12 +252,12 @@ function SumRow({ label, value, done, color }: {
 
 function LiveSummary({
   confirmed, panelCount, ben, opts, dro, sc, electedOption,
-  leavePayout, tc, ruleType, ruleSum, ruleMet, reductionPct, onSave,
+  dc, ruleType, ruleSum, ruleMet, reductionPct, onSave,
 }: {
   confirmed: Set<string>; panelCount: number
   ben?: BenefitResult; opts?: PaymentOptionsResult; dro?: DROResult
-  sc?: ServiceCreditSummary; electedOption: string; leavePayout: number
-  tc: { color: string; muted: string; label: string; sub: string }
+  sc?: ServiceCreditSummary; electedOption: string
+  dc: { color: string; muted: string; label: string; sub: string }
   ruleType: string; ruleSum: number; ruleMet: boolean; reductionPct: number
   onSave: () => void
 }) {
@@ -331,12 +305,11 @@ function LiveSummary({
 
         {/* Line items */}
         <div style={{ fontSize: '11px' }}>
-          <SumRow label={tc.label} value={tc.sub} done={confirmed.has('elig')} color={tc.color} />
-          <SumRow label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '✓' : '✕'}`}
+          <SumRow label={dc.label} value={dc.sub} done={confirmed.has('elig')} color={dc.color} />
+          <SumRow label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '\u2713' : '\u2715'}`}
             done={confirmed.has('confirm')} color={ruleMet ? C.success : C.danger} />
           {reductionPct > 0 && <SumRow label="Reduction" value={`${reductionPct}%`} done={confirmed.has('elig')} color={C.danger} />}
           {ben && <SumRow label="AMS" value={fmt(ben.ams)} done={confirmed.has('salary')} />}
-          {leavePayout > 0 && <SumRow label="Leave Payout" value={fmt(leavePayout)} done={confirmed.has('salary')} color={C.warm} />}
           {sc && sc.purchased_service_years > 0 && (
             <SumRow label="Purchased Svc" value={`${sc.purchased_service_years}y`} done={confirmed.has('purch')} color={C.warm} />
           )}
@@ -352,7 +325,7 @@ function LiveSummary({
           <div style={{ borderTop: `1px solid ${C.border}`, margin: '6px 0' }} />
           {elOpt && <SumRow label="Option" value={elOpt.option_name} done={confirmed.has('payment')} />}
           {survivorAmt > 0 && <SumRow label="Survivor" value={`${fmt(survivorAmt)}/mo`} done={confirmed.has('payment')} />}
-          {ben?.ipr && <SumRow label="IPR" value={fmt(ben.ipr.monthly_amount)} done={confirmed.has('ipr')} />}
+          {ben?.annual_increase && <SumRow label="Annual Increase" value={`${(ben.annual_increase.rate * 100).toFixed(1)}% compound`} done={confirmed.has('annual-increase')} />}
         </div>
       </div>
 
@@ -442,7 +415,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
   if (sc && sc.purchased_service_years > 0) panelIds.push('purch')
   panelIds.push('salary', 'benefit')
   if (hasDRO) panelIds.push('dro')
-  panelIds.push('payment', 'ipr')
+  panelIds.push('payment', 'annual-increase')
 
   const handleConfirm = useCallback((id: string, toggle?: boolean) => {
     if (toggle) {
@@ -479,7 +452,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
       gross_benefit: ben.gross_monthly_benefit,
       reduction_factor: elig.reduction_factor,
       dro_deduction: dro?.alternate_payee_amount,
-      ipr_amount: ben.ipr?.monthly_amount,
+      ipr_amount: ben.annual_increase?.rate,
       death_benefit_amount: ben.death_benefit?.amount,
     }, {
       onSuccess: (result) => {
@@ -501,31 +474,34 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
     )
   }
 
-  const tc = tierMeta[m.tier] || tierMeta[1]
-  const leavePayout = LEAVE_PAYOUTS[memberId] || 0
-  const isLeaveEligible = m.tier <= 2 && new Date(m.hire_date) < new Date('2010-01-01')
+  const dc = divisionMeta[m.division] || divisionMeta['State']
+  const htMeta = hasTableMeta[m.has_table]
 
   // Derived eligibility values
   const age = elig?.age_at_retirement ?? 0
-  const ruleType = m.tier === 3 ? 'Rule of 85' : 'Rule of 75'
-  const ruleTarget = m.tier === 3 ? 85 : 75
+  const ruleOfN = htMeta?.ruleOfN ?? 80
+  const ruleType = `Rule of ${ruleOfN}`
+  const ruleTarget = ruleOfN
   const ruleSum = elig?.rule_of_n_value ?? 0
-  const ruleMet = elig?.retirement_type === 'rule_of_75' || elig?.retirement_type === 'rule_of_85'
+  const ruleMet = elig?.retirement_type === 'rule_of_80' || elig?.retirement_type === 'rule_of_85' || elig?.retirement_type === 'rule_of_90'
   const reductionPct = elig ? Math.round((1 - elig.reduction_factor) * 100) : 0
   const yrsUnder65 = elig ? Math.max(0, 65 - elig.age_at_retirement) : 0
-  const reductionRate = m.tier === 3 ? 6 : 3
+  // Reduction rates vary by HAS table — generally higher tables have steeper reductions
+  const reductionRate = (m.has_table >= 7 || m.has_table >= 13) ? 6 : 3
 
   // Elected option
   const elOpt = electedOption || (hasDRO ? 'j&s_75' : 'maximum')
 
+  // Min age for early retirement based on HAS table
+  const minAge = (m.has_table >= 7 && m.has_table <= 9) || m.has_table >= 13 ? 60 : 55
+
   // Flags for banner chips
   const flags: { l: string; v: string; c: string }[] = [
     { l: 'Retiring', v: retirementDate.slice(5), c: C.accent },
-    { l: tc.label, v: tc.sub, c: tc.color },
+    { l: dc.label, v: dc.sub, c: dc.color },
   ]
   if (hasDRO) flags.push({ l: 'DRO', v: 'Active', c: '#A855F7' })
   if (reductionPct > 0) flags.push({ l: 'Reduction', v: `${reductionPct}%`, c: C.danger })
-  if (leavePayout > 0) flags.push({ l: 'Leave', v: fmt(leavePayout), c: C.warm })
   if (sc && sc.purchased_service_years > 0) flags.push({ l: 'Purch Svc', v: `${sc.purchased_service_years}y`, c: C.warm })
 
   return (
@@ -538,14 +514,14 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
-            width: '32px', height: '32px', borderRadius: '7px', background: tc.muted,
-            border: `2px solid ${tc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontWeight: 700, color: tc.color, fontSize: '10px',
-          }}>T{m.tier}</div>
+            width: '32px', height: '32px', borderRadius: '7px', background: dc.muted,
+            border: `2px solid ${dc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontWeight: 700, color: dc.color, fontSize: '10px',
+          }}>{m.division.slice(0, 3)}</div>
           <div>
             <div style={{ color: C.text, fontWeight: 700, fontSize: '13.5px' }}>{m.first_name} {m.last_name}</div>
             <div style={{ color: C.textSecondary, fontSize: '10px' }}>
-              {m.member_id} · Age {age || '—'} · {sc?.total_service_years ?? '—'}y · {m.department}
+              {m.member_id} · Age {age || '\u2014'} · {sc?.total_service_years ?? '\u2014'}y · {m.department}
             </div>
           </div>
         </div>
@@ -601,8 +577,8 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           color: saveStatus === 'saved' ? C.success : saveStatus === 'error' ? C.danger : C.accent,
         }}>
           {saveStatus === 'saving' && 'Saving to database...'}
-          {saveStatus === 'saved' && `✓ Saved successfully — retirement application submitted. Case #${savedCaseId ?? ''} created for review.`}
-          {saveStatus === 'error' && `✕ Save failed: ${saveError}`}
+          {saveStatus === 'saved' && `\u2713 Saved successfully \u2014 retirement application submitted. Case #${savedCaseId ?? ''} created for review.`}
+          {saveStatus === 'error' && `\u2715 Save failed: ${saveError}`}
         </div>
       )}
 
@@ -623,7 +599,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               serviceCredit={sc}
               retirementDate={retirementDate}
               electedOption={elOpt}
-              leavePayout={leavePayout}
+              leavePayout={0}
             />
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <a href={`/staff/case/${memberId}/worksheet`} style={{
@@ -655,7 +631,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           )}
 
           {/* ─── Panel: Confirm Retirement ─── */}
-          {(!confirmed.has('confirm') || focused === 'confirm') && <Panel id="confirm" title="Confirm Retirement" icon="📋"
+          {(!confirmed.has('confirm') || focused === 'confirm') && <Panel id="confirm" title="Confirm Retirement" icon="\u{1F4CB}"
             isConfirmed={confirmed.has('confirm')} isFocused={focused === 'confirm'}
             alert={reductionPct > 0 ? `${reductionPct}% reduction` : null}
             onFocus={setFocused} onConfirm={handleConfirm}>
@@ -682,38 +658,37 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               <Field label="Reduction" value={reductionPct === 0 ? 'None' : `${reductionPct}%`}
                 badge={reductionPct > 0 ? { text: `${yrsUnder65}y under 65`, bg: C.dangerMuted, color: C.danger } : null} />
               {ruleMet
-                ? <Callout type="success" title={`${ruleType} Satisfied`}>Age {age} + Service {sc?.total_for_eligibility ?? 0} = {ruleSum.toFixed(2)} ≥ {ruleTarget}. No reduction.</Callout>
-                : <Callout type="danger" title="Early Retirement Reduction">{yrsUnder65} years × {reductionRate}%/yr = {reductionPct}% reduction. Member receives {100 - reductionPct}% of benefit.</Callout>
+                ? <Callout type="success" title={`${ruleType} Satisfied`}>Age {age} + Service {sc?.total_for_eligibility ?? 0} = {ruleSum.toFixed(2)} {'\u2265'} {ruleTarget}. No reduction.</Callout>
+                : <Callout type="danger" title="Early Retirement Reduction">{yrsUnder65} years {'\u00D7'} {reductionRate}%/yr = {reductionPct}% reduction. Member receives {100 - reductionPct}% of benefit.</Callout>
               }
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading eligibility...</div>}
           </Panel>}
 
           {/* ─── Panel: Eligibility ─── */}
-          {(!confirmed.has('elig') || focused === 'elig') && <Panel id="elig" title="Eligibility Determination" icon="✓"
+          {(!confirmed.has('elig') || focused === 'elig') && <Panel id="elig" title="Eligibility Determination" icon="\u2713"
             isConfirmed={confirmed.has('elig')} isFocused={focused === 'elig'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {elig && sc ? (<>
-              <Field label="Tier" value={tc.label} badge={{ text: tc.sub, bg: tc.muted, color: tc.color }} />
-              <Field label="Vested" value={`Yes — ${sc.earned_service_years}y earned`}
+              <Field label="Division" value={dc.label} badge={{ text: dc.sub, bg: dc.muted, color: dc.color }} />
+              <Field label="HAS Table" value={htMeta?.name ?? `Table ${m.has_table}`}
+                badge={{ text: htMeta?.era ?? '', bg: dc.muted, color: dc.color }} />
+              <Field label="Vested" value={`Yes \u2014 ${sc.earned_service_years}y earned`}
                 badge={{ text: 'Met', bg: C.successMuted, color: C.success }} />
               {sc.purchased_service_years > 0 && (
                 <Field label="Purchased Service" value={`${sc.purchased_service_years} years`}
                   sub="Included in benefit, excluded from eligibility"
                   badge={{ text: 'Excluded', bg: C.warmMuted, color: C.warm }} />
               )}
-              <Field label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '≥' : '<'} ${ruleTarget}`}
+              <Field label={ruleType} value={`${ruleSum.toFixed(2)} ${ruleMet ? '\u2265' : '<'} ${ruleTarget}`}
                 highlight={ruleMet}
                 badge={{ text: ruleMet ? 'Met' : 'Not Met', bg: ruleMet ? C.successMuted : C.dangerMuted, color: ruleMet ? C.success : C.danger }} />
-              <Field label={`Min Age (${m.tier === 3 ? 60 : 55})`} value={`${age} — Met`}
+              <Field label={`Min Age (${minAge})`} value={`${age} \u2014 Met`}
                 badge={{ text: 'Met', bg: C.successMuted, color: C.success }} />
               <Field label="Benefit Reduction" value={reductionPct === 0 ? '0%' : `${reductionPct}%`} highlight={reductionPct === 0} />
-              <Field label="Leave Payout"
-                value={isLeaveEligible ? (leavePayout > 0 ? `Yes — ${fmt(leavePayout)}` : 'Eligible — none claimed') : 'Not eligible'}
-                sub={isLeaveEligible ? 'Hired before Jan 1, 2010' : 'Hired after Jan 1, 2010'} />
               {sc.purchased_service_years > 0 && (
                 <Callout type="warning" title="Purchased Service Exclusion">
-                  If counted: {age} + {sc.total_service_years} = {(age + sc.total_service_years).toFixed(2)} — would qualify.
-                  Per RMC §18-407, purchased service is excluded from {ruleType}.
+                  If counted: {age} + {sc.total_service_years} = {(age + sc.total_service_years).toFixed(2)} {'\u2014'} would qualify.
+                  Per C.R.S. {'\u00A7'}24-51-602, purchased service is excluded from {ruleType}.
                 </Callout>
               )}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
@@ -721,7 +696,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
 
           {/* ─── Panel: Purchased Service (conditional) ─── */}
           {sc && sc.purchased_service_years > 0 && ben && elig && (!confirmed.has('purch') || focused === 'purch') && (
-            <Panel id="purch" title="Purchased Service Impact" icon="📎"
+            <Panel id="purch" title="Purchased Service Impact" icon="\u{1F4CE}"
               isConfirmed={confirmed.has('purch')} isFocused={focused === 'purch'}
               onFocus={setFocused} onConfirm={handleConfirm}>
               {(() => {
@@ -729,7 +704,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 return (<>
                   <Field label="Earned Service" value={`${sc.earned_service_years}y`} />
                   <Field label="Purchased" value={`${sc.purchased_service_years}y`}
-                    badge={{ text: 'RMC §18-407', bg: C.warmMuted, color: C.warm }} />
+                    badge={{ text: 'C.R.S. \u00A724-51-602', bg: C.warmMuted, color: C.warm }} />
                   <Field label="Total for Benefit" value={`${sc.total_for_benefit}y`} highlight />
                   <Field label={`Total for ${ruleType}`} value={`${sc.total_for_eligibility}y`}
                     badge={{ text: 'Excluded', bg: C.dangerMuted, color: C.danger }} />
@@ -758,25 +733,25 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
           )}
 
           {/* ─── Panel: Salary & AMS ─── */}
-          {(!confirmed.has('salary') || focused === 'salary') && <Panel id="salary" title={`Salary & AMS (${ben?.ams_window_months ?? '—'}-month window)`} icon="💰"
+          {(!confirmed.has('salary') || focused === 'salary') && <Panel id="salary" title={`Salary & HAS (${ben?.ams_window_months ?? '\u2014'}-month window)`} icon="\u{1F4B0}"
             isConfirmed={confirmed.has('salary')} isFocused={focused === 'salary'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {ben ? (<>
-              <Field label="AMS Window" value={`${ben.ams_window_months} consecutive months`}
-                sub={m.tier === 3 ? 'Tier 3: 60-month (vs 36 for Tier 1/2)' : null}
-                badge={m.tier === 3 ? { text: '60 months', bg: C.tier3Muted, color: C.tier3 } : null} />
-              <SalaryTable memberId={memberId} windowMonths={ben.ams_window_months} leavePayout={leavePayout} />
-              <Field label={`÷ ${ben.ams_window_months} months`} value={fmt(ben.ams)} highlight />
-              {leavePayout > 0 && (
-                <Callout type="warning" title="Leave Payout Impact">
-                  {fmt(leavePayout)} added to final month. Without: {fmt(AMS_NO_LEAVE[memberId])} → With: {fmt(ben.ams)} (+{fmt(ben.ams - (AMS_NO_LEAVE[memberId] ?? ben.ams))}/mo)
+              <Field label="HAS Window" value={`${ben.ams_window_months} consecutive months`}
+                sub={`${htMeta?.name ?? 'HAS Table ' + m.has_table}: ${ben.ams_window_months}-month window`}
+                badge={{ text: `${ben.ams_window_months} months`, bg: dc.muted, color: dc.color }} />
+              <SalaryTable memberId={memberId} windowMonths={ben.ams_window_months} />
+              <Field label={`\u00F7 ${ben.ams_window_months} months`} value={fmt(ben.ams)} highlight />
+              {ben.anti_spiking_applied && (
+                <Callout type="warning" title="Anti-Spiking Applied">
+                  Salary growth exceeded allowable cap per C.R.S. {'\u00A7'}24-51-101(3). HAS capped to prevent spiking.
                 </Callout>
               )}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
           </Panel>}
 
           {/* ─── Panel: Benefit Calculation ─── */}
-          {(!confirmed.has('benefit') || focused === 'benefit') && <Panel id="benefit" title="Benefit Calculation" icon="🔢"
+          {(!confirmed.has('benefit') || focused === 'benefit') && <Panel id="benefit" title="Benefit Calculation" icon="\u{1F522}"
             isConfirmed={confirmed.has('benefit')} isFocused={focused === 'benefit'}
             alert={reductionPct > 0 ? `${reductionPct}% reduced` : null}
             onFocus={setFocused} onConfirm={handleConfirm}>
@@ -787,7 +762,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               }}>
                 <div style={{
                   color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1.5px',
-                }}>{(ben.multiplier * 100).toFixed(1)}% × AMS × Service</div>
+                }}>{(ben.multiplier * 100).toFixed(1)}% {'\u00D7'} HAS {'\u00D7'} Service</div>
                 <div style={{
                   color: C.accent, fontSize: '26px', fontWeight: 700, fontFamily: 'monospace',
                   marginTop: '4px', textShadow: `0 0 25px ${C.accentGlow}`,
@@ -801,13 +776,13 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                   </div>
                 )}
               </div>
-              <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} sub="RMC §18-401" />
-              <Field label="AMS" value={fmt(ben.ams)} />
+              <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${dc.label})`} sub={`C.R.S. \u00A724-51-401`} />
+              <Field label="HAS" value={fmt(ben.ams)} />
               <Field label="Service (for benefit)" value={`${ben.service_years_for_benefit}y`} />
               <Field label="Unreduced Benefit" value={fmt(ben.gross_monthly_benefit)} />
               {reductionPct > 0 && (<>
-                <Field label="Reduction" value={`× ${ben.reduction_factor.toFixed(2)} (−${reductionPct}%)`}
-                  badge={{ text: `−${fmt(ben.gross_monthly_benefit - ben.net_monthly_benefit)}/mo`, bg: C.dangerMuted, color: C.danger }} />
+                <Field label="Reduction" value={`\u00D7 ${ben.reduction_factor.toFixed(2)} (\u2212${reductionPct}%)`}
+                  badge={{ text: `\u2212${fmt(ben.gross_monthly_benefit - ben.net_monthly_benefit)}/mo`, bg: C.dangerMuted, color: C.danger }} />
                 <Field label="Reduced Benefit" value={fmt(ben.net_monthly_benefit)} highlight />
                 <Callout type="danger" title="Reduction Impact">
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px' }}>
@@ -824,20 +799,20 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                   </div>
                 </Callout>
               </>)}
-              {reductionPct === 0 && <Callout type="success" title="No Reduction">{ruleType} met — 100% of calculated benefit.</Callout>}
+              {reductionPct === 0 && <Callout type="success" title="No Reduction">{ruleType} met {'\u2014'} 100% of calculated benefit.</Callout>}
               <Field label="Annual Benefit" value={fmt(ben.net_monthly_benefit * 12)} />
-              {ben.death_benefit && <Field label="Death Benefit" value={fmt(ben.death_benefit.amount)} sub={`Lump sum — ${ben.retirement_type}`} />}
+              {ben.death_benefit && <Field label="Death Benefit" value={fmt(ben.death_benefit.amount)} sub={`Lump sum \u2014 ${ben.retirement_type}`} />}
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
           </Panel>}
 
           {/* ─── Panel: DRO Impact (conditional) ─── */}
           {hasDRO && dro && (!confirmed.has('dro') || focused === 'dro') && (
-            <Panel id="dro" title="DRO Impact" icon="⚖️"
+            <Panel id="dro" title="DRO Impact" icon="\u2696\uFE0F"
               isConfirmed={confirmed.has('dro')} isFocused={focused === 'dro'}
               onFocus={setFocused} onConfirm={handleConfirm}>
               <Field label="Former Spouse" value={dro.alternate_payee_name} />
               {dros.data && dros.data[0] && (<>
-                <Field label="Marriage" value={`${dros.data[0].marriage_date} — ${dros.data[0].divorce_date}`} />
+                <Field label="Marriage" value={`${dros.data[0].marriage_date} \u2014 ${dros.data[0].divorce_date}`} />
               </>)}
               <Field label="Service During Marriage" value={`${dro.marital_service_years}y`} />
               <div style={{ margin: '8px 0' }}>
@@ -856,7 +831,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
               </div>
               <Field label="Gross Benefit" value={fmt(dro.member_gross_benefit)} />
               <Field label="Marital Share" value={fmt(dro.marital_share)}
-                sub={`${fmt(dro.member_gross_benefit)} × ${(dro.marital_fraction * 100).toFixed(2)}%`} />
+                sub={`${fmt(dro.member_gross_benefit)} \u00D7 ${(dro.marital_fraction * 100).toFixed(2)}%`} />
               <Field label="DRO Award" value={`${Math.round((dro.alternate_payee_amount / dro.marital_share) * 100)}% of marital`} />
               <Field label={`${dro.alternate_payee_name.split(' ')[0]}'s Monthly`} value={fmt(dro.alternate_payee_amount)} highlight />
               <Field label="Member's Remaining" value={fmt(dro.member_net_after_dro)} highlight />
@@ -882,13 +857,13 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                 ))}
               </div>
               <Callout type="info" title="Sequence">
-                DRO split before payment option. Options on {fmt(dro.member_net_after_dro)}, not {fmt(dro.member_gross_benefit)}. RMC §18-408.
+                DRO split before payment option. Options on {fmt(dro.member_net_after_dro)}, not {fmt(dro.member_gross_benefit)}. C.R.S. {'\u00A7'}24-51-802.
               </Callout>
             </Panel>
           )}
 
           {/* ─── Panel: Payment Option ─── */}
-          {(!confirmed.has('payment') || focused === 'payment') && <Panel id="payment" title="Payment Option" icon="💳"
+          {(!confirmed.has('payment') || focused === 'payment') && <Panel id="payment" title="Payment Option" icon="\u{1F4B3}"
             isConfirmed={confirmed.has('payment')} isFocused={focused === 'payment'}
             onFocus={setFocused} onConfirm={handleConfirm}>
             {opts ? (<>
@@ -911,15 +886,15 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
                             color: isElected ? C.accent : C.text, fontSize: '11.5px',
                             fontWeight: isElected ? 600 : 400, display: 'flex', alignItems: 'center', gap: '5px',
                           }}>
-                            <span>{isElected ? '●' : '○'}</span>
+                            <span>{isElected ? '\u25CF' : '\u25CB'}</span>
                             {opt.option_name}
                             {isElected && <Badge text="Elected" bg={C.accentSolid} color={C.accent} />}
                           </div>
                           <div style={{ color: C.textMuted, fontSize: '9.5px', marginTop: '1px', marginLeft: '14px' }}>
                             Factor: {opt.reduction_factor.toFixed(4)}
                             {opt.survivor_pct
-                              ? ` · Survivor: ${fmt(opt.monthly_amount * opt.survivor_pct / 100)}/mo`
-                              : ' · No survivor benefit'}
+                              ? ` \u00B7 Survivor: ${fmt(opt.monthly_amount * opt.survivor_pct / 100)}/mo`
+                              : ' \u00B7 No survivor benefit'}
                           </div>
                         </div>
                         <span style={{
@@ -935,18 +910,19 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
           </Panel>}
 
-          {/* ─── Panel: IPR ─── */}
-          {(!confirmed.has('ipr') || focused === 'ipr') && <Panel id="ipr" title="IPR" icon="🏥"
-            isConfirmed={confirmed.has('ipr')} isFocused={focused === 'ipr'}
+          {/* ─── Panel: Annual Increase ─── */}
+          {(!confirmed.has('annual-increase') || focused === 'annual-increase') && <Panel id="annual-increase" title="Annual Increase" icon="\u{1F4C8}"
+            isConfirmed={confirmed.has('annual-increase')} isFocused={focused === 'annual-increase'}
             onFocus={setFocused} onConfirm={handleConfirm}>
-            {ben?.ipr ? (<>
-              <Field label="Service for IPR" value={`${ben.ipr.eligible_service_years}y`} sub="Earned only — purchased excluded" />
-              <Field label="Pre-Medicare (< 65)" value={fmt(ben.ipr.monthly_amount)} highlight
-                sub={`$12.50 × ${ben.ipr.eligible_service_years}`} />
-              <Field label="Post-Medicare (≥ 65)" value={fmt(ben.ipr.monthly_amount / 2)}
-                sub={`$6.25 × ${ben.ipr.eligible_service_years}`} />
+            {ben?.annual_increase ? (<>
+              <Field label="Annual Increase Rate" value={`${(ben.annual_increase.rate * 100).toFixed(1)}%`} highlight
+                sub={`${ben.annual_increase.compound_method} method`} />
+              <Field label="First Eligible Date" value={ben.annual_increase.first_eligible_date}
+                sub="March 1 of second calendar year after retirement" />
+              <Field label="Method" value={ben.annual_increase.compound_method === 'compound' ? 'Compound (on prior adjusted benefit)' : 'Simple'}
+                badge={{ text: 'Compound', bg: C.accentMuted, color: C.accent }} />
               <Callout type="info">
-                IPR offsets health insurance premiums. Rate changes at Medicare eligibility (age 65). RMC §18-412.
+                {ben.annual_increase.note || `Annual increase of ${(ben.annual_increase.rate * 100).toFixed(1)}% applied each March 1 on a compound basis. Per C.R.S. \u00A724-51-1002.`}
               </Callout>
             </>) : <div style={{ color: C.textMuted, fontSize: '11px', padding: '8px 0' }}>Loading...</div>}
           </Panel>}
@@ -967,8 +943,7 @@ export function BenefitWorkspace({ memberId }: { memberId: string }) {
             dro={dro}
             sc={sc}
             electedOption={elOpt}
-            leavePayout={leavePayout}
-            tc={tc}
+            dc={dc}
             ruleType={ruleType}
             ruleSum={ruleSum}
             ruleMet={ruleMet}

@@ -13,7 +13,7 @@
 // Factors represent present value of additional lifetime benefit.
 // Higher age = higher factor (shorter contribution period, higher PV).
 // Tier 1 higher than Tier 2/3 due to 2.0% multiplier vs 1.5%.
-// Assumption Q-COST-FACTOR-01: representative values; actual DERP factors
+// Assumption Q-COST-FACTOR-01: representative values; actual COPERA factors
 // come from actuarial valuation.
 
 // Robust rounding to cents — handles floating point edge cases like 1982.175
@@ -48,7 +48,7 @@ const COST_FACTOR_TABLES: Record<number, CostFactorTable> = {
  * Look up the actuarial cost factor for a given tier and age.
  * Uses exact match from the published table. If the age is not in
  * the table, interpolates linearly between the two nearest entries.
- * RMC §18-415(c): cost determined by actuarial tables.
+ * C.R.S. §24-51-504: cost determined by actuarial tables.
  */
 export function lookupCostFactor(tier: number, age: number): number {
   const table = COST_FACTOR_TABLES[tier]
@@ -87,7 +87,7 @@ export interface PurchaseCostResult {
 /**
  * Calculate the actuarial cost of purchasing service credit.
  * Formula: Total Cost = Cost Factor x Current Annual Salary x Years Purchased
- * RULE-PURCHASE-COST-FACTOR — RMC §18-415(c)
+ * RULE-PURCHASE-COST-FACTOR — C.R.S. §24-51-504
  */
 export function calculatePurchaseCost(params: {
   tier: number
@@ -97,7 +97,7 @@ export function calculatePurchaseCost(params: {
 }): PurchaseCostResult {
   const { tier, age, currentAnnualSalary, yearsPurchased } = params
 
-  // Look up actuarial cost factor from table — RMC §18-415(c)
+  // Look up actuarial cost factor from table — C.R.S. §24-51-504
   const costFactor = lookupCostFactor(tier, age)
 
   // Cost per year = factor x salary
@@ -120,8 +120,8 @@ export interface PayrollDeductionResult {
 /**
  * Calculate payroll deduction amortization for service purchase installments.
  * Standard amortization formula: P x r(1+r)^n / ((1+r)^n - 1)
- * RULE-PURCHASE-PAYMENT-OPTIONS — RMC §18-415(d)
- * Assumption Q-PAYROLL-INTEREST-01: 3% annual rate set by DERP board.
+ * RULE-PURCHASE-PAYMENT-OPTIONS — C.R.S. §24-51-504
+ * Assumption Q-PAYROLL-INTEREST-01: 3% annual rate set by COPERA board.
  * Assumption Q-PAYROLL-MAX-01: max 60 months (5 years).
  */
 export function calculatePayrollDeduction(params: {
@@ -169,7 +169,7 @@ export interface BenefitImpactResult {
  * Calculate the benefit impact of purchasing service credit.
  * Shows before/after monthly benefit and breakeven analysis.
  * CRITICAL: purchased service counts for BENEFIT but NOT for eligibility.
- * RULE-PURCHASE-BENEFIT-IMPACT — RMC §18-415(a), §18-409(a)
+ * RULE-PURCHASE-BENEFIT-IMPACT — C.R.S. §24-51-504, §24-51-603
  */
 export function calculateBenefitImpact(params: {
   tier: number
@@ -180,7 +180,7 @@ export function calculateBenefitImpact(params: {
 }): BenefitImpactResult {
   const { tier, ams, earnedYears, purchasedYears, totalCost } = params
 
-  // Multiplier by tier — RMC §18-408(a)
+  // Multiplier by tier — C.R.S. §24-51-603
   const multiplier = tier === 1 ? 0.02 : 0.015
 
   // Current monthly (earned only): multiplier x AMS x earned
@@ -221,7 +221,7 @@ export interface PurchaseEligibilityResult {
 
 /**
  * Check whether a member is eligible to purchase service credit.
- * RULE-PURCHASE-ELIGIBILITY — RMC §18-415(a), §18-415(b)
+ * RULE-PURCHASE-ELIGIBILITY — C.R.S. §24-51-504
  * Conditions: active, vested (5+ years), valid purchase type, within year limit.
  */
 export function checkPurchaseEligibility(params: {
@@ -234,7 +234,7 @@ export function checkPurchaseEligibility(params: {
   const reasons: string[] = []
   let eligible = true
 
-  // Must be active — RMC §18-415(a)
+  // Must be active — C.R.S. §24-51-504
   if (memberStatus.toLowerCase() !== 'active') {
     eligible = false
     reasons.push(`Member status '${memberStatus}' is not Active. Only active members may purchase.`)
@@ -248,16 +248,16 @@ export function checkPurchaseEligibility(params: {
     reasons.push(`Vested: ${earnedYears.toFixed(2)} years >= 5 years required.`)
   }
 
-  // Valid purchase type — RMC §18-415(b)
+  // Valid purchase type — C.R.S. §24-51-504
   const validTypes = ['governmental', 'military', 'leave_of_absence', 'furlough']
   if (!validTypes.includes(serviceType)) {
     eligible = false
     reasons.push(`Invalid service type '${serviceType}'. Must be one of: ${validTypes.join(', ')}.`)
   } else {
-    reasons.push(`Service type '${serviceType}' is valid per RMC §18-415(b).`)
+    reasons.push(`Service type '${serviceType}' is valid per C.R.S. §24-51-504.`)
   }
 
-  // Max 5 years for governmental and military — RMC §18-415(b)(1), §18-415(b)(2)
+  // Max 5 years for governmental and military — C.R.S. §24-51-504
   const maxYears = 5.0
   if (yearsRequested > maxYears) {
     eligible = false
@@ -283,7 +283,7 @@ export interface QuoteValidityResult {
 /**
  * Check whether a service purchase cost quote is still valid.
  * Quotes are valid for 90 calendar days from issuance.
- * RULE-PURCHASE-QUOTE-VALIDITY — DERP administrative practice.
+ * RULE-PURCHASE-QUOTE-VALIDITY — COPERA administrative practice.
  * After 90 days, cost must be recalculated (age/salary may have changed).
  */
 export function checkQuoteValidity(

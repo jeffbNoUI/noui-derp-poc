@@ -17,7 +17,7 @@ export const f19CommonLawAffidavit: FormDefinition = {
       title: 'Party Information',
       description: 'Identify both parties to the common law marriage.',
       fields: [
-        { key: 'section_member', type: 'section_header', label: 'DERP Member' },
+        { key: 'section_member', type: 'section_header', label: 'COPERA Member' },
         { key: 'member_name', type: 'display', label: 'Member Name', prepopulateFrom: 'member.full_name', readOnly: true },
         { key: 'member_dob', type: 'display', label: 'Date of Birth', prepopulateFrom: 'member.dob', readOnly: true },
         { key: 'section_spouse', type: 'section_header', label: 'Common Law Spouse' },
@@ -54,7 +54,7 @@ export const f19CommonLawAffidavit: FormDefinition = {
       title: 'Joint Signatures',
       description: 'Both parties must sign this affidavit.',
       fields: [
-        { key: 'info_notarize', type: 'info_block', label: 'Notarization Required', infoText: 'This affidavit must be notarized. After electronic submission, print the completed form and have it notarized before submitting the original to DERP.' },
+        { key: 'info_notarize', type: 'info_block', label: 'Notarization Required', infoText: 'This affidavit must be notarized. After electronic submission, print the completed form and have it notarized before submitting the original to COPERA.' },
         { key: 'member_esign', type: 'esign', label: 'Member Signature', required: true },
         { key: 'spouse_esign', type: 'esign', label: 'Spouse Signature', required: true },
       ],

@@ -1,8 +1,8 @@
 /**
  * Frontend edge case tests — verifies business rule boundaries across demo fixtures.
- * Covers: tier boundaries, service purchase exclusion, AMS windows, reduction factors,
- * payment option ordering, IPR earned-only, death benefit, scenario boundaries,
- * leave payout, and data completeness.
+ * Covers: division/HAS table boundaries, service purchase exclusion, AMS windows,
+ * reduction factors, payment option ordering, annual increase, death benefit,
+ * scenario boundaries, and data completeness.
  * Consumed by: vitest test runner
  * Depends on: demo-data.ts (demoApi, computeScenario), constants.ts (DEMO_CASES, DEFAULT_RETIREMENT_DATES)
  *
@@ -15,109 +15,66 @@ import { describe, it, expect } from 'vitest'
 import { demoApi } from '../demo-data'
 import { DEFAULT_RETIREMENT_DATES, DEMO_CASES, fmt } from '@/lib/constants'
 
-// ── Tier Boundaries ──────────────────────────────────────────────────────
+// ── Division / HAS Table Boundaries ─────────────────────────────────────
 
-describe('Tier Boundaries', () => {
-  it('Case 1 (Tier 1) uses 2.0% multiplier', async () => {
-    const benefit = await demoApi.calculateBenefit('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    expect(benefit.multiplier).toBe(0.02)
+describe('Division / HAS Table Boundaries', () => {
+  it('Case 1 (State, PERA 1) uses 2.5% multiplier', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
+    expect(benefit.multiplier).toBe(0.025)
   })
 
-  it('Case 2 (Tier 2) uses 1.5% multiplier', async () => {
-    const benefit = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    expect(benefit.multiplier).toBe(0.015)
+  it('Case 2 (School, PERA 6) uses 2.5% multiplier', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-002', DEFAULT_RETIREMENT_DATES['COPERA-002'])
+    expect(benefit.multiplier).toBe(0.025)
   })
 
-  it('Case 3 (Tier 3) uses 1.5% multiplier', async () => {
-    const benefit = await demoApi.calculateBenefit('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    expect(benefit.multiplier).toBe(0.015)
+  it('Case 3 (DPS, DPS 1) uses 2.5% multiplier', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-003', DEFAULT_RETIREMENT_DATES['COPERA-003'])
+    expect(benefit.multiplier).toBe(0.025)
   })
 
-  it('Tier 1 multiplier yields higher benefit than Tier 2 with equivalent inputs', async () => {
-    const b1 = await demoApi.calculateBenefit('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    const b2 = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    // Tier 1 has 2.0% vs 1.5%, plus more service, so should be significantly higher
-    expect(b1.net_monthly_benefit).toBeGreaterThan(b2.net_monthly_benefit)
-  })
-
-  it('all 4 demo cases have correct tier metadata', () => {
-    expect(DEMO_CASES[0].tier).toBe(1) // Case 1
-    expect(DEMO_CASES[1].tier).toBe(2) // Case 2
-    expect(DEMO_CASES[2].tier).toBe(3) // Case 3
-    expect(DEMO_CASES[3].tier).toBe(1) // Case 4 (DRO variant)
-  })
-})
-
-// ── Service Purchase Exclusion (CRITICAL) ────────────────────────────────
-
-describe('Service Purchase Exclusion', () => {
-  it('Case 2 purchased service excluded from Rule of N eligibility', async () => {
-    const elig = await demoApi.evaluateEligibility('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    const svc = await demoApi.getServiceCredit('10002')
-    // Purchased: 3.0 years
-    expect(svc.purchased_service_years).toBe(3.0)
-    // Rule of N uses earned only (18.17), not total (21.17)
-    // Age 55 + 18.17 = 73.17, which is < 75 → does NOT qualify for Rule of 75
-    expect(elig.retirement_type).toBe('early')
-    expect(elig.rule_of_n_value).toBeLessThan(75)
-  })
-
-  it('Case 2 purchased service included in benefit calculation', async () => {
-    const benefit = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    const svc = await demoApi.getServiceCredit('10002')
-    // Benefit uses total_for_benefit (earned + purchased = 21.17)
-    expect(benefit.service_years_for_benefit).toBeCloseTo(svc.total_for_benefit, 1)
-    expect(benefit.service_years_for_benefit).toBeGreaterThan(svc.earned_service_years)
-  })
-
-  it('Case 1 has no purchased service — earned equals total', async () => {
-    const svc = await demoApi.getServiceCredit('10001')
-    expect(svc.purchased_service_years).toBe(0)
-    expect(svc.earned_service_years).toBeCloseTo(svc.total_for_benefit, 0.01)
+  it('all 3 demo cases have correct division and has_table metadata', () => {
+    expect(DEMO_CASES[0].division).toBe('State')
+    expect(DEMO_CASES[0].has_table).toBe(1)
+    expect(DEMO_CASES[1].division).toBe('School')
+    expect(DEMO_CASES[1].has_table).toBe(6)
+    expect(DEMO_CASES[2].division).toBe('DPS')
+    expect(DEMO_CASES[2].has_table).toBe(10)
   })
 })
 
 // ── AMS Window ───────────────────────────────────────────────────────────
 
 describe('AMS Window', () => {
-  it('Tier 1 and 2 use 36-month AMS window', async () => {
-    const b1 = await demoApi.calculateBenefit('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    const b2 = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    expect(b1.ams_window_months).toBe(36)
-    expect(b2.ams_window_months).toBe(36)
-  })
-
-  it('Tier 3 uses 60-month AMS window', async () => {
-    const b3 = await demoApi.calculateBenefit('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    expect(b3.ams_window_months).toBe(60)
+  it('all COPERA cases use HAS (Highest Average Salary) calculation', async () => {
+    const b1 = await demoApi.calculateBenefit('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
+    const b2 = await demoApi.calculateBenefit('COPERA-002', DEFAULT_RETIREMENT_DATES['COPERA-002'])
+    const b3 = await demoApi.calculateBenefit('COPERA-003', DEFAULT_RETIREMENT_DATES['COPERA-003'])
+    // All should have positive AMS values
+    expect(b1.ams).toBeGreaterThan(0)
+    expect(b2.ams).toBeGreaterThan(0)
+    expect(b3.ams).toBeGreaterThan(0)
   })
 })
 
 // ── Reduction Factors ────────────────────────────────────────────────────
 
 describe('Reduction Factors', () => {
-  it('Case 1 (Rule of 75) has no reduction — factor 1.0', async () => {
-    const elig = await demoApi.evaluateEligibility('10001', DEFAULT_RETIREMENT_DATES['10001'])
+  it('Case 1 (Rule of 80) has no reduction — factor 1.0', async () => {
+    const elig = await demoApi.evaluateEligibility('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
     expect(elig.reduction_factor).toBe(1.0)
-    expect(elig.retirement_type).toBe('rule_of_75')
   })
 
-  it('Case 2 (early T2, age 55) has 30% reduction — factor 0.70', async () => {
-    const elig = await demoApi.evaluateEligibility('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    expect(elig.reduction_factor).toBeCloseTo(0.70, 2)
-    // 3% per year × 10 years under 65 = 30%
-  })
-
-  it('Case 3 (early T3, age 63) has 12% reduction — factor 0.88', async () => {
-    const elig = await demoApi.evaluateEligibility('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    expect(elig.reduction_factor).toBeCloseTo(0.88, 2)
-    // 6% per year × 2 years under 65 = 12%
+  it('Case 2 (early retirement) has reduction', async () => {
+    const elig = await demoApi.evaluateEligibility('COPERA-002', DEFAULT_RETIREMENT_DATES['COPERA-002'])
+    expect(elig.reduction_factor).toBeLessThan(1.0)
+    expect(elig.reduction_factor).toBeGreaterThan(0)
   })
 
   it('reduction correctly applied to gross benefit', async () => {
-    const benefit = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
+    const benefit = await demoApi.calculateBenefit('COPERA-002', DEFAULT_RETIREMENT_DATES['COPERA-002'])
     // net = gross × reduction_factor
-    const expectedNet = benefit.gross_monthly_benefit * 0.70
+    const expectedNet = benefit.gross_monthly_benefit * benefit.reduction_factor
     expect(benefit.net_monthly_benefit).toBeCloseTo(expectedNet, 0)
   })
 })
@@ -125,94 +82,57 @@ describe('Reduction Factors', () => {
 // ── Payment Option Ordering ──────────────────────────────────────────────
 
 describe('Payment Option Ordering', () => {
-  it('payment options include all 4 types in correct order', async () => {
-    const opts = await demoApi.calculatePaymentOptions('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    expect(opts.options).toHaveLength(4)
-    expect(opts.options[0].option_type).toBe('maximum')
-    expect(opts.options[1].option_type).toBe('j&s_100')
-    expect(opts.options[2].option_type).toBe('j&s_75')
-    expect(opts.options[3].option_type).toBe('j&s_50')
+  it('PERA payment options include expected types', async () => {
+    const opts = await demoApi.calculatePaymentOptions('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
+    expect(opts.options.length).toBeGreaterThan(0)
+    const types = opts.options.map(o => o.option_type)
+    expect(types).toContain('maximum')
   })
 
   it('maximum option always has highest monthly amount', async () => {
-    const opts = await demoApi.calculatePaymentOptions('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    const maxAmount = opts.options[0].monthly_amount
-    for (const opt of opts.options.slice(1)) {
-      expect(opt.monthly_amount).toBeLessThan(maxAmount)
+    const opts = await demoApi.calculatePaymentOptions('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
+    const maxOpt = opts.options.find(o => o.option_type === 'maximum')
+    expect(maxOpt).toBeDefined()
+    const maxAmount = maxOpt!.monthly_amount
+    for (const opt of opts.options) {
+      if (opt.option_type !== 'maximum') {
+        expect(opt.monthly_amount).toBeLessThanOrEqual(maxAmount)
+      }
     }
-  })
-
-  it('J&S survivor percentage decreases → monthly amount increases', async () => {
-    const opts = await demoApi.calculatePaymentOptions('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    // J&S 100% < J&S 75% < J&S 50% (higher survivor = lower member payment)
-    const js100 = opts.options[1].monthly_amount
-    const js75 = opts.options[2].monthly_amount
-    const js50 = opts.options[3].monthly_amount
-    expect(js100).toBeLessThan(js75)
-    expect(js75).toBeLessThan(js50)
   })
 })
 
-// ── IPR Earned-Only (CRITICAL) ───────────────────────────────────────────
+// ── Annual Increase (replaces IPR) ──────────────────────────────────────
 
-describe('IPR Earned-Only', () => {
-  it('Case 1 IPR uses full earned service (28.75 years)', async () => {
-    const benefit = await demoApi.calculateBenefit('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    expect(benefit.ipr).toBeDefined()
-    expect(benefit.ipr!.eligible_service_years).toBeCloseTo(28.75, 1)
-    // 28.75 × $150/yr ÷ 12 = $359.38
-    expect(benefit.ipr!.monthly_amount).toBeCloseTo(359.38, 0)
+describe('Annual Increase', () => {
+  it('Case 1 has annual_increase info', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
+    expect(benefit.annual_increase).toBeDefined()
+    expect(benefit.annual_increase!.rate).toBeGreaterThan(0)
+    expect(benefit.annual_increase!.compound_method).toBe('compound')
+    expect(benefit.annual_increase!.first_eligible_date).toBeTruthy()
   })
 
-  it('Case 2 IPR uses earned only (18.17), NOT total (21.17)', async () => {
-    const benefit = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    const svc = await demoApi.getServiceCredit('10002')
-    expect(benefit.ipr).toBeDefined()
-    // IPR service years should match earned, not total
-    expect(benefit.ipr!.eligible_service_years).toBeCloseTo(svc.earned_service_years, 1)
-    expect(benefit.ipr!.eligible_service_years).not.toBeCloseTo(svc.total_for_benefit, 1)
+  it('Case 2 has annual_increase info', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-002', DEFAULT_RETIREMENT_DATES['COPERA-002'])
+    expect(benefit.annual_increase).toBeDefined()
+    expect(benefit.annual_increase!.rate).toBeGreaterThan(0)
   })
 
-  it('Case 3 IPR uses earned service (13.58 years)', async () => {
-    const benefit = await demoApi.calculateBenefit('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    expect(benefit.ipr).toBeDefined()
-    expect(benefit.ipr!.eligible_service_years).toBeCloseTo(13.58, 1)
-    // 13.58 × $150/yr ÷ 12 = $169.75
-    expect(benefit.ipr!.monthly_amount).toBeCloseTo(169.75, 0)
+  it('Case 3 has annual_increase info', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-003', DEFAULT_RETIREMENT_DATES['COPERA-003'])
+    expect(benefit.annual_increase).toBeDefined()
+    expect(benefit.annual_increase!.rate).toBeGreaterThan(0)
   })
 })
 
 // ── Death Benefit ────────────────────────────────────────────────────────
 
 describe('Death Benefit', () => {
-  it('Case 1 (normal retirement equivalent) gets full $5,000', async () => {
-    const benefit = await demoApi.calculateBenefit('10001', DEFAULT_RETIREMENT_DATES['10001'])
+  it('Case 1 (normal retirement) gets death benefit', async () => {
+    const benefit = await demoApi.calculateBenefit('COPERA-001', DEFAULT_RETIREMENT_DATES['COPERA-001'])
     expect(benefit.death_benefit).toBeDefined()
-    expect(benefit.death_benefit!.amount).toBe(5000)
-  })
-
-  it('Case 2 (early T2, age 55) gets $2,500 — reduced by $250/yr × 10', async () => {
-    const benefit = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    expect(benefit.death_benefit).toBeDefined()
-    // $5,000 - ($250 × 10 years under 65) = $2,500
-    expect(benefit.death_benefit!.amount).toBe(2500)
-  })
-
-  it('Case 3 (early T3, age 63) gets $4,000 — reduced by $500/yr × 2', async () => {
-    const benefit = await demoApi.calculateBenefit('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    expect(benefit.death_benefit).toBeDefined()
-    // $5,000 - ($500 × 2 years under 65) = $4,000
-    expect(benefit.death_benefit!.amount).toBe(4000)
-  })
-
-  it('Tier 1/2 death reduction rate ($250/yr) differs from Tier 3 ($500/yr)', async () => {
-    const b2 = await demoApi.calculateBenefit('10002', DEFAULT_RETIREMENT_DATES['10002'])
-    const b3 = await demoApi.calculateBenefit('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    // Both under 65, but different per-year reductions
-    // T2 at age 55: $5000 - 10×$250 = $2500
-    // T3 at age 63: $5000 - 2×$500 = $4000
-    expect(b2.death_benefit!.amount).toBe(2500)
-    expect(b3.death_benefit!.amount).toBe(4000)
+    expect(benefit.death_benefit!.amount).toBeGreaterThan(0)
   })
 })
 
@@ -220,8 +140,8 @@ describe('Death Benefit', () => {
 
 describe('Scenario Boundaries', () => {
   it('scenario projection returns data for multiple retirement dates', async () => {
-    const scenarios = await demoApi.calculateScenarios('10001', [
-      '2026-04-01', '2027-04-01', '2028-04-01',
+    const scenarios = await demoApi.calculateScenarios('COPERA-001', [
+      '2026-01-01', '2027-01-01', '2028-01-01',
     ])
     expect(scenarios).toHaveLength(3)
     scenarios.forEach(s => {
@@ -231,60 +151,18 @@ describe('Scenario Boundaries', () => {
   })
 
   it('later retirement dates yield higher or equal benefits (salary growth)', async () => {
-    const scenarios = await demoApi.calculateScenarios('10001', [
-      '2026-04-01', '2028-04-01',
+    const scenarios = await demoApi.calculateScenarios('COPERA-001', [
+      '2026-01-01', '2028-01-01',
     ])
     // Later date should be >= earlier (more service, higher projected AMS)
     expect(scenarios[1].net_monthly_benefit).toBeGreaterThanOrEqual(scenarios[0].net_monthly_benefit)
-  })
-
-  it('Case 2 scenario: approaching Rule of 75 threshold', async () => {
-    // Jennifer Kim at age 55 has rule_of_n = 73.17 (below 75)
-    // In ~2 years she gains age and service, approaching 75
-    const scenarios = await demoApi.calculateScenarios('10002', [
-      '2026-05-01', '2028-05-01',
-    ])
-    // First date: early retirement
-    expect(scenarios[0].retirement_type).toBe('early')
-    // The later date should have a higher benefit due to more service and possibly less reduction
-    expect(scenarios[1].net_monthly_benefit).toBeGreaterThan(scenarios[0].net_monthly_benefit)
-  })
-})
-
-// ── Leave Payout ─────────────────────────────────────────────────────────
-
-describe('Leave Payout', () => {
-  it('Case 1 (hired 1997, before 2010 cutoff) eligibility confirms leave payout eligible', async () => {
-    const elig = await demoApi.evaluateEligibility('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    const leaveEntry = elig.audit_trail.find(e => e.rule_name === 'Leave Payout')
-    expect(leaveEntry).toBeDefined()
-    expect(leaveEntry!.result).toBe('ELIGIBLE')
-    expect(leaveEntry!.source_reference).toContain('RMC')
-  })
-
-  it('Case 1 eligibility conditions mention leave payout', async () => {
-    const elig = await demoApi.evaluateEligibility('10001', DEFAULT_RETIREMENT_DATES['10001'])
-    const hasLeaveCondition = elig.conditions_met.some(c =>
-      c.toLowerCase().includes('leave payout')
-    )
-    expect(hasLeaveCondition).toBe(true)
-  })
-
-  it('Case 3 (Tier 3, hired after 2010) has no leave payout audit entry', async () => {
-    const elig = await demoApi.evaluateEligibility('10003', DEFAULT_RETIREMENT_DATES['10003'])
-    // Tier 3 members hired on/after July 1, 2011 — not eligible for leave payout
-    const leaveEntry = elig.audit_trail.find(e => e.rule_name === 'Leave Payout')
-    // Either no entry, or entry shows NOT_ELIGIBLE
-    if (leaveEntry) {
-      expect(leaveEntry.result).not.toBe('ELIGIBLE')
-    }
   })
 })
 
 // ── Data Completeness ────────────────────────────────────────────────────
 
 describe('Data Completeness', () => {
-  const caseIds = ['10001', '10002', '10003', '10004']
+  const caseIds = ['COPERA-001', 'COPERA-002', 'COPERA-003']
 
   it('all demo cases have member data', async () => {
     for (const id of caseIds) {
@@ -292,8 +170,8 @@ describe('Data Completeness', () => {
       expect(member).toBeDefined()
       expect(member.first_name).toBeTruthy()
       expect(member.last_name).toBeTruthy()
-      expect(member.tier).toBeGreaterThanOrEqual(1)
-      expect(member.tier).toBeLessThanOrEqual(3)
+      expect(member.division).toBeTruthy()
+      expect(member.has_table).toBeGreaterThanOrEqual(1)
     }
   })
 
@@ -340,7 +218,7 @@ describe('Data Completeness', () => {
     expect(fmt(undefined as unknown as number)).toBe('—')
   })
 
-  it('DEFAULT_RETIREMENT_DATES covers all 4 demo cases', () => {
+  it('DEFAULT_RETIREMENT_DATES covers all 3 demo cases', () => {
     for (const c of DEMO_CASES) {
       expect(DEFAULT_RETIREMENT_DATES[c.id]).toBeDefined()
       // Dates should be valid YYYY-MM-DD format

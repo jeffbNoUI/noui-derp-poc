@@ -20,7 +20,7 @@ export interface IPRVerification {
   member_id: string
   member_name: string
   tier: number
-  earned_service_years: number // purchased service EXCLUDED from IPR — RMC §18-412
+  earned_service_years: number // purchased service EXCLUDED from IPR — C.R.S. §24-51-1201
   pre_medicare_monthly: number // earned_years * $12.50
   post_medicare_monthly: number // earned_years * $6.25
   medicare_eligible_date?: string

@@ -1,6 +1,6 @@
 /**
  * Vendor demo data verification — validates enrollment queue, IPR calculations, and stats.
- * IPR uses EARNED service years only — purchased service credit is EXCLUDED (RMC §18-412).
+ * IPR uses EARNED service years only — purchased service credit is EXCLUDED (C.R.S. §24-51-1201).
  *
  * TOUCHPOINTS for vendor-demo-data.test.ts:
  *   Upstream: vendor-demo-data.ts (fixtures), types/Vendor.ts (interfaces), demo-data.ts (shared member IDs)
@@ -71,7 +71,7 @@ describe('Vendor Demo Data Verification', () => {
     it('Case 2 (Jennifer Kim): purchased service EXCLUDED — earned_service_years < total', () => {
       const ipr = DEMO_IPR_VERIFICATIONS['10002']
       // Jennifer Kim has 21.17 total service years but only 18.17 earned
-      // 3.00 years of purchased service is excluded from IPR per RMC §18-412
+      // 3.00 years of purchased service is excluded from IPR per C.R.S. §24-51-1201
       expect(ipr.earned_service_years).toBe(18.17)
       // Verify that earned_service_years is less than what total would be
       expect(ipr.earned_service_years).toBeLessThan(21.17) // total_service_years from demo-data.ts

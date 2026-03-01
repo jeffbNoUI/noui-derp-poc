@@ -1,5 +1,5 @@
 /**
- * F18 Information Release Authorization — authorize DERP to share info with a third party.
+ * F18 Information Release Authorization — authorize COPERA to share info with a third party.
  * Consumed by: FORM_REGISTRY
  * Depends on: FormDefinition type
  */
@@ -8,7 +8,7 @@ import type { FormDefinition } from '@/types/FormDefinition'
 export const f18InfoRelease: FormDefinition = {
   formId: 'F18',
   formName: 'Information Release Authorization',
-  formDescription: 'Authorize DERP to release your account information to a designated third party.',
+  formDescription: 'Authorize COPERA to release your account information to a designated third party.',
   processType: 'account',
   estimatedMinutes: 5,
   steps: [

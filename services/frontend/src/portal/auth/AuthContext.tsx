@@ -18,7 +18,7 @@ interface AuthState {
 }
 
 const AuthContext = createContext<AuthState>({
-  memberId: '10001',
+  memberId: 'COPERA-001',
   setMemberId: () => {},
   isAuthenticated: false,
   user: null,
@@ -27,14 +27,13 @@ const AuthContext = createContext<AuthState>({
 })
 
 const DEMO_MEMBERS = [
-  { id: '10001', name: 'Robert Martinez', tier: 1, label: 'Tier 1 · Rule of 75' },
-  { id: '10002', name: 'Jennifer Kim', tier: 2, label: 'Tier 2 · Early Retirement' },
-  { id: '10003', name: 'David Washington', tier: 3, label: 'Tier 3 · Early Retirement' },
-  { id: '10004', name: 'Robert Martinez (DRO)', tier: 1, label: 'Tier 1 · DRO' },
+  { id: 'COPERA-001', name: 'Maria Garcia', division: 'State', label: 'State | PERA 1 | Rule of 80' },
+  { id: 'COPERA-002', name: 'James Chen', division: 'School', label: 'School | PERA 6 | Early Retirement' },
+  { id: 'COPERA-003', name: 'Sarah Williams', division: 'DPS', label: 'DPS | DPS 1 | Rule of 80' },
 ] as const
 
 export function PortalAuthProvider({ children }: { children: ReactNode }) {
-  const [memberId, setMemberId] = useState('10001')
+  const [memberId, setMemberId] = useState('COPERA-001')
   const [user, setUser] = useState<MemberUser | null>(null)
 
   useEffect(() => {
@@ -54,7 +53,7 @@ export function PortalAuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     clearSession('member')
     setUser(null)
-    setMemberId('10001')
+    setMemberId('COPERA-001')
   }
 
   return (

@@ -48,10 +48,10 @@ function EmployerLayoutInner() {
                 background: T.accent.primary,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>D</span>
+                <span style={{ fontSize: 12, fontWeight: 800, color: '#fff' }}>C</span>
               </div>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>DERP</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#f1f5f9' }}>COPERA</div>
                 <div style={{ fontSize: 9, color: '#94a3b8', textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Employer Portal</div>
               </div>
             </div>

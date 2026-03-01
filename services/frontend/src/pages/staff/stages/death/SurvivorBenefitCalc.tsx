@@ -104,7 +104,7 @@ export function SurvivorBenefitCalc({ survivorBenefit, activeMemberDeath, proces
             {survivorBenefit.formula}
           </div>
           <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '4px' }}>
-            Source: RMC {'\u00A7'}18-410(a)(1)
+            Source: C.R.S. {'\u00A7'}24-51-802
           </div>
         </div>
 

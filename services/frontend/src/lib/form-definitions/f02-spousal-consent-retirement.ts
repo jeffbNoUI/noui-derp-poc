@@ -47,7 +47,7 @@ export const f02SpousalConsentRetirement: FormDefinition = {
       fields: [
         { key: 'consent_statement', type: 'info_block', label: 'Consent Statement', infoText: 'By signing below, I acknowledge that I have been informed of my spouse\u2019s retirement benefit election. I understand the impact on any survivor benefits I may be entitled to receive.' },
         { key: 'spouse_esign', type: 'esign', label: 'I consent to the benefit election described above', helpText: 'This electronic signature will be recorded with a timestamp', required: true },
-        { key: 'notarize_info', type: 'info_block', label: 'Notarization Required', infoText: 'A notarized copy of this consent form must be submitted to DERP before the retirement application can be finalized.' },
+        { key: 'notarize_info', type: 'info_block', label: 'Notarization Required', infoText: 'A notarized copy of this consent form must be submitted to Colorado PERA before the retirement application can be finalized.' },
       ],
       canContinue: (state) => !!state.spouse_esign,
     },

@@ -71,7 +71,7 @@ export function RefundEligibility({ eligibility, memberName, terminationDate }: 
       <Field
         label="Vested"
         value={e.vested ? 'Yes' : 'No'}
-        sub={e.vested ? 'Service >= 5 years — RMC §18-401' : 'Service < 5 years — not vested'}
+        sub={e.vested ? 'Service >= 5 years — C.R.S. §24-51-101' : 'Service < 5 years — not vested'}
       />
 
       {/* Waiting period */}
@@ -84,7 +84,7 @@ export function RefundEligibility({ eligibility, memberName, terminationDate }: 
       <Field
         label="Earliest Application"
         value={e.earliest_application_date}
-        sub="Termination + 90 calendar days — RMC §18-403(a)"
+        sub="Termination + 90 calendar days — C.R.S. §24-51-401"
       />
 
       {/* Forfeiture warning for vested members */}
@@ -94,7 +94,7 @@ export function RefundEligibility({ eligibility, memberName, terminationDate }: 
           background: C.dangerMuted, border: `1px solid ${C.dangerBorder}`,
         }}>
           <div style={{ color: C.danger, fontSize: '10.5px', fontWeight: 600, marginBottom: '2px' }}>
-            Forfeiture Required — RMC §18-404
+            Forfeiture Required — C.R.S. §24-51-401
           </div>
           <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
             As a vested member, taking a refund permanently forfeits all pension rights.

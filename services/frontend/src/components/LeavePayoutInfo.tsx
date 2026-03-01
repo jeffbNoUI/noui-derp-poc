@@ -1,59 +1,80 @@
-import type { Member } from '@/types/Member'
-import { Clock, AlertTriangle } from 'lucide-react'
+/**
+ * Anti-spiking detail panel — displays salary capping under C.R.S. §24-51-101(25.5).
+ * COPERA uses 108% cascading salary cap per C.R.S. §24-51-101(25.5).
+ * Consumed by: BenefitWorkspace (when anti-spiking is triggered)
+ * Depends on: AntiSpikingYear type
+ *
+ * Note: File retains LeavePayoutInfo name for backward compatibility with existing imports.
+ */
+import type { Member, AntiSpikingYear } from '@/types/Member'
+import { AlertTriangle, Shield } from 'lucide-react'
+import { formatCurrency } from '@/lib/utils'
 
 interface LeavePayoutInfoProps {
   member: Member
   leavePayoutAmount?: number
+  antiSpikingDetail?: AntiSpikingYear[]
 }
 
-export function LeavePayoutInfo({ member, leavePayoutAmount }: LeavePayoutInfoProps) {
-  const hiredBefore2010 = new Date(member.hire_date) < new Date('2010-01-01')
-  const isEligible = member.tier <= 2 && hiredBefore2010
+export function LeavePayoutInfo({ member, antiSpikingDetail }: LeavePayoutInfoProps) {
+  // COPERA: no leave payout concept. This component now shows anti-spiking details.
+  if (!antiSpikingDetail || antiSpikingDetail.length === 0) return null
 
-  if (!isEligible) return null
+  const cappedYears = antiSpikingDetail.filter(d => d.cap_applied)
+  if (cappedYears.length === 0) return null
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm p-6 animate-fadeIn">
       <div className="flex items-center gap-2 mb-4">
-        <Clock className="w-5 h-5 text-primary" />
-        <h2 className="text-lg font-semibold text-gray-900">Leave Payout</h2>
+        <Shield className="w-5 h-5 text-warning" />
+        <h2 className="text-lg font-semibold text-gray-900">Anti-Spiking Detail</h2>
       </div>
 
-      <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg mb-4 text-sm">
-        <p className="text-blue-800">
-          <strong>Eligible for leave payout.</strong> Member was hired before January 1, 2010
-          with sick/vacation leave (not PTO).
+      <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-sm">
+        <p className="text-amber-800">
+          <strong>Anti-spiking applies.</strong> Salary in the HAS window is capped at 108% of
+          the prior year's salary (base year method). This prevents pension benefit inflation
+          from large salary increases near retirement.
         </p>
-        <p className="text-blue-700 mt-1 text-xs">
-          The payout amount is added to the final month of salary, which may increase the
-          Average Monthly Salary (AMS) if the final months fall within the highest consecutive window.
-        </p>
-        <p className="text-blue-600 mt-1 text-xs">Source: RMC §18-412</p>
+        <p className="text-amber-600 mt-1 text-xs">Source: C.R.S. §24-51-101(25.5)</p>
       </div>
 
-      {leavePayoutAmount !== undefined && leavePayoutAmount > 0 && (
-        <div className="space-y-2 text-sm">
-          <div className="flex justify-between">
-            <span className="text-muted">Leave Payout Amount</span>
-            <span className="font-mono font-semibold">
-              ${leavePayoutAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <div className="flex items-start gap-2 mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
-            <AlertTriangle className="w-3.5 h-3.5 text-amber-600 mt-0.5 shrink-0" />
-            <span className="text-amber-800">
-              This amount is added to the final month's pensionable pay. The AMS calculation
-              includes this when computing the highest consecutive salary window.
-            </span>
-          </div>
-        </div>
-      )}
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th className="text-left py-2 px-3 text-muted font-medium">Year</th>
+              <th className="text-right py-2 px-3 text-muted font-medium">Actual Pay</th>
+              <th className="text-right py-2 px-3 text-muted font-medium">108% Cap</th>
+              <th className="text-right py-2 px-3 text-muted font-medium">Used Pay</th>
+              <th className="text-center py-2 px-3 text-muted font-medium">Capped</th>
+            </tr>
+          </thead>
+          <tbody>
+            {antiSpikingDetail.map((d, i) => (
+              <tr key={i} className={`border-b border-border/50 ${d.cap_applied ? 'bg-amber-50/50' : ''}`}>
+                <td className="py-2 px-3 font-medium">{d.year}</td>
+                <td className="py-2 px-3 text-right font-mono">{formatCurrency(d.actual_pay)}</td>
+                <td className="py-2 px-3 text-right font-mono">{formatCurrency(d.cap_amount)}</td>
+                <td className="py-2 px-3 text-right font-mono font-semibold">{formatCurrency(d.used_pay)}</td>
+                <td className="py-2 px-3 text-center">
+                  {d.cap_applied ? (
+                    <span className="inline-flex items-center gap-1 text-amber-700 font-semibold">
+                      <AlertTriangle className="w-3 h-3" /> Yes
+                    </span>
+                  ) : (
+                    <span className="text-green-600">No</span>
+                  )}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
 
-      {(leavePayoutAmount === undefined || leavePayoutAmount === 0) && (
-        <p className="text-sm text-muted italic">
-          No leave payout amount recorded. Member may still be eligible — verify with HR records.
-        </p>
-      )}
+      <p className="mt-3 text-xs text-muted italic">
+        Member: {member.first_name} {member.last_name} ({member.division} Division)
+      </p>
     </div>
   )
 }

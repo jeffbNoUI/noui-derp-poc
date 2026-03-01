@@ -46,8 +46,7 @@ export function CorrespondenceMiniPanel({
   const variables: Record<string, string> = useMemo(() => {
     if (!member) return {} as Record<string, string>
     const retType = eligibility?.retirement_type ?? ''
-    const typeLabel = retType === 'rule_of_75' ? 'Rule of 75'
-      : retType === 'rule_of_85' ? 'Rule of 85'
+    const typeLabel = retType === 'rule_of_n' ? (eligibility?.rule_of_n_label ?? 'Rule of N')
       : retType === 'early' ? 'Early Retirement'
       : retType === 'normal' ? 'Normal' : retType
     const reductionPct = eligibility ? Math.round((1 - eligibility.reduction_factor) * 100) : 0

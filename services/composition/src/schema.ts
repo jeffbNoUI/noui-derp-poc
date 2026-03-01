@@ -75,7 +75,7 @@ export const workspaceSpecSchema = {
       },
       knowledge_context: {
         type: 'array' as const,
-        description: 'Relevant DERP provisions for this workspace',
+        description: 'Relevant COPERA provisions for this workspace',
         items: {
           type: 'object' as const,
           properties: {

@@ -1,5 +1,5 @@
 /**
- * Correspondence letter templates for DERP retirement processing.
+ * Correspondence letter templates for COPERA retirement processing.
  * Extracted from standalone CorrespondenceComposer demo for reuse by mini-panel.
  * Consumed by: CorrespondenceComposer.tsx (standalone demo), CorrespondenceMiniPanel.tsx (utility rail)
  * Depends on: none (pure data)
@@ -23,14 +23,14 @@ export const CORRESPONDENCE_TEMPLATES: CorrespondenceTemplate[] = [
     variables: ['member_name', 'retirement_type', 'retirement_date', 'last_day_worked', 'benefit_amount', 'payment_option'],
     body: `Dear {{member_name}},
 
-We are pleased to confirm that your application for {{retirement_type}} retirement from the Denver Employees Retirement Plan has been approved, effective {{retirement_date}}. Your last day of active employment is recorded as {{last_day_worked}}.
+We are pleased to confirm that your application for {{retirement_type}} retirement from the Colorado Public Employees' Retirement Association has been approved, effective {{retirement_date}}. Your last day of active employment is recorded as {{last_day_worked}}.
 
 Your elected monthly benefit amount is {{benefit_amount}} under the {{payment_option}} payment option. This election is irrevocable after your first benefit payment is processed.
 
 Your first retirement benefit payment will be processed on {{retirement_date}}, contingent upon receipt of all required documentation.
 
 Sincerely,
-Denver Employees Retirement Plan
+Colorado Public Employees' Retirement Association
 Benefits Administration`,
   },
   {
@@ -47,10 +47,10 @@ We are writing regarding your pending retirement application with an effective d
 
 Please submit these items at your earliest convenience. Applications received after the 15th of the month prior to the retirement effective date may experience delayed first payment processing.
 
-If you have questions, please contact the DERP office at (303) 839-5419.
+If you have questions, please contact COPERA Member Services at 1-800-759-7372.
 
 Sincerely,
-Denver Employees Retirement Plan
+Colorado Public Employees' Retirement Association
 Benefits Administration`,
   },
   {
@@ -69,7 +69,7 @@ After reduction: {{reduced_amount}}/month
 This reduction is a permanent adjustment and will remain in effect for the duration of your retirement. It also applies to any future cost-of-living adjustments that may be approved by the Board.
 
 Sincerely,
-Denver Employees Retirement Plan
+Colorado Public Employees' Retirement Association
 Benefits Administration`,
   },
   {
@@ -84,10 +84,10 @@ This letter confirms that your retirement application was received on {{received
 
 Your application is now in processing. A benefits analyst will review your application and verify all information. You will receive a detailed benefit determination letter once processing is complete.
 
-If you have questions about the status of your application, please contact the DERP office at (303) 839-5419.
+If you have questions about the status of your application, please contact COPERA Member Services at 1-800-759-7372.
 
 Sincerely,
-Denver Employees Retirement Plan
+Colorado Public Employees' Retirement Association
 Benefits Administration`,
   },
   {
@@ -110,7 +110,7 @@ Alternate Payee Benefit: {{alternate_benefit}}/month
 The alternate payee will receive separate correspondence regarding their benefit and payment options.
 
 Sincerely,
-Denver Employees Retirement Plan
+Colorado Public Employees' Retirement Association
 Benefits Administration`,
   },
 ]

@@ -82,7 +82,7 @@ export function LiveSummary({
             done={confirmed.has('confirm')} color={ruleMet ? C.success : C.danger} />
           {reductionPct > 0 && <SumRow label="Reduction" value={`${reductionPct}%`} done={confirmed.has('elig')} color={C.danger} />}
           {ben && <SumRow label="AMS" value={fmt(ben.ams)} done={confirmed.has('salary')} />}
-          {leavePayout > 0 && <SumRow label="Leave Payout" value={fmt(leavePayout)} done={confirmed.has('salary')} color={C.warm} />}
+          {leavePayout > 0 && <SumRow label="Salary Spike" value={fmt(leavePayout)} done={confirmed.has('salary')} color={C.warm} />}
           {sc && sc.purchased_service_years > 0 && (
             <SumRow label="Purchased Svc" value={`${sc.purchased_service_years}y`} done={confirmed.has('purch')} color={C.warm} />
           )}
@@ -98,7 +98,7 @@ export function LiveSummary({
           <div style={{ borderTop: `1px solid ${C.border}`, margin: '6px 0' }} />
           {elOpt && <SumRow label="Option" value={elOpt.option_name} done={confirmed.has('payment')} />}
           {survivorAmt > 0 && <SumRow label="Survivor" value={`${fmt(survivorAmt)}/mo`} done={confirmed.has('payment')} />}
-          {ben?.ipr && <SumRow label="IPR" value={fmt(ben.ipr.monthly_amount)} done={confirmed.has('ipr')} />}
+          {ben?.annual_increase && <SumRow label="Annual Increase" value={`${(ben.annual_increase.rate * 100).toFixed(1)}%`} done={confirmed.has('supplemental')} />}
         </div>
       </div>
 

@@ -23,9 +23,9 @@ export function initPool(): pg.Pool | null {
   pool = new Pool({
     host,
     port: parseInt(process.env.DB_PORT || '5432', 10),
-    user: process.env.DB_USER || 'derp_app',
-    password: process.env.DB_PASS || 'derp_poc_2026',
-    database: process.env.DB_NAME || 'derp_legacy',
+    user: process.env.DB_USER || 'copera_app',
+    password: process.env.DB_PASS || 'copera_poc_2026',
+    database: process.env.DB_NAME || 'copera_legacy',
     max: 5,
     idleTimeoutMillis: 30_000,
   })

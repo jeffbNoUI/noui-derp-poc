@@ -48,7 +48,7 @@ export function Step1PersonalInfo({ T, draft, onUpdate, member: m, service: svc 
               I confirm this information is correct
             </div>
             <div style={{ fontSize: 11, color: T.text.muted, marginTop: 2 }}>
-              If anything needs updating, contact DERP at (303) 839-5419 before submitting your application.
+              If anything needs updating, contact Colorado PERA at 1-800-759-7372 before submitting your application.
             </div>
           </div>
         </label>

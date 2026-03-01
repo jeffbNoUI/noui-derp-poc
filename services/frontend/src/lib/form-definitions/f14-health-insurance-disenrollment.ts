@@ -1,5 +1,5 @@
 /**
- * F14 Health Insurance Disenrollment — cancel DERP health insurance coverage.
+ * F14 Health Insurance Disenrollment — cancel COPERA health insurance coverage.
  * Consumed by: FORM_REGISTRY
  * Depends on: FormDefinition type
  */
@@ -8,7 +8,7 @@ import type { FormDefinition } from '@/types/FormDefinition'
 export const f14HealthInsuranceDisenrollment: FormDefinition = {
   formId: 'F14',
   formName: 'Health Insurance Disenrollment',
-  formDescription: 'Cancel your DERP health insurance coverage.',
+  formDescription: 'Cancel your COPERA health insurance coverage.',
   processType: 'life-change',
   estimatedMinutes: 5,
   steps: [
@@ -41,7 +41,7 @@ export const f14HealthInsuranceDisenrollment: FormDefinition = {
       title: 'Acknowledgement',
       description: 'Understand the impact of disenrollment.',
       fields: [
-        { key: 'info_warning', type: 'info_block', label: 'Important', infoText: 'Once you disenroll from DERP health insurance, you may not be able to re-enroll unless you experience a qualifying life event. Please consider this carefully.' },
+        { key: 'info_warning', type: 'info_block', label: 'Important', infoText: 'Once you disenroll from COPERA health insurance, you may not be able to re-enroll unless you experience a qualifying life event. Please consider this carefully.' },
         { key: 'ack_understand', type: 'checkbox', label: 'I understand I may not be able to re-enroll', required: true },
       ],
       canContinue: (state) => !!state.ack_understand,

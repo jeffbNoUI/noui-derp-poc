@@ -25,7 +25,7 @@ export const f15DirectWithdrawal: FormDefinition = {
           { value: 'layoff', label: 'Layoff' },
           { value: 'other', label: 'Other' },
         ]},
-        { key: 'info_vesting', type: 'info_block', label: 'Vesting Notice', infoText: 'If you have 5 or more years of service, you are vested and may be entitled to a deferred retirement benefit. Withdrawing contributions means forfeiting this benefit. Contact DERP for a comparison.' },
+        { key: 'info_vesting', type: 'info_block', label: 'Vesting Notice', infoText: 'If you have 5 or more years of service, you are vested and may be entitled to a deferred retirement benefit. Withdrawing contributions means forfeiting this benefit. Contact COPERA for a comparison.' },
         { key: 'payment_method', type: 'radio', label: 'Payment Method', required: true, options: [
           { value: 'direct_rollover', label: 'Direct rollover to IRA/401k (no tax withholding)' },
           { value: 'direct_payment', label: 'Direct payment to me (20% federal tax withheld)' },
@@ -40,7 +40,7 @@ export const f15DirectWithdrawal: FormDefinition = {
       title: 'Certification & Signature',
       description: 'Acknowledge and sign.',
       fields: [
-        { key: 'ack_forfeit', type: 'checkbox', label: 'I understand that by withdrawing my contributions, I forfeit any future retirement benefit from DERP', required: true },
+        { key: 'ack_forfeit', type: 'checkbox', label: 'I understand that by withdrawing my contributions, I forfeit any future retirement benefit from COPERA', required: true },
         { key: 'ack_tax', type: 'checkbox', label: 'I understand the tax implications of my payment election', required: true },
         { key: 'member_esign', type: 'esign', label: 'Member Signature', required: true },
       ],

@@ -17,7 +17,7 @@ import {
   useEligibility, useBenefitCalculation, usePaymentOptions,
   useDROCalculation, useSaveElection,
 } from '@/hooks/useCalculations'
-import { C, tierMeta, fmt } from '@/theme'
+import { C, divisionMeta, hasTableMeta, fmt } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { CompositionRationale } from '@/components/shared/CompositionRationale'
 import { DEFAULT_RETIREMENT_DATES } from '@/lib/constants'
@@ -48,7 +48,7 @@ import { CaseCompleteSummary } from './CaseCompleteSummary'
 
 // ─── Leave payout constant (same as BenefitWorkspace) ────────
 const LEAVE_PAYOUTS: Record<string, number> = {
-  '10001': 52000, '10002': 0, '10003': 0, '10004': 52000,
+  'COPERA-001': 0, 'COPERA-002': 0, 'COPERA-003': 0,
 }
 
 // ─── Stage component registry ────────────────────────────────
@@ -263,7 +263,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
       gross_benefit: ben.gross_monthly_benefit,
       reduction_factor: elig.reduction_factor,
       dro_deduction: dro?.alternate_payee_amount,
-      ipr_amount: ben.ipr?.monthly_amount,
+      ipr_amount: ben.annual_increase?.rate,
       death_benefit_amount: ben.death_benefit?.amount,
     }, {
       onSuccess: (result) => { recordCaseComplete(); dispatch({ type: 'SAVE_SUCCESS', caseId: result.case_id }) },
@@ -290,13 +290,14 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
     )
   }
 
-  const tc = tierMeta[m.tier] || tierMeta[1]
+  const tc = divisionMeta[m.division] || divisionMeta['State']
+  const ht = hasTableMeta[m.has_table] || hasTableMeta[1]
   const age = elig?.age_at_retirement ?? 0
 
   // Derived eligibility values for LiveSummary (expert mode sidebar)
-  const ruleType = m.tier === 3 ? 'Rule of 85' : 'Rule of 75'
+  const ruleType = elig?.rule_of_n_label ?? `Rule of ${ht.ruleOfN}`
   const ruleSum = elig?.rule_of_n_value ?? 0
-  const ruleMet = elig?.retirement_type === 'rule_of_75' || elig?.retirement_type === 'rule_of_85'
+  const ruleMet = elig?.retirement_type === 'rule_of_n'
   const reductionPct = elig ? Math.round((1 - elig.reduction_factor) * 100) : 0
 
   // Case-level status — derived from confirmation progress and save state
@@ -376,7 +377,7 @@ export function GuidedWorkspace({ memberId, defaultMode = 'guided' }: { memberId
             width: '32px', height: '32px', borderRadius: '7px', background: tc.muted,
             border: `2px solid ${tc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 700, color: tc.color, fontSize: '10px',
-          }}>T{m.tier}</div>
+          }}>{ht.name}</div>
           <div>
             <div style={{ color: C.text, fontWeight: 700, fontSize: '13.5px' }}>{m.first_name} {m.last_name}</div>
             <div style={{ color: C.textSecondary, fontSize: '10px' }}>

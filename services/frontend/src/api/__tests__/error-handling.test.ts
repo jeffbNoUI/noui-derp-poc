@@ -133,33 +133,33 @@ describe('Error Handling', () => {
     })
   })
 
-  describe('tierMeta with edge cases', () => {
-    it('tier 1 has correct properties', () => {
-      const t = tierMeta[1]
+  describe('divisionMeta with edge cases', () => {
+    it('State division has correct properties', () => {
+      const t = tierMeta['State']
       expect(t).toBeDefined()
-      expect(t.label).toBe('Tier 1')
+      expect(t.label).toBe('State Division')
       expect(t.color).toBeTruthy()
       expect(t.muted).toBeTruthy()
     })
 
-    it('tier 2 has correct properties', () => {
-      const t = tierMeta[2]
+    it('School division has correct properties', () => {
+      const t = tierMeta['School']
       expect(t).toBeDefined()
-      expect(t.label).toBe('Tier 2')
+      expect(t.label).toBe('School Division')
     })
 
-    it('tier 3 has correct properties', () => {
-      const t = tierMeta[3]
+    it('DPS division has correct properties', () => {
+      const t = tierMeta['DPS']
       expect(t).toBeDefined()
-      expect(t.label).toBe('Tier 3')
+      expect(t.label).toBe('DPS Division')
     })
 
-    it('tier 0 is undefined', () => {
-      expect(tierMeta[0]).toBeUndefined()
+    it('unknown division is undefined', () => {
+      expect(tierMeta['Unknown']).toBeUndefined()
     })
 
-    it('tier 4 is undefined', () => {
-      expect(tierMeta[4]).toBeUndefined()
+    it('numeric key is undefined (no longer tier-based)', () => {
+      expect(tierMeta[0 as unknown as string]).toBeUndefined()
     })
   })
 

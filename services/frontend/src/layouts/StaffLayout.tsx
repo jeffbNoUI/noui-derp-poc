@@ -11,7 +11,7 @@
  */
 import { Component, type ReactNode, useState, useEffect } from 'react'
 import { Outlet, useNavigate, useParams, useLocation } from 'react-router-dom'
-import { C, tierMeta } from '@/theme'
+import { C, divisionMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
 import { useContainerWidth } from '@/hooks/useContainerWidth'
 import { DEMO_CASES } from '@/lib/constants'
@@ -311,18 +311,18 @@ function StaffLayoutInner() {
             letterSpacing: '1px', marginRight: '4px',
           }}>Demo Case</span>
           {DEMO_CASES.map(c => {
-            const t = tierMeta[c.tier]
+            const d = divisionMeta[c.division] ?? { color: C.accent, muted: C.accentMuted }
             const isActive = memberId === c.id
             return (
               <button key={c.id} onClick={() => navigate(`/staff/case/${c.id}${isGuided ? '/guided' : ''}`)} style={{
                 padding: '3px 9px', borderRadius: '5px',
-                border: `1px solid ${isActive ? t.color : C.border}`,
-                background: isActive ? t.muted : 'transparent',
-                color: isActive ? t.color : C.textMuted,
+                border: `1px solid ${isActive ? d.color : C.border}`,
+                background: isActive ? d.muted : 'transparent',
+                color: isActive ? d.color : C.textMuted,
                 cursor: 'pointer', fontSize: '10px', fontWeight: isActive ? 600 : 400,
                 transition: 'all 0.15s',
               }}>
-                {c.name.split(' ')[0]}{'suffix' in c ? c.suffix : ''}
+                {c.name.split(' ')[0]}{'suffix' in c ? String((c as Record<string, unknown>).suffix ?? '') : ''}
               </button>
             )
           })}

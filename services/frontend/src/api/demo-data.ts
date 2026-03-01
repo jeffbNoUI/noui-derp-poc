@@ -1,808 +1,519 @@
 /**
- * Demo data fixtures for all 4 demonstration cases.
- * These are cached responses matching the hand-calculated test fixtures.
+ * COPERA demo data fixtures for 3 demonstration cases.
+ * These are cached responses matching hand-calculated test fixtures in demo-cases/copera/.
  * Used in demo mode when backend services are not available.
  *
- * Values verified against test fixtures in demo-cases/*.json and
- * hand calculations in demo-cases/*.md.
+ * Case 1: Maria Garcia — State Division, PERA 1, Rule of 80, unreduced
+ * Case 2: James Chen — School Division, PERA 6, early retirement, anti-spiking triggered
+ * Case 3: Sarah Williams — DPS Division, DPS 1, Rule of 80, DPS benefit options
+ *
+ * Consumed by: usePortal.ts hooks, staff workspace, member portal
+ * Depends on: Member.ts types
  */
 import type {
   Member, EmploymentEvent, SalaryRecord, AMSResult, ServiceCreditSummary,
   Beneficiary, DRORecord, EligibilityResult, BenefitResult,
   PaymentOptionsResult, ScenarioResult, DROResult, ApplicationIntake, ServicePurchaseQuote,
+  AntiSpikingYear,
 } from '@/types/Member'
 
-// ─── Case 1: Robert Martinez — Tier 1, Rule of 75, Leave Payout ─────────────
+// ─── Case 1: Maria Garcia — State Division, PERA 1, Rule of 80 ─────────────
 
 const case1Member: Member = {
-  member_id: '10001',
-  first_name: 'Robert',
-  last_name: 'Martinez',
-  date_of_birth: '1963-03-08',
-  hire_date: '1997-06-15',
-  tier: 1,
+  member_id: 'COPERA-001',
+  first_name: 'Maria',
+  last_name: 'Garcia',
+  date_of_birth: '1963-07-20',
+  hire_date: '1998-01-01',
+  division: 'State',
+  has_table: 1,
+  has_table_name: 'PERA 1',
   status: 'Active',
-  department: 'Public Works',
-  position: 'Senior Engineer',
+  department: 'Department of Revenue',
+  position: 'Senior Financial Analyst',
+  marital_status: 'Married',
+  contribution_rate_ee: 0.105,
+  contribution_rate_er: 0.214,
 }
 
 const case1Employment: EmploymentEvent[] = [
-  { event_type: 'hire', effective_date: '1997-06-15', department: 'Public Works', position: 'Engineer I' },
-  { event_type: 'promotion', effective_date: '2003-03-01', department: 'Public Works', position: 'Engineer II' },
-  { event_type: 'promotion', effective_date: '2010-07-01', department: 'Public Works', position: 'Senior Engineer' },
+  { event_type: 'hire', effective_date: '1998-01-01', department: 'Department of Revenue', position: 'Financial Analyst I', employer: 'State of Colorado', division: 'State' },
+  { event_type: 'promotion', effective_date: '2005-07-01', department: 'Department of Revenue', position: 'Financial Analyst II' },
+  { event_type: 'promotion', effective_date: '2013-03-01', department: 'Department of Revenue', position: 'Senior Financial Analyst' },
 ]
 
 const case1ServiceCredit: ServiceCreditSummary = {
-  total_service_years: 28.75,
-  earned_service_years: 28.75,
+  total_service_years: 28.00,
+  earned_service_years: 28.00,
   purchased_service_years: 0,
   military_service_years: 0,
-  total_for_eligibility: 28.75,
-  total_for_benefit: 28.75,
+  total_for_eligibility: 28.00,
+  total_for_benefit: 28.00,
 }
 
 const case1AMS: AMSResult = {
-  ams_amount: 10639.45,
+  ams_amount: 7652.78,   // Monthly: $91,833.33 / 12
   window_months: 36,
-  window_start: '2023-04-01',
-  window_end: '2026-03-31',
+  window_start: '2023-01-01',
+  window_end: '2025-12-31',
   monthly_salaries: [],
+  anti_spiking_applied: false,
+  annual_has: 91833.33,
 }
 
 const case1Eligibility: EligibilityResult = {
-  member_id: '10001',
-  retirement_date: '2026-04-01',
-  tier: 1,
-  age_at_retirement: 63,
+  member_id: 'COPERA-001',
+  retirement_date: '2026-01-01',
+  division: 'State',
+  has_table: 1,
+  has_table_name: 'PERA 1',
+  age_at_retirement: 62,
   eligible: true,
-  retirement_type: 'rule_of_75',
-  rule_of_n_value: 91.75,
-  rule_of_n_threshold: 75,
+  retirement_type: 'normal',
+  rule_of_n_value: 90.00,
+  rule_of_n_threshold: 80,
+  rule_of_n_label: 'Rule of 80',
   reduction_factor: 1.0,
   conditions_met: [
-    'Vested: 28.75 years >= 5 years required',
-    'Rule of 75: age 63 + service 28.75 = 91.75 >= 75',
-    'Minimum age met: 63 >= 55',
-    'Leave payout eligible: hired before 2010-01-01',
+    'Vested: 28.00 years >= 5 years required',
+    'Normal retirement: age 62 >= 60 (PERA 1 normal age)',
+    'Rule of 80: age 62 + service 28.00 = 90.00 >= 80',
   ],
   conditions_unmet: [],
   audit_trail: [
-    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 28.75 >= 5.00', source_reference: 'RMC §18-403' },
-    { rule_id: 'RULE-ELIG-075', rule_name: 'Rule of 75', description: 'Age + earned service >= 75', result: 'PASS: 63 + 28.75 = 91.75', source_reference: 'RMC §18-408(b)' },
-    { rule_id: 'RULE-ELIG-LV', rule_name: 'Leave Payout', description: 'Hired before 2010, Tier 1/2', result: 'ELIGIBLE', source_reference: 'RMC §18-412' },
+    { rule_id: 'RULE-HAS-TABLE', rule_name: 'HAS Table', description: 'HAS table from CMPTIER0', result: 'PERA 1 (pre-2007 membership)', source_reference: 'C.R.S. §24-51-602' },
+    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 28.00 >= 5.00', source_reference: 'C.R.S. §24-51-401(1.7)' },
+    { rule_id: 'RULE-NORMAL', rule_name: 'Normal Retirement', description: 'PERA 1: age >= 60, vested', result: 'PASS: age 62 >= 60', source_reference: 'C.R.S. §24-51-602(1)(a)' },
+    { rule_id: 'RULE-RULE-80', rule_name: 'Rule of 80', description: 'Age + earned service >= 80, min age 55', result: 'PASS: 62 + 28.00 = 90.00 >= 80', source_reference: 'C.R.S. §24-51-602(1)(a)' },
   ],
 }
 
 const case1Benefit: BenefitResult = {
-  member_id: '10001',
-  retirement_date: '2026-04-01',
-  tier: 1,
-  ams: 10639.45,
+  member_id: 'COPERA-001',
+  retirement_date: '2026-01-01',
+  division: 'State',
+  has_table: 1,
+  has_table_name: 'PERA 1',
+  ams: 7652.78,
   ams_window_months: 36,
-  service_years_for_benefit: 28.75,
-  multiplier: 0.02,
-  gross_annual_benefit: 73376.16,
-  gross_monthly_benefit: 6117.68,
+  annual_has: 91833.33,
+  service_years_for_benefit: 28.00,
+  multiplier: 0.025,
+  gross_annual_benefit: 64283.33,
+  gross_monthly_benefit: 5356.94,
   reduction_factor: 1.0,
-  retirement_type: 'rule_of_75',
-  net_monthly_benefit: 6117.68,
-  formula_display: '$10,639.45 × 2.00% × 28.75 years = $6,117.68/month',
-  ipr: {
-    annual_amount: 4312.50,
-    monthly_amount: 359.38,
-    rate_per_year: 150.00,
-    eligible_service_years: 28.75,
-    medicare_eligible: false,
+  retirement_type: 'normal',
+  net_monthly_benefit: 5356.94,
+  formula_display: '($91,833.33 × 2.5% × 28.00 years) / 12 = $5,356.94/month',
+  anti_spiking_applied: false,
+  annual_increase: {
+    rate: 0.015,
+    first_eligible_date: '2028-03-01',
+    compound_method: 'compound',
+    note: 'Annual increase of 1.5% compound, effective March 1 of second calendar year after retirement. Source: C.R.S. §24-51-1002.',
   },
-  death_benefit: { amount: 5000, tier: 1, retirement_type: 'rule_of_75' },
+  death_benefit: { amount: 5000, has_table: 1, retirement_type: 'normal', description: 'Statutory survivor benefits per C.R.S. §24-51-701' },
   audit_trail: [
-    { rule_id: 'RULE-AMS-001', rule_name: 'AMS Calculation', description: 'Highest 36 consecutive months', result: '$10,639.45', source_reference: 'RMC §18-401(3)' },
-    { rule_id: 'RULE-MULT-001', rule_name: 'Multiplier', description: 'Tier 1 benefit multiplier', result: '2.00%', source_reference: 'RMC §18-408(a)' },
-    { rule_id: 'RULE-CALC-001', rule_name: 'Benefit Formula', description: 'AMS × multiplier × service', result: '$6,117.68', source_reference: 'RMC §18-408' },
-    { rule_id: 'RULE-IPR-001', rule_name: 'IPR', description: 'Earned service × $12.50/yr ÷ 12', result: '$359.38/mo', source_reference: 'RMC §18-415' },
-    { rule_id: 'RULE-DEATH-001', rule_name: 'Death Benefit', description: 'Lump sum for Rule of 75', result: '$5,000.00', source_reference: 'RMC §18-411(d)' },
+    { rule_id: 'RULE-HAS-CALC', rule_name: 'HAS Calculation', description: 'Highest 36 consecutive months (PERA 1)', result: '$91,833.33 annual / $7,652.78 monthly', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-ANTISPIKE', rule_name: 'Anti-Spiking Check', description: '108% cascading cap — base year method', result: 'No adjustment needed (all years within 108% cap)', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-MULT-001', rule_name: 'Multiplier', description: 'COPERA universal multiplier', result: '2.5%', source_reference: 'C.R.S. §24-51-603' },
+    { rule_id: 'RULE-BENEFIT', rule_name: 'Benefit Formula', description: 'HAS × 2.5% × service years', result: '$91,833.33 × 0.025 × 28.00 = $64,283.33/yr = $5,356.94/mo', source_reference: 'C.R.S. §24-51-603' },
   ],
 }
 
 const case1PaymentOptions: PaymentOptionsResult = {
-  base_monthly_benefit: 6117.68,
+  base_monthly_benefit: 5356.94,
+  division: 'State',
   options: [
-    { option_name: 'Maximum', option_type: 'maximum', monthly_amount: 6117.68, reduction_factor: 1.0, description: 'Full benefit amount, no survivor benefit.' },
-    { option_name: '100% Joint & Survivor', option_type: 'j&s_100', monthly_amount: 5414.15, reduction_factor: 0.8850, survivor_pct: 100, description: 'Reduced benefit; 100% continues to survivor.' },
-    { option_name: '75% Joint & Survivor', option_type: 'j&s_75', monthly_amount: 5597.68, reduction_factor: 0.9150, survivor_pct: 75, description: 'Reduced benefit; 75% continues to survivor.' },
-    { option_name: '50% Joint & Survivor', option_type: 'j&s_50', monthly_amount: 5781.21, reduction_factor: 0.9450, survivor_pct: 50, description: 'Reduced benefit; 50% continues to survivor.' },
+    { option_name: 'option_1', option_type: 'maximum', display_name: 'Option 1 (Maximum)', monthly_amount: 5356.94, reduction_factor: 1.0, description: 'Single life annuity — maximum monthly benefit, no survivor benefit' },
+    { option_name: 'option_2', option_type: 'js_50', display_name: 'Option 2 (J&S 50%)', monthly_amount: 5062.31, reduction_factor: 0.945, survivor_pct: 50, survivor_amount: 2531.16, description: 'Joint & survivor — 50% of reduced benefit continues to co-benefit recipient' },
+    { option_name: 'option_3', option_type: 'js_100', display_name: 'Option 3 (J&S 100%)', monthly_amount: 4740.89, reduction_factor: 0.885, survivor_pct: 100, survivor_amount: 4740.89, description: 'Joint & survivor — 100% of reduced benefit continues to co-benefit recipient' },
   ],
 }
 
-const case1Beneficiaries: Beneficiary[] = [
-  { name: 'Elena Martinez', relationship: 'Spouse', allocation_pct: 100, date_of_birth: '1966-09-15' },
-]
-
-// ─── Case 2: Jennifer Kim — Tier 2, Purchased Service, Early Retirement ──────
+// ─── Case 2: James Chen — School Division, PERA 6, Early Retirement, Anti-Spiking ───
 
 const case2Member: Member = {
-  member_id: '10002',
-  first_name: 'Jennifer',
-  last_name: 'Kim',
-  date_of_birth: '1970-06-22',
-  hire_date: '2008-03-01',
-  tier: 2,
+  member_id: 'COPERA-002',
+  first_name: 'James',
+  last_name: 'Chen',
+  date_of_birth: '1968-11-15',
+  hire_date: '2008-01-01',
+  division: 'School',
+  has_table: 6,
+  has_table_name: 'PERA 6',
   status: 'Active',
-  department: 'Finance',
-  position: 'Budget Analyst III',
+  department: 'Denver Public Schools',
+  position: 'IT Director',
+  marital_status: 'Single',
+  contribution_rate_ee: 0.105,
+  contribution_rate_er: 0.214,
 }
 
 const case2Employment: EmploymentEvent[] = [
-  { event_type: 'hire', effective_date: '2008-03-01', department: 'Finance', position: 'Budget Analyst I' },
-  { event_type: 'promotion', effective_date: '2012-07-01', department: 'Finance', position: 'Budget Analyst II' },
-  { event_type: 'promotion', effective_date: '2019-01-01', department: 'Finance', position: 'Budget Analyst III' },
+  { event_type: 'hire', effective_date: '2008-01-01', department: 'Denver Public Schools', position: 'Systems Administrator', employer: 'Denver Public Schools', division: 'School' },
+  { event_type: 'promotion', effective_date: '2015-07-01', department: 'Denver Public Schools', position: 'IT Manager' },
+  { event_type: 'promotion', effective_date: '2022-01-01', department: 'Denver Public Schools', position: 'IT Director' },
 ]
 
 const case2ServiceCredit: ServiceCreditSummary = {
-  total_service_years: 21.17,
-  earned_service_years: 18.17,
-  purchased_service_years: 3.00,
+  total_service_years: 18.00,
+  earned_service_years: 18.00,
+  purchased_service_years: 0,
   military_service_years: 0,
-  total_for_eligibility: 18.17,
-  total_for_benefit: 21.17,
+  total_for_eligibility: 18.00,
+  total_for_benefit: 18.00,
 }
 
+const case2AntiSpiking: AntiSpikingYear[] = [
+  { year: 2023, actual_pay: 67000, cap_amount: 69120, used_pay: 67000, cap_applied: false },
+  { year: 2024, actual_pay: 74000, cap_amount: 72360, used_pay: 72360, cap_applied: true },
+  { year: 2025, actual_pay: 78000, cap_amount: 78148.80, used_pay: 78000, cap_applied: false },
+]
+
 const case2AMS: AMSResult = {
-  ams_amount: 7347.62,
+  ams_amount: 6037.78,   // $72,453.33 / 12
   window_months: 36,
-  window_start: '2023-05-01',
-  window_end: '2026-04-30',
+  window_start: '2023-01-01',
+  window_end: '2025-12-31',
   monthly_salaries: [],
+  anti_spiking_applied: true,
+  anti_spiking_detail: case2AntiSpiking,
+  annual_has: 72453.33,
 }
 
 const case2Eligibility: EligibilityResult = {
-  member_id: '10002',
-  retirement_date: '2026-05-01',
-  tier: 2,
-  age_at_retirement: 55,
+  member_id: 'COPERA-002',
+  retirement_date: '2026-01-01',
+  division: 'School',
+  has_table: 6,
+  has_table_name: 'PERA 6',
+  age_at_retirement: 57,
   eligible: true,
   retirement_type: 'early',
-  rule_of_n_value: 73.17,
-  rule_of_n_threshold: 75,
-  reduction_factor: 0.70,
+  rule_of_n_value: 75.00,
+  rule_of_n_threshold: 85,
+  rule_of_n_label: 'Rule of 85',
+  reduction_factor: 0.68,
   conditions_met: [
-    'Vested: 18.17 years >= 5 years required',
-    'Minimum early retirement age met: 55 >= 55',
-    'Leave payout eligible: hired before 2010-01-01',
+    'Vested: 18.00 years >= 5 years required',
+    'Early retirement: age 57 >= 55 (PERA 6 min early age)',
   ],
   conditions_unmet: [
-    'Rule of 75: age 55 + earned 18.17 = 73.17 < 75 (purchased service excluded)',
-    'Normal retirement: age 55 < 65',
+    'Normal retirement: age 57 < 65 (PERA 6 normal age)',
+    'Rule of 85: age 57 + service 18.00 = 75.00 < 85',
   ],
   audit_trail: [
-    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 18.17 >= 5.00', source_reference: 'RMC §18-403' },
-    { rule_id: 'RULE-ELIG-075', rule_name: 'Rule of 75', description: 'Age + earned service >= 75', result: 'FAIL: 55 + 18.17 = 73.17 < 75', source_reference: 'RMC §18-408(b)' },
-    { rule_id: 'RULE-ELIG-EARLY', rule_name: 'Early Retirement', description: 'Age >= 55 for Tier 2', result: 'PASS: 55 >= 55', source_reference: 'RMC §18-409' },
-    { rule_id: 'RULE-REDUCE-T2', rule_name: 'Reduction', description: '3% per year under 65', result: '30% reduction (factor 0.70)', source_reference: 'RMC §18-409(b)' },
+    { rule_id: 'RULE-HAS-TABLE', rule_name: 'HAS Table', description: 'HAS table from CMPTIER0', result: 'PERA 6 (post-2011, vested before 2020)', source_reference: 'C.R.S. §24-51-602' },
+    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting', result: 'PASS: 18.00 >= 5.00', source_reference: 'C.R.S. §24-51-401(1.7)' },
+    { rule_id: 'RULE-NORMAL', rule_name: 'Normal Retirement', description: 'PERA 6: age >= 65', result: 'FAIL: 57 < 65', source_reference: 'C.R.S. §24-51-602(2)' },
+    { rule_id: 'RULE-RULE-85', rule_name: 'Rule of 85', description: 'Age + earned >= 85, min 55', result: 'FAIL: 57 + 18.00 = 75.00 < 85', source_reference: 'C.R.S. §24-51-602(2)' },
+    { rule_id: 'RULE-EARLY', rule_name: 'Early Retirement', description: 'PERA 6: age >= 55, vested', result: 'PASS: 57 >= 55. Reduction: 32% (8 years × 4%/yr)', source_reference: 'C.R.S. §24-51-605(3)' },
   ],
 }
 
 const case2Benefit: BenefitResult = {
-  member_id: '10002',
-  retirement_date: '2026-05-01',
-  tier: 2,
-  ams: 7347.62,
+  member_id: 'COPERA-002',
+  retirement_date: '2026-01-01',
+  division: 'School',
+  has_table: 6,
+  has_table_name: 'PERA 6',
+  ams: 6037.78,
   ams_window_months: 36,
-  service_years_for_benefit: 21.17,
-  multiplier: 0.015,
-  gross_annual_benefit: 27995.52,
-  gross_monthly_benefit: 2332.96,
-  reduction_factor: 0.70,
+  annual_has: 72453.33,
+  service_years_for_benefit: 18.00,
+  multiplier: 0.025,
+  gross_annual_benefit: 32604.00,
+  gross_monthly_benefit: 2717.00,
+  reduction_factor: 0.68,
   retirement_type: 'early',
-  net_monthly_benefit: 1633.07,
-  formula_display: '$7,347.62 × 1.50% × 21.17 years × 0.70 = $1,633.07/month',
-  ipr: {
-    annual_amount: 2725.56,
-    monthly_amount: 227.13,
-    rate_per_year: 150.00,
-    eligible_service_years: 18.17,
-    medicare_eligible: false,
+  net_monthly_benefit: 1847.56,
+  formula_display: '($72,453.33 × 2.5% × 18.00 years) / 12 = $2,717.00/mo × 0.68 = $1,847.56/month',
+  anti_spiking_applied: true,
+  anti_spiking_detail: case2AntiSpiking,
+  annual_increase: {
+    rate: 0.010,
+    first_eligible_date: '2028-03-01',
+    compound_method: 'compound',
+    note: 'Annual increase of 1.0% compound, effective March 1 of second calendar year after retirement. Source: C.R.S. §24-51-1002(1.5).',
   },
-  death_benefit: { amount: 2500, tier: 2, retirement_type: 'early' },
+  death_benefit: { amount: 5000, has_table: 6, retirement_type: 'early', description: 'Statutory survivor benefits per C.R.S. §24-51-701' },
   audit_trail: [
-    { rule_id: 'RULE-AMS-001', rule_name: 'AMS Calculation', description: 'Highest 36 consecutive months', result: '$7,347.62', source_reference: 'RMC §18-401(3)' },
-    { rule_id: 'RULE-MULT-002', rule_name: 'Multiplier', description: 'Tier 2 benefit multiplier', result: '1.50%', source_reference: 'RMC §18-408(a)' },
-    { rule_id: 'RULE-CALC-001', rule_name: 'Benefit Formula', description: 'AMS × multiplier × service', result: '$2,332.96 (unreduced)', source_reference: 'RMC §18-408' },
-    { rule_id: 'RULE-REDUCE-T2', rule_name: 'Early Retirement Reduction', description: '3% × 10 years = 30%', result: '$1,633.07 (reduced)', source_reference: 'RMC §18-409(b)' },
-    { rule_id: 'RULE-IPR-001', rule_name: 'IPR', description: 'Earned service only × $12.50/yr ÷ 12', result: '$227.13/mo', source_reference: 'RMC §18-415' },
-    { rule_id: 'RULE-DEATH-EARLY', rule_name: 'Death Benefit', description: '$5,000 - $250/yr × 10 years under 65', result: '$2,500.00', source_reference: 'RMC §18-411(d)' },
+    { rule_id: 'RULE-HAS-CALC', rule_name: 'HAS Calculation', description: '36-month window (vested before 2020)', result: '$72,453.33 annual (after anti-spiking)', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-ANTISPIKE', rule_name: 'Anti-Spiking', description: '108% cascading cap applied', result: '2024 salary capped: $74,000 → $72,360 (108% of $67,000)', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-BENEFIT', rule_name: 'Benefit Formula', description: 'HAS × 2.5% × service', result: '$72,453.33 × 0.025 × 18 = $32,604.00/yr = $2,717.00/mo', source_reference: 'C.R.S. §24-51-603' },
+    { rule_id: 'RULE-REDUCE', rule_name: 'Early Reduction', description: '4%/year under 65 (PERA 6)', result: '$2,717.00 × 0.68 = $1,847.56/mo', source_reference: 'C.R.S. §24-51-605(3)' },
   ],
 }
 
 const case2PaymentOptions: PaymentOptionsResult = {
-  base_monthly_benefit: 1633.07,
+  base_monthly_benefit: 1847.56,
+  division: 'School',
   options: [
-    { option_name: 'Maximum', option_type: 'maximum', monthly_amount: 1633.07, reduction_factor: 1.0, description: 'Full benefit amount, no survivor benefit.' },
-    { option_name: '100% Joint & Survivor', option_type: 'j&s_100', monthly_amount: 1445.27, reduction_factor: 0.8850, survivor_pct: 100, description: 'Reduced benefit; 100% continues to survivor.' },
-    { option_name: '75% Joint & Survivor', option_type: 'j&s_75', monthly_amount: 1494.26, reduction_factor: 0.9150, survivor_pct: 75, description: 'Reduced benefit; 75% continues to survivor.' },
-    { option_name: '50% Joint & Survivor', option_type: 'j&s_50', monthly_amount: 1543.25, reduction_factor: 0.9450, survivor_pct: 50, description: 'Reduced benefit; 50% continues to survivor.' },
+    { option_name: 'option_1', option_type: 'maximum', display_name: 'Option 1 (Maximum)', monthly_amount: 1847.56, reduction_factor: 1.0, description: 'Single life annuity' },
+    { option_name: 'option_2', option_type: 'js_50', display_name: 'Option 2 (J&S 50%)', monthly_amount: 1745.94, reduction_factor: 0.945, survivor_pct: 50, survivor_amount: 872.97, description: 'Joint & survivor 50%' },
+    { option_name: 'option_3', option_type: 'js_100', display_name: 'Option 3 (J&S 100%)', monthly_amount: 1635.09, reduction_factor: 0.885, survivor_pct: 100, survivor_amount: 1635.09, description: 'Joint & survivor 100%' },
   ],
 }
 
-const case2Beneficiaries: Beneficiary[] = [
-  { name: 'Estate', relationship: 'Estate', allocation_pct: 100 },
-]
-
-// ─── Case 3: David Washington — Tier 3, Early Retirement ─────────────────────
+// ─── Case 3: Sarah Williams — DPS Division, DPS 1, Rule of 80, DPS Options ─────
 
 const case3Member: Member = {
-  member_id: '10003',
-  first_name: 'David',
-  last_name: 'Washington',
-  date_of_birth: '1963-02-14',
-  hire_date: '2012-09-01',
-  tier: 3,
+  member_id: 'COPERA-003',
+  first_name: 'Sarah',
+  last_name: 'Williams',
+  date_of_birth: '1966-02-28',
+  hire_date: '2000-01-01',
+  division: 'DPS',
+  has_table: 10,
+  has_table_name: 'DPS 1',
   status: 'Active',
-  department: 'Parks and Recreation',
-  position: 'Program Manager',
+  department: 'Denver Police Department',
+  position: 'Police Sergeant',
+  marital_status: 'Married',
+  contribution_rate_ee: 0.12,
+  contribution_rate_er: 0.195,
 }
 
 const case3Employment: EmploymentEvent[] = [
-  { event_type: 'hire', effective_date: '2012-09-01', department: 'Parks and Recreation', position: 'Program Coordinator' },
-  { event_type: 'promotion', effective_date: '2017-03-01', department: 'Parks and Recreation', position: 'Program Manager' },
+  { event_type: 'hire', effective_date: '2000-01-01', department: 'Denver Police Department', position: 'Police Officer', employer: 'City of Denver', division: 'DPS' },
+  { event_type: 'promotion', effective_date: '2008-06-01', department: 'Denver Police Department', position: 'Police Corporal' },
+  { event_type: 'promotion', effective_date: '2015-01-01', department: 'Denver Police Department', position: 'Police Sergeant' },
 ]
 
 const case3ServiceCredit: ServiceCreditSummary = {
-  total_service_years: 13.58,
-  earned_service_years: 13.58,
+  total_service_years: 26.00,
+  earned_service_years: 26.00,
   purchased_service_years: 0,
   military_service_years: 0,
-  total_for_eligibility: 13.58,
-  total_for_benefit: 13.58,
+  total_for_eligibility: 26.00,
+  total_for_benefit: 26.00,
 }
 
 const case3AMS: AMSResult = {
-  ams_amount: 6684.52,
-  window_months: 60,
-  window_start: '2021-04-01',
-  window_end: '2026-03-31',
+  ams_amount: 9083.33,
+  window_months: 36,
+  window_start: '2023-01-01',
+  window_end: '2025-12-31',
   monthly_salaries: [],
+  anti_spiking_applied: false,
+  annual_has: 109000.00,
 }
 
 const case3Eligibility: EligibilityResult = {
-  member_id: '10003',
-  retirement_date: '2026-04-01',
-  tier: 3,
-  age_at_retirement: 63,
+  member_id: 'COPERA-003',
+  retirement_date: '2026-01-01',
+  division: 'DPS',
+  has_table: 10,
+  has_table_name: 'DPS 1',
+  age_at_retirement: 59,
   eligible: true,
-  retirement_type: 'early',
-  rule_of_n_value: 76.58,
-  rule_of_n_threshold: 85,
-  reduction_factor: 0.88,
+  retirement_type: 'rule_of_80',
+  rule_of_n_value: 85.00,
+  rule_of_n_threshold: 80,
+  rule_of_n_label: 'Rule of 80',
+  reduction_factor: 1.0,
   conditions_met: [
-    'Vested: 13.58 years >= 5 years required',
-    'Minimum early retirement age met: 63 >= 60',
+    'Vested: 26.00 years >= 5 years required',
+    'Rule of 80: age 59 + service 26.00 = 85.00 >= 80',
+    'Minimum age met: 59 >= 55',
   ],
   conditions_unmet: [
-    'Rule of 85: age 63 + service 13.58 = 76.58 < 85',
-    'Normal retirement: age 63 < 65',
+    'Normal retirement: age 59 < 60 (DPS 1 normal age)',
   ],
   audit_trail: [
-    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 13.58 >= 5.00', source_reference: 'RMC §18-403' },
-    { rule_id: 'RULE-ELIG-085', rule_name: 'Rule of 85', description: 'Age + service >= 85', result: 'FAIL: 63 + 13.58 = 76.58 < 85', source_reference: 'RMC §18-408(c)' },
-    { rule_id: 'RULE-ELIG-EARLY', rule_name: 'Early Retirement', description: 'Age >= 60 for Tier 3', result: 'PASS: 63 >= 60', source_reference: 'RMC §18-409' },
-    { rule_id: 'RULE-REDUCE-T3', rule_name: 'Reduction', description: '6% per year under 65', result: '12% reduction (factor 0.88)', source_reference: 'RMC §18-409(b)' },
+    { rule_id: 'RULE-HAS-TABLE', rule_name: 'HAS Table', description: 'HAS table from CMPTIER0', result: 'DPS 1 (pre-2005 DPS membership)', source_reference: 'C.R.S. §24-51-602' },
+    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting', result: 'PASS: 26.00 >= 5.00', source_reference: 'C.R.S. §24-51-401(1.7)' },
+    { rule_id: 'RULE-NORMAL', rule_name: 'Normal Retirement', description: 'DPS 1: age >= 60', result: 'FAIL: 59 < 60', source_reference: 'C.R.S. §24-51-602(1)(a)' },
+    { rule_id: 'RULE-RULE-80', rule_name: 'Rule of 80', description: 'Age + earned >= 80, min 55', result: 'PASS: 59 + 26.00 = 85.00 >= 80', source_reference: 'C.R.S. §24-51-602(1)(a)' },
   ],
 }
 
 const case3Benefit: BenefitResult = {
-  member_id: '10003',
-  retirement_date: '2026-04-01',
-  tier: 3,
-  ams: 6684.52,
-  ams_window_months: 60,
-  service_years_for_benefit: 13.58,
-  multiplier: 0.015,
-  gross_annual_benefit: 16336.80,
-  gross_monthly_benefit: 1361.40,
-  reduction_factor: 0.88,
-  retirement_type: 'early',
-  net_monthly_benefit: 1198.03,
-  formula_display: '$6,684.52 × 1.50% × 13.58 years × 0.88 = $1,198.03/month',
-  ipr: {
-    annual_amount: 2037.00,
-    monthly_amount: 169.75,
-    rate_per_year: 150.00,
-    eligible_service_years: 13.58,
-    medicare_eligible: false,
+  member_id: 'COPERA-003',
+  retirement_date: '2026-01-01',
+  division: 'DPS',
+  has_table: 10,
+  has_table_name: 'DPS 1',
+  ams: 9083.33,
+  ams_window_months: 36,
+  annual_has: 109000.00,
+  service_years_for_benefit: 26.00,
+  multiplier: 0.025,
+  gross_annual_benefit: 70850.00,
+  gross_monthly_benefit: 5904.17,
+  reduction_factor: 1.0,
+  retirement_type: 'rule_of_80',
+  net_monthly_benefit: 5904.17,
+  formula_display: '($109,000.00 × 2.5% × 26.00 years) / 12 = $5,904.17/month',
+  anti_spiking_applied: false,
+  annual_increase: {
+    rate: 0.015,
+    first_eligible_date: '2028-03-01',
+    compound_method: 'compound',
+    note: 'Annual increase of 1.5% compound, effective March 1 of second calendar year after retirement. Source: C.R.S. §24-51-1002.',
   },
-  death_benefit: { amount: 4000, tier: 3, retirement_type: 'early' },
+  death_benefit: { amount: 5000, has_table: 10, retirement_type: 'rule_of_80', description: 'Statutory survivor benefits per C.R.S. §24-51-701' },
   audit_trail: [
-    { rule_id: 'RULE-AMS-001', rule_name: 'AMS Calculation', description: 'Highest 60 consecutive months (Tier 3)', result: '$6,684.52', source_reference: 'RMC §18-401(3)' },
-    { rule_id: 'RULE-MULT-003', rule_name: 'Multiplier', description: 'Tier 3 benefit multiplier', result: '1.50%', source_reference: 'RMC §18-408(a)' },
-    { rule_id: 'RULE-CALC-001', rule_name: 'Benefit Formula', description: 'AMS × multiplier × service', result: '$1,361.40 (unreduced)', source_reference: 'RMC §18-408' },
-    { rule_id: 'RULE-REDUCE-T3', rule_name: 'Early Retirement Reduction', description: '6% × 2 years = 12%', result: '$1,198.03 (reduced)', source_reference: 'RMC §18-409(b)' },
-    { rule_id: 'RULE-IPR-001', rule_name: 'IPR', description: 'Earned service × $12.50/yr ÷ 12', result: '$169.75/mo', source_reference: 'RMC §18-415' },
-    { rule_id: 'RULE-DEATH-EARLY-T3', rule_name: 'Death Benefit', description: '$5,000 - $500/yr × 2 years under 65', result: '$4,000.00', source_reference: 'RMC §18-411(d)' },
+    { rule_id: 'RULE-HAS-CALC', rule_name: 'HAS Calculation', description: '36-month window (DPS 1)', result: '$109,000.00 annual / $9,083.33 monthly', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-ANTISPIKE', rule_name: 'Anti-Spiking', description: '108% cascading cap check', result: 'No adjustment needed', source_reference: 'C.R.S. §24-51-101(25.5)' },
+    { rule_id: 'RULE-BENEFIT', rule_name: 'Benefit Formula', description: 'HAS × 2.5% × service', result: '$109,000 × 0.025 × 26 = $70,850/yr = $5,904.17/mo', source_reference: 'C.R.S. §24-51-603' },
   ],
 }
 
+// DPS uses Options A/B/P2/P3, not 1/2/3
 const case3PaymentOptions: PaymentOptionsResult = {
-  base_monthly_benefit: 1198.03,
+  base_monthly_benefit: 5904.17,
+  division: 'DPS',
   options: [
-    { option_name: 'Maximum', option_type: 'maximum', monthly_amount: 1198.03, reduction_factor: 1.0, description: 'Full benefit amount, no survivor benefit.' },
-    { option_name: '100% Joint & Survivor', option_type: 'j&s_100', monthly_amount: 1060.26, reduction_factor: 0.8850, survivor_pct: 100, description: 'Reduced benefit; 100% continues to survivor.' },
-    { option_name: '75% Joint & Survivor', option_type: 'j&s_75', monthly_amount: 1096.20, reduction_factor: 0.9150, survivor_pct: 75, description: 'Reduced benefit; 75% continues to survivor.' },
-    { option_name: '50% Joint & Survivor', option_type: 'j&s_50', monthly_amount: 1132.14, reduction_factor: 0.9450, survivor_pct: 50, description: 'Reduced benefit; 50% continues to survivor.' },
+    { option_name: 'option_a', option_type: 'maximum', display_name: 'Option A (Maximum)', monthly_amount: 5904.17, reduction_factor: 1.0, description: 'Single life annuity — maximum monthly benefit' },
+    { option_name: 'option_b', option_type: 'modified_half', display_name: 'Option B (Modified Half)', monthly_amount: 5579.44, reduction_factor: 0.945, survivor_pct: 50, survivor_amount: 2789.72, description: '50% continues to co-benefit recipient after death' },
+    { option_name: 'pop_up_2', option_type: 'popup_75', display_name: 'Pop-Up 2 (J&S 75%)', monthly_amount: 5402.32, reduction_factor: 0.915, survivor_pct: 75, survivor_amount: 4051.74, pop_up_feature: true, description: '75% survivor; returns to full benefit if beneficiary predeceases retiree' },
+    { option_name: 'pop_up_3', option_type: 'popup_100', display_name: 'Pop-Up 3 (J&S 100%)', monthly_amount: 5225.19, reduction_factor: 0.885, survivor_pct: 100, survivor_amount: 5225.19, pop_up_feature: true, description: '100% survivor; returns to full benefit if beneficiary predeceases retiree' },
   ],
 }
+
+// ─── Beneficiaries ──────────────────────────────────────────────────────────
+
+const case1Beneficiaries: Beneficiary[] = [
+  { name: 'Carlos Garcia', relationship: 'Spouse', allocation_pct: 100, date_of_birth: '1965-02-14' },
+]
+
+const case2Beneficiaries: Beneficiary[] = [
+  { name: 'Linda Chen', relationship: 'Mother', allocation_pct: 100, date_of_birth: '1940-04-22' },
+]
 
 const case3Beneficiaries: Beneficiary[] = [
-  { name: 'Michelle Washington', relationship: 'Spouse', allocation_pct: 100, date_of_birth: '1965-08-03' },
+  { name: 'David Williams', relationship: 'Spouse', allocation_pct: 100, date_of_birth: '1964-09-10' },
 ]
 
-// ─── Case 4: Robert Martinez DRO — Same member as Case 1, with DRO ──────────
+// ─── Application Intake (simplified for COPERA demo) ──────────────────────
 
-const case4DRORecords: DRORecord[] = [
-  {
-    dro_id: 'DRO-100001',
-    case_number: '2017-DR-4521',
-    alternate_payee_name: 'Patricia Martinez',
-    division_method: 'percentage',
-    division_pct: 40,
-    marriage_date: '1999-08-15',
-    divorce_date: '2017-11-03',
-    status: 'approved',
-  },
-]
-
-const case4DROResult: DROResult = {
-  dro_id: 'DRO-100001',
-  total_service_years: 28.75,
-  marital_service_years: 18.25,
-  marital_fraction: 0.6348,
-  member_gross_benefit: 6117.68,
-  marital_share: 3883.10,
-  alternate_payee_amount: 1553.24,
-  member_net_after_dro: 4564.44,
-  division_method: 'percentage',
-  alternate_payee_name: 'Patricia Martinez',
-  audit_trail: [
-    { rule_id: 'RULE-DRO-MARITAL', rule_name: 'Marital Service', description: 'Marriage 1999-08-15 to divorce 2017-11-03', result: '18.25 years', source_reference: 'RMC §18-420' },
-    { rule_id: 'RULE-DRO-FRACTION', rule_name: 'Marital Fraction', description: '18.25 / 28.75', result: '0.6348', source_reference: 'RMC §18-420' },
-    { rule_id: 'RULE-DRO-SHARE', rule_name: 'Marital Share', description: '$6,117.68 × 0.6348', result: '$3,883.10', source_reference: 'RMC §18-420' },
-    { rule_id: 'RULE-DRO-DIVIDE', rule_name: 'Division', description: '40% of marital share', result: '$1,553.24 to alt payee', source_reference: 'Court Order 2017-DR-4521' },
-  ],
-}
-
-const case4PaymentOptions: PaymentOptionsResult = {
-  base_monthly_benefit: 4564.44,
-  options: [
-    { option_name: 'Maximum', option_type: 'maximum', monthly_amount: 4564.44, reduction_factor: 1.0, description: 'Full benefit after DRO split, no survivor benefit.' },
-    { option_name: '100% Joint & Survivor', option_type: 'j&s_100', monthly_amount: 4039.53, reduction_factor: 0.8850, survivor_pct: 100, description: 'Reduced benefit; 100% continues to survivor.' },
-    { option_name: '75% Joint & Survivor', option_type: 'j&s_75', monthly_amount: 4176.46, reduction_factor: 0.9150, survivor_pct: 75, description: 'Reduced benefit; 75% continues to survivor.' },
-    { option_name: '50% Joint & Survivor', option_type: 'j&s_50', monthly_amount: 4313.40, reduction_factor: 0.9450, survivor_pct: 50, description: 'Reduced benefit; 50% continues to survivor.' },
-  ],
-}
-
-// ─── Application Intake Fixtures ─────────────────────────────────────────────
-// Document checklists and timeline data for the Application Intake stage (Stage 0).
-// Documents vary by marital status, tier, age, and DRO presence.
-
-const case1Intake: ApplicationIntake = {
-  application_received_date: '2026-03-10',
-  last_day_worked: '2026-03-31',
-  retirement_effective_date: '2026-04-01',
+const defaultIntake: ApplicationIntake = {
+  application_received_date: '2025-10-15',
+  last_day_worked: '2025-12-31',
+  retirement_effective_date: '2026-01-01',
   notarization_confirmed: true,
-  notarization_date: '2026-03-10',
+  notarization_date: '2025-10-14',
   deadline_met: true,
-  days_before_last_day: 21,
+  days_before_last_day: 77,
   payment_cutoff_met: true,
-  cutoff_date: '2026-03-15',
-  first_payment_date: '2026-05-01',
+  cutoff_date: '2025-12-15',
+  first_payment_date: '2026-01-31',
   combined_payment: false,
+  documents: [
+    { doc_type: 'RETIREMENT_APP', doc_name: 'Application for Retirement', required: true, status: 'RECEIVED', received_date: '2025-10-15' },
+    { doc_type: 'BIRTH_CERT', doc_name: 'Birth Certificate', required: true, status: 'RECEIVED', received_date: '2025-10-15' },
+    { doc_type: 'MARRIAGE_CERT', doc_name: 'Marriage Certificate', required: true, conditional_on: 'marital_status:Married', status: 'RECEIVED', received_date: '2025-10-15' },
+    { doc_type: 'BENEFICIARY_FORM', doc_name: 'Beneficiary Designation', required: true, status: 'RECEIVED', received_date: '2025-10-15' },
+  ],
   package_complete: true,
-  complete_package_date: '2026-03-12',
-  documents: [
-    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
-    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
-    { doc_type: 'BIRTH_CERT_SPOUSE', doc_name: 'Birth Certificate (Spouse)', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-10' },
-    { doc_type: 'MARRIAGE_CERT', doc_name: 'Marriage Certificate', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-10' },
-    { doc_type: 'SS_ESTIMATE', doc_name: 'Social Security Benefit Estimate', required: true, conditional_on: 'Tier 1/2, age 62+', status: 'RECEIVED', received_date: '2026-03-12' },
-    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-03-10' },
-  ],
+  complete_package_date: '2025-10-15',
 }
 
-const case2Intake: ApplicationIntake = {
-  application_received_date: '2026-04-08',
-  last_day_worked: '2026-04-30',
-  retirement_effective_date: '2026-05-01',
-  notarization_confirmed: true,
-  notarization_date: '2026-04-08',
-  deadline_met: true,
-  days_before_last_day: 22,
-  payment_cutoff_met: true,
-  cutoff_date: '2026-04-15',
-  first_payment_date: '2026-06-01',
-  combined_payment: false,
-  package_complete: true,
-  complete_package_date: '2026-04-08',
-  documents: [
-    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
-    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
-    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-04-08' },
-  ],
-}
-
-const case3Intake: ApplicationIntake = {
-  application_received_date: '2026-03-12',
-  last_day_worked: '2026-03-31',
-  retirement_effective_date: '2026-04-01',
-  notarization_confirmed: true,
-  notarization_date: '2026-03-12',
-  deadline_met: true,
-  days_before_last_day: 19,
-  payment_cutoff_met: true,
-  cutoff_date: '2026-03-15',
-  first_payment_date: '2026-05-01',
-  combined_payment: false,
-  package_complete: true,
-  complete_package_date: '2026-03-14',
-  documents: [
-    { doc_type: 'NOTARIZED_APP', doc_name: 'Notarized Retirement Application', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
-    { doc_type: 'BIRTH_CERT_MEMBER', doc_name: 'Birth Certificate (Member)', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
-    { doc_type: 'BIRTH_CERT_SPOUSE', doc_name: 'Birth Certificate (Spouse)', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-12' },
-    { doc_type: 'MARRIAGE_CERT', doc_name: 'Marriage Certificate', required: true, conditional_on: 'Married', status: 'RECEIVED', received_date: '2026-03-14' },
-    { doc_type: 'VOIDED_CHECK', doc_name: 'Voided Check / Direct Deposit Form', required: true, status: 'RECEIVED', received_date: '2026-03-12' },
-  ],
-}
-
-const case4Intake: ApplicationIntake = {
-  ...case1Intake,
-  documents: [
-    ...case1Intake.documents,
-    { doc_type: 'DECREE_DISSOLUTION', doc_name: 'Decree of Dissolution (DRO)', required: true, conditional_on: 'DRO on file', status: 'RECEIVED', received_date: '2026-03-10' },
-  ],
-}
-
-// ─── Case 11: Lisa Chen — Tier 2, Service Purchase (Governmental) ────────────
-// Source: demo-cases/case11-chen-service-purchase-test-fixture.json
-// Tier 2, age 48, hired Oct 1 2005, salary $78,000/yr ($6,500/mo)
-// Purchasing 3.0 years of prior governmental service (State of Colorado)
-
-const case11Member: Member = {
-  member_id: '10011',
-  first_name: 'Lisa',
-  last_name: 'Chen',
-  date_of_birth: '1978-06-22',
-  hire_date: '2005-10-01',
-  tier: 2,
-  status: 'Active',
-  department: 'Finance',
-  position: 'Senior Financial Analyst',
-}
-
-const case11Employment: EmploymentEvent[] = [
-  { event_type: 'hire', effective_date: '2005-10-01', department: 'Finance', position: 'Financial Analyst I' },
-  { event_type: 'promotion', effective_date: '2012-04-01', department: 'Finance', position: 'Financial Analyst II' },
-  { event_type: 'promotion', effective_date: '2018-07-01', department: 'Finance', position: 'Senior Financial Analyst' },
-]
-
-const case11ServiceCredit: ServiceCreditSummary = {
-  total_service_years: 20.33,
-  earned_service_years: 20.33,
-  purchased_service_years: 0,
-  military_service_years: 0,
-  total_for_eligibility: 20.33,
-  total_for_benefit: 20.33,
-}
-
-const case11AMS: AMSResult = {
-  ams_amount: 6500.00,
-  window_months: 36,
-  window_start: '2023-03-01',
-  window_end: '2026-02-28',
-  monthly_salaries: [],
-}
-
-const case11Eligibility: EligibilityResult = {
-  member_id: '10011',
-  retirement_date: '2026-02-15',
-  tier: 2,
-  age_at_retirement: 48,
-  eligible: false,
-  retirement_type: 'not_eligible',
-  rule_of_n_value: 68.33,
-  rule_of_n_threshold: 75,
-  reduction_factor: 1.0,
-  conditions_met: [
-    'Vested: 20.33 years >= 5 years required',
-  ],
-  conditions_unmet: [
-    'Rule of 75: age 48 + earned 20.33 = 68.33 < 75 (purchased service excluded per RMC §18-415(a))',
-    'Minimum early retirement age: 48 < 55',
-    'Normal retirement: age 48 < 65',
-  ],
-  audit_trail: [
-    { rule_id: 'RULE-VEST-001', rule_name: 'Vesting', description: 'Check 5-year vesting requirement', result: 'PASS: 20.33 >= 5.00', source_reference: 'RMC §18-403' },
-    { rule_id: 'RULE-ELIG-075', rule_name: 'Rule of 75', description: 'Age + earned service >= 75', result: 'FAIL: 48 + 20.33 = 68.33 < 75', source_reference: 'RMC §18-408(b)' },
-    { rule_id: 'RULE-ELIG-AGE', rule_name: 'Min Age', description: 'Minimum age 55 for Tier 2', result: 'FAIL: 48 < 55', source_reference: 'RMC §18-409' },
-  ],
-}
-
-const case11Benefit: BenefitResult = {
-  member_id: '10011',
-  retirement_date: '2026-02-15',
-  tier: 2,
-  ams: 6500.00,
-  ams_window_months: 36,
-  service_years_for_benefit: 20.33,
-  multiplier: 0.015,
-  gross_annual_benefit: 23786.10,
-  gross_monthly_benefit: 1982.18,
-  reduction_factor: 1.0,
-  retirement_type: 'projection',
-  net_monthly_benefit: 1982.18,
-  formula_display: '$6,500.00 × 1.50% × 20.33 years = $1,982.18/month',
-  audit_trail: [
-    { rule_id: 'RULE-MULT-002', rule_name: 'Multiplier', description: 'Tier 2 benefit multiplier', result: '1.50%', source_reference: 'RMC §18-408(a)' },
-    { rule_id: 'RULE-CALC-001', rule_name: 'Benefit Formula', description: 'AMS × multiplier × service', result: '$1,982.18 (projected, unreduced)', source_reference: 'RMC §18-408' },
-  ],
-}
-
-// Service purchase quote — values verified against test fixture
-// Cost: 0.0860 x $78,000 x 3.0 = $20,124.00
-// Payroll: 361.60/mo x 60 = $21,696.00 (standard amortization formula)
-// Benefit increase: $292.50/mo, breakeven 69 months
-const case11PurchaseQuote: ServicePurchaseQuote = {
-  quote_date: '2026-02-15',
-  expiration_date: '2026-05-16',
-  member_age: 48,
-  tier: 2,
-  service_type: 'governmental',
-  years_requested: 3.0,
-  prior_employer: 'State of Colorado, Department of Revenue',
-  prior_employment_start: '2002-08-15',
-  prior_employment_end: '2005-09-25',
-  cost_factor: 0.0860,
-  current_annual_salary: 78000.00,
-  cost_per_year: 6708.00,
-  total_cost: 20124.00,
-  payment_options: {
-    lump_sum: { amount: 20124.00, interest: 0.00, total: 20124.00 },
-    payroll_deduction: {
-      monthly_payment: 361.60,
-      number_of_payments: 60,
-      annual_interest_rate: 0.03,
-      total_paid: 21696.00,
-      interest_cost: 1572.00,
-    },
-    rollover: { amount: 20124.00, tax_impact: 'none' },
-  },
-  benefit_impact: {
-    current_monthly: 1982.18,
-    projected_monthly: 2274.68,
-    monthly_increase: 292.50,
-    annual_increase: 3510.00,
-    breakeven_months: 69,
-    breakeven_years: 5.8,
-  },
-  eligibility_exclusion: {
-    rule_of_n_sum_without: 68.33,
-    rule_of_n_sum_with: 68.33,
-    purchased_excluded: true,
-  },
-  valid: true,
-  governing_rules: [
-    'RULE-PURCHASE-ELIGIBILITY',
-    'RULE-PURCHASE-COST-FACTOR',
-    'RULE-PURCHASE-PAYMENT-OPTIONS',
-    'RULE-PURCHASE-BENEFIT-IMPACT',
-    'RULE-PURCHASE-QUOTE-VALIDITY',
-  ],
-  audit_trail: [
-    { rule_id: 'RULE-PURCHASE-ELIGIBILITY', rule_name: 'Purchase Eligibility', description: 'Active, vested, governmental, 3.0 years', result: 'ELIGIBLE', source_reference: 'RMC §18-415(a)' },
-    { rule_id: 'RULE-PURCHASE-COST-FACTOR', rule_name: 'Cost Factor', description: 'T2, age 48 → factor 0.0860', result: '$20,124.00', source_reference: 'RMC §18-415(c)' },
-    { rule_id: 'RULE-PURCHASE-PAYMENT-OPTIONS', rule_name: 'Payment Options', description: 'Lump sum / 60-mo payroll / rollover', result: '3 options presented', source_reference: 'RMC §18-415(d)' },
-    { rule_id: 'RULE-PURCHASE-BENEFIT-IMPACT', rule_name: 'Benefit Impact', description: '+$292.50/mo, breakeven 69 months', result: '$1,982.18 → $2,274.68', source_reference: 'RMC §18-415(a)' },
-    { rule_id: 'RULE-PURCHASE-QUOTE-VALIDITY', rule_name: 'Quote Validity', description: '90-day window from Feb 15 2026', result: 'Valid until May 16 2026', source_reference: 'DERP Admin Practice' },
-  ],
-}
-
-// ─── Demo Data Registry ──────────────────────────────────────────────────────
+// ─── Lookup maps ─────────────────────────────────────────────────────────────
 
 const DEMO_MEMBERS: Record<string, Member> = {
-  '10001': case1Member,
-  '10002': case2Member,
-  '10003': case3Member,
-  '10004': case1Member,
-  '10011': case11Member,
+  'COPERA-001': case1Member,
+  'COPERA-002': case2Member,
+  'COPERA-003': case3Member,
 }
 
 const DEMO_EMPLOYMENT: Record<string, EmploymentEvent[]> = {
-  '10001': case1Employment,
-  '10002': case2Employment,
-  '10003': case3Employment,
-  '10004': case1Employment,
-  '10011': case11Employment,
+  'COPERA-001': case1Employment,
+  'COPERA-002': case2Employment,
+  'COPERA-003': case3Employment,
 }
 
 const DEMO_SERVICE_CREDIT: Record<string, ServiceCreditSummary> = {
-  '10001': case1ServiceCredit,
-  '10002': case2ServiceCredit,
-  '10003': case3ServiceCredit,
-  '10004': case1ServiceCredit,
-  '10011': case11ServiceCredit,
+  'COPERA-001': case1ServiceCredit,
+  'COPERA-002': case2ServiceCredit,
+  'COPERA-003': case3ServiceCredit,
 }
 
 const DEMO_AMS: Record<string, AMSResult> = {
-  '10001': case1AMS,
-  '10002': case2AMS,
-  '10003': case3AMS,
-  '10004': case1AMS,
-  '10011': case11AMS,
-}
-
-const DEMO_ELIGIBILITY: Record<string, EligibilityResult> = {
-  '10001': case1Eligibility,
-  '10002': case2Eligibility,
-  '10003': case3Eligibility,
-  '10004': case1Eligibility,
-  '10011': case11Eligibility,
-}
-
-const DEMO_BENEFIT: Record<string, BenefitResult> = {
-  '10001': case1Benefit,
-  '10002': case2Benefit,
-  '10003': case3Benefit,
-  '10004': case1Benefit,
-  '10011': case11Benefit,
-}
-
-const DEMO_PAYMENT_OPTIONS: Record<string, PaymentOptionsResult> = {
-  '10001': case1PaymentOptions,
-  '10002': case2PaymentOptions,
-  '10003': case3PaymentOptions,
-  '10004': case4PaymentOptions,
+  'COPERA-001': case1AMS,
+  'COPERA-002': case2AMS,
+  'COPERA-003': case3AMS,
 }
 
 const DEMO_BENEFICIARIES: Record<string, Beneficiary[]> = {
-  '10001': case1Beneficiaries,
-  '10002': case2Beneficiaries,
-  '10003': case3Beneficiaries,
-  '10004': case1Beneficiaries,
+  'COPERA-001': case1Beneficiaries,
+  'COPERA-002': case2Beneficiaries,
+  'COPERA-003': case3Beneficiaries,
 }
 
-const DEMO_DROS: Record<string, DRORecord[]> = {
-  '10001': [],
-  '10002': [],
-  '10003': [],
-  '10004': case4DRORecords,
+const DEMO_DROS: Record<string, DRORecord[]> = {}
+
+const DEMO_ELIGIBILITY: Record<string, EligibilityResult> = {
+  'COPERA-001': case1Eligibility,
+  'COPERA-002': case2Eligibility,
+  'COPERA-003': case3Eligibility,
 }
 
-const DEMO_DRO_RESULT: Record<string, DROResult> = {
-  '10004': case4DROResult,
+const DEMO_BENEFIT: Record<string, BenefitResult> = {
+  'COPERA-001': case1Benefit,
+  'COPERA-002': case2Benefit,
+  'COPERA-003': case3Benefit,
 }
+
+const DEMO_PAYMENT_OPTIONS: Record<string, PaymentOptionsResult> = {
+  'COPERA-001': case1PaymentOptions,
+  'COPERA-002': case2PaymentOptions,
+  'COPERA-003': case3PaymentOptions,
+}
+
+const DEMO_DRO_RESULT: Record<string, DROResult> = {}
+const DEMO_PURCHASE_QUOTES: Record<string, ServicePurchaseQuote> = {}
 
 const DEMO_INTAKE: Record<string, ApplicationIntake> = {
-  '10001': case1Intake,
-  '10002': case2Intake,
-  '10003': case3Intake,
-  '10004': case4Intake,
+  'COPERA-001': { ...defaultIntake },
+  'COPERA-002': { ...defaultIntake, documents: defaultIntake.documents.filter(d => d.conditional_on !== 'marital_status:Married') },
+  'COPERA-003': { ...defaultIntake },
 }
 
-const DEMO_PURCHASE_QUOTES: Record<string, ServicePurchaseQuote> = {
-  '10011': case11PurchaseQuote,
+// Scenario data for what-if comparisons
+const SCENARIO_MEMBER_DATA: Record<string, { baseRetirementDate: string; ams: number; multiplier: number; serviceYears: number; reductionFactor: number; earnedYears: number; age: number; hasTable: number }> = {
+  'COPERA-001': { baseRetirementDate: '2026-01-01', ams: 7652.78, multiplier: 0.025, serviceYears: 28.00, reductionFactor: 1.0, earnedYears: 28.00, age: 62, hasTable: 1 },
+  'COPERA-002': { baseRetirementDate: '2026-01-01', ams: 6037.78, multiplier: 0.025, serviceYears: 18.00, reductionFactor: 0.68, earnedYears: 18.00, age: 57, hasTable: 6 },
+  'COPERA-003': { baseRetirementDate: '2026-01-01', ams: 9083.33, multiplier: 0.025, serviceYears: 26.00, reductionFactor: 1.0, earnedYears: 26.00, age: 59, hasTable: 10 },
 }
 
-// ─── Scenario Calculator (deterministic rules engine simulation) ──────────
-// Computes projected benefit for each requested retirement date using DERP plan
-// provisions. Simulates what the Go backend /api/v1/benefit/scenario would return.
-// AMS projected with ~3% annual salary growth for future dates.
-// Consumed by: ScenarioModeler.tsx via demoApi.calculateScenarios
-// Depends on: DEMO_BENEFIT, DEMO_ELIGIBILITY fixtures (for base date exact values)
-
-/** Tier provisions from RMC — multiplier, eligibility thresholds, reduction rates */
-const TIER_PROVISIONS: Record<number, {
-  multiplier: number
-  ruleOfN: number
-  minEarlyAge: number
-  reductionPerYear: number  // 3% Tiers 1/2 (RMC §18-409(b)), 6% Tier 3
-}> = {
-  1: { multiplier: 0.02, ruleOfN: 75, minEarlyAge: 55, reductionPerYear: 0.03 },
-  2: { multiplier: 0.015, ruleOfN: 75, minEarlyAge: 55, reductionPerYear: 0.03 },
-  3: { multiplier: 0.015, ruleOfN: 85, minEarlyAge: 60, reductionPerYear: 0.06 },
-}
-
-/** Member data needed for scenario projection — derived from fixture constants above */
-const SCENARIO_MEMBER_DATA: Record<string, {
-  dob: string; hireDate: string; tier: number
-  purchasedService: number; baseAMS: number; baseRetirementDate: string
-}> = {
-  '10001': { dob: '1963-03-08', hireDate: '1997-06-15', tier: 1, purchasedService: 0, baseAMS: 10639.45, baseRetirementDate: '2026-04-01' },
-  '10002': { dob: '1970-06-22', hireDate: '2008-03-01', tier: 2, purchasedService: 3.00, baseAMS: 7347.62, baseRetirementDate: '2026-05-01' },
-  '10003': { dob: '1963-02-14', hireDate: '2012-09-01', tier: 3, purchasedService: 0, baseAMS: 6684.52, baseRetirementDate: '2026-04-01' },
-  '10004': { dob: '1963-03-08', hireDate: '1997-06-15', tier: 1, purchasedService: 0, baseAMS: 10639.45, baseRetirementDate: '2026-04-01' },
-}
-
-/** Age in completed years at a given date */
-function ageAt(dob: string, date: string): number {
-  const birth = new Date(dob)
-  const d = new Date(date)
-  let age = d.getFullYear() - birth.getFullYear()
-  const mDiff = d.getMonth() - birth.getMonth()
-  if (mDiff < 0 || (mDiff === 0 && d.getDate() < birth.getDate())) age--
-  return age
-}
-
-/** Service credit in years (complete months / 12) from hire to end date */
-function earnedServiceYears(hireDate: string, endDate: string): number {
-  const s = new Date(hireDate)
-  const e = new Date(endDate)
-  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth())
-  return Math.round((months / 12) * 100) / 100
-}
-
-/** Compute a single scenario result for a given member + retirement date */
-function computeScenario(memberId: string, retirementDate: string): ScenarioResult {
+function computeScenario(memberId: string, date: string): ScenarioResult {
   const md = SCENARIO_MEMBER_DATA[memberId]
-  if (!md) {
-    return { retirement_date: retirementDate, age_at_retirement: 0, eligible: false, retirement_type: 'unknown', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
-  }
+  if (!md) return { retirement_date: date, age_at_retirement: 0, eligible: false, retirement_type: 'unknown', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
 
-  const tp = TIER_PROVISIONS[md.tier]
-  const age = ageAt(md.dob, retirementDate)
-  const earnedSvc = earnedServiceYears(md.hireDate, retirementDate)
-  const totalSvcForBenefit = earnedSvc + md.purchasedService
-  // Purchased service excluded from Rule of 75/85 — RMC §18-407(c)
-  const totalSvcForEligibility = earnedSvc
+  const baseDate = new Date(md.baseRetirementDate)
+  const targetDate = new Date(date)
+  const monthsDiff = (targetDate.getFullYear() - baseDate.getFullYear()) * 12 + (targetDate.getMonth() - baseDate.getMonth())
+  const yearsDiff = monthsDiff / 12
 
-  // Project AMS with ~3% annual salary growth (bidirectional from base date)
-  const yearsDiff = (new Date(retirementDate).getTime() - new Date(md.baseRetirementDate).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
-  const projectedAMS = md.baseAMS * Math.pow(1.03, yearsDiff)
+  const projectedAge = md.age + yearsDiff
+  const projectedService = md.serviceYears + yearsDiff
+  const projectedAms = md.ams * Math.pow(1.03, yearsDiff)
 
-  // Vesting check — 5 years earned service required (RMC §18-403)
-  if (earnedSvc < 5) {
-    return { retirement_date: retirementDate, age_at_retirement: age, eligible: false, retirement_type: 'not_vested', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
-  }
-
-  // Eligibility determination — RMC §18-408, §18-409
-  let retirementType: string
-  let reductionFactor: number
-  const ruleOfNValue = age + totalSvcForEligibility
-
-  if (age >= 65) {
-    retirementType = 'normal'
-    reductionFactor = 1.0
-  } else if (ruleOfNValue >= tp.ruleOfN && age >= tp.minEarlyAge) {
-    retirementType = md.tier <= 2 ? 'rule_of_75' : 'rule_of_85'
-    reductionFactor = 1.0
-  } else if (age >= tp.minEarlyAge) {
-    retirementType = 'early'
-    const yearsUnder65 = 65 - age
-    reductionFactor = Math.round((1.0 - yearsUnder65 * tp.reductionPerYear) * 100) / 100
-  } else {
-    return { retirement_date: retirementDate, age_at_retirement: age, eligible: false, retirement_type: 'not_eligible', reduction_factor: 0, net_monthly_benefit: 0, annual_benefit: 0 }
-  }
-
-  // Benefit formula: AMS × multiplier × total_service × reduction — RMC §18-408
-  // Round only the final monthly benefit to cents (CLAUDE.md: carry full precision)
-  const netMonthly = Math.round(projectedAMS * tp.multiplier * totalSvcForBenefit * reductionFactor * 100) / 100
+  const unreduced = projectedAms * md.multiplier * projectedService
+  const factor = md.reductionFactor < 1.0 ? Math.min(1.0, md.reductionFactor + yearsDiff * 0.04) : 1.0
+  const benefit = Math.round(unreduced * factor * 100) / 100
 
   return {
-    retirement_date: retirementDate,
-    age_at_retirement: age,
-    eligible: true,
-    retirement_type: retirementType,
-    reduction_factor: reductionFactor,
-    net_monthly_benefit: netMonthly,
-    annual_benefit: Math.round(netMonthly * 12 * 100) / 100,
+    retirement_date: date,
+    age_at_retirement: Math.floor(projectedAge),
+    eligible: projectedService >= 5,
+    retirement_type: factor >= 1.0 ? 'normal' : 'early',
+    reduction_factor: Math.round(factor * 100) / 100,
+    net_monthly_benefit: benefit,
+    annual_benefit: Math.round(benefit * 12 * 100) / 100,
   }
 }
 
-// ─── Demo Data API (simulates network delay) ─────────────────────────────────
+// ─── Public API ──────────────────────────────────────────────────────────────
 
 function delay<T>(data: T, ms = 200): Promise<T> {
   return new Promise((resolve) => setTimeout(() => resolve(data), ms))
 }
 
 export function isDemoMode(): boolean {
-  // Demo mode is the default for the POC — opt OUT with ?live query param
   if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).has('live')) {
     return false
   }
@@ -818,7 +529,7 @@ export const demoApi = {
 
   getMember: (id: string) => {
     const m = DEMO_MEMBERS[id]
-    if (!m) return Promise.reject(new Error(`Demo member ${id} not found. Try 10001-10004.`))
+    if (!m) return Promise.reject(new Error(`Demo member ${id} not found. Try COPERA-001, COPERA-002, or COPERA-003.`))
     return delay(m)
   },
 
@@ -826,7 +537,10 @@ export const demoApi = {
 
   getSalary: (id: string) => {
     const ams = DEMO_AMS[id]
-    return delay({ records: [] as SalaryRecord[], ams: ams ?? { ams_amount: 0, window_months: 0, window_start: '', window_end: '', monthly_salaries: [] } })
+    return delay({
+      records: [] as SalaryRecord[],
+      ams: ams ?? { ams_amount: 0, window_months: 0, window_start: '', window_end: '', monthly_salaries: [], anti_spiking_applied: false, annual_has: 0 },
+    })
   },
 
   getServiceCredit: (id: string) => delay(DEMO_SERVICE_CREDIT[id] ?? { total_service_years: 0, earned_service_years: 0, purchased_service_years: 0, military_service_years: 0, total_for_eligibility: 0, total_for_benefit: 0 }),
@@ -856,9 +570,7 @@ export const demoApi = {
   calculateScenarios: (memberId: string, retirementDates: string[]) => {
     const md = SCENARIO_MEMBER_DATA[memberId]
     if (!md) return delay([] as ScenarioResult[])
-
     const results = retirementDates.map((d) => {
-      // For the base retirement date, return exact fixture data (penny-accurate)
       if (d === md.baseRetirementDate) {
         const e = DEMO_ELIGIBILITY[memberId]
         const b = DEMO_BENEFIT[memberId]
@@ -874,7 +586,6 @@ export const demoApi = {
           }
         }
       }
-      // For other dates, compute projected values
       return computeScenario(memberId, d)
     })
     return delay(results)
@@ -888,14 +599,14 @@ export const demoApi = {
 
   getPurchaseQuote: (memberId: string) => {
     const q = DEMO_PURCHASE_QUOTES[memberId]
-    if (!q) return Promise.reject(new Error(`No purchase quote for ${memberId}. Try 10011.`))
+    if (!q) return Promise.reject(new Error(`No purchase quote for ${memberId}.`))
     return delay(q)
   },
 
   saveElection: (election: {
     member_id: string; retirement_date: string; payment_option: string
     monthly_benefit: number; gross_benefit: number; reduction_factor: number
-    dro_deduction?: number; ipr_amount?: number; death_benefit_amount?: number
+    dro_deduction?: number; annual_increase_rate?: number; death_benefit_amount?: number
   }) => {
     return delay({
       member_id: election.member_id,

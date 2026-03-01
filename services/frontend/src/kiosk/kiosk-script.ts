@@ -103,7 +103,7 @@ export const KIOSK_SCRIPT: KioskStep[] = [
     action: { type: 'SELECT_EXPERT_STAGE', stageId: 'benefit-calc' },
     narrator: {
       headline: 'Benefit Calculation',
-      body: 'Every input, formula step, and intermediate result is visible. The $52,000 leave payout adds to the final salary month, potentially boosting the 36-month average.\n\nThe rules engine calculates; the workspace presents. Analysts can verify each step against the Revised Municipal Code citation shown alongside.',
+      body: 'Every input, formula step, and intermediate result is visible. The $52,000 leave payout adds to the final salary month, potentially boosting the 36-month average.\n\nThe rules engine calculates; the workspace presents. Analysts can verify each step against the C.R.S. Title 24 Article 51 citation shown alongside.',
       position: 'top-right',
     },
     dwell: 10000,
@@ -134,7 +134,7 @@ export const KIOSK_SCRIPT: KioskStep[] = [
     action: { type: 'SELECT_EXPERT_STAGE', stageId: 'payment-options' },
     narrator: {
       headline: 'Payment Options',
-      body: 'Five DERP payment options displayed with DRO-adjusted amounts. Members choose how to balance their monthly benefit against survivor protection.\n\nEvery dollar amount comes from the certified rules engine — the workspace presents, it never calculates. Analysts compare options side by side, something legacy systems required separate spreadsheets to achieve.',
+      body: 'Five Colorado PERA payment options displayed with DRO-adjusted amounts. Members choose how to balance their monthly benefit against survivor protection.\n\nEvery dollar amount comes from the certified rules engine — the workspace presents, it never calculates. Analysts compare options side by side, something legacy systems required separate spreadsheets to achieve.',
       position: 'top-right',
     },
     dwell: 10000,
@@ -195,7 +195,7 @@ export const KIOSK_SCRIPT: KioskStep[] = [
     action: { type: 'TOGGLE_LAYER', layer: 'rules' },
     narrator: {
       headline: 'Rules Citations',
-      body: 'The Learning Module shows Revised Municipal Code citations for every rule applied. Analysts can verify any determination against the governing documents — the source of truth, not institutional memory.\n\nThis is trust through transparency: the system shows its work.',
+      body: 'The Learning Module shows C.R.S. Title 24 Article 51 citations for every rule applied. Analysts can verify any determination against the governing documents — the source of truth, not institutional memory.\n\nThis is trust through transparency: the system shows its work.',
       position: 'top-right',
     },
     dwell: 8000,
@@ -289,7 +289,7 @@ export const KIOSK_SCRIPT: KioskStep[] = [
     action: { type: 'SET_STEP', step: 3 },
     narrator: {
       headline: 'Payment Option',
-      body: 'Members select from the same DERP payment options staff sees — Maximum, Option A through D. Each option shows the monthly amount and survivor benefit implications in plain language.',
+      body: 'Members select from the same Colorado PERA payment options staff sees — Maximum, Option 1 through 3. Each option shows the monthly amount and survivor benefit implications in plain language.',
       position: 'bottom-right',
     },
     dwell: 8000,
@@ -348,7 +348,7 @@ export const KIOSK_SCRIPT: KioskStep[] = [
     path: '/demos/knowledge-assistant',
     narrator: {
       headline: 'Knowledge Assistant',
-      body: 'AI reads governing documents and answers plan questions with Revised Municipal Code citations. Staff ask questions in plain language; the system responds with traced, verifiable answers.\n\nThe assistant never executes rules — it helps staff find the right provision faster.',
+      body: 'AI reads governing documents and answers plan questions with C.R.S. Title 24 Article 51 citations. Staff ask questions in plain language; the system responds with traced, verifiable answers.\n\nThe assistant never executes rules — it helps staff find the right provision faster.',
       position: 'bottom-center',
     },
     dwell: 9000,

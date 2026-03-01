@@ -20,7 +20,7 @@ interface KnowledgeSidebarProps {
   currentStageId?: string
   /** AI composition rationale per component — from useWorkspace agent mode */
   agentRationale?: Record<string, string>
-  /** AI composition knowledge context — DERP provision citations from agent */
+  /** AI composition knowledge context — COPERA provision citations from agent */
   agentKnowledge?: { provision_id: string; title: string; citation: string; relevance: string }[]
   /** Hide member identity section (name/tier/ID) — set true in portal where header already shows it */
   hideIdentity?: boolean

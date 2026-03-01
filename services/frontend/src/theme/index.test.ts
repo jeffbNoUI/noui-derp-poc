@@ -1,26 +1,35 @@
 /**
  * Theme barrel export verification — ensures all expected symbols are
  * re-exported from @/theme. Catches accidental removal during refactoring.
- * Tests: legacy theme (C, tierMeta, fmt), new theme system (types, themes, provider)
+ * Tests: legacy theme (C, divisionMeta, fmt), new theme system (types, themes, provider)
  */
 import { describe, it, expect } from 'vitest'
-import { C, tierMeta, fmt, memberTheme, staffTheme, ThemeProvider, useTheme } from './index'
+import { C, tierMeta, divisionMeta, hasTableMeta, fmt, memberTheme, staffTheme, ThemeProvider, useTheme } from './index'
 
 describe('Theme Barrel Exports', () => {
   describe('Legacy theme', () => {
     it('exports C color object with expected keys', () => {
       expect(C).toBeDefined()
-      expect(C.bg).toBe('#f6f9f9')
-      expect(C.accent).toBe('#00796b')
-      expect(C.text).toBe('#1a2e2e')
+      expect(C.bg).toBe('#f5f7fa')
+      expect(C.accent).toBe('#003366')
+      expect(C.text).toBe('#1a2233')
     })
 
-    it('exports tierMeta with 3 tiers', () => {
-      expect(tierMeta).toBeDefined()
-      expect(tierMeta[1]).toBeDefined()
-      expect(tierMeta[2]).toBeDefined()
-      expect(tierMeta[3]).toBeDefined()
-      expect(tierMeta[1].label).toBe('Tier 1')
+    it('exports divisionMeta with 5 divisions', () => {
+      expect(divisionMeta).toBeDefined()
+      expect(divisionMeta['State']).toBeDefined()
+      expect(divisionMeta['School']).toBeDefined()
+      expect(divisionMeta['DPS']).toBeDefined()
+      expect(divisionMeta['State'].label).toBe('State Division')
+      // tierMeta is backward-compat alias for divisionMeta
+      expect(tierMeta).toBe(divisionMeta)
+    })
+
+    it('exports hasTableMeta with 13 HAS tables', () => {
+      expect(hasTableMeta).toBeDefined()
+      expect(hasTableMeta[1].name).toBe('PERA 1')
+      expect(hasTableMeta[10].name).toBe('DPS 1')
+      expect(hasTableMeta[13].name).toBe('DPS 4')
     })
 
     it('exports fmt function (delegates to @/lib/constants)', () => {

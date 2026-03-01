@@ -1,6 +1,6 @@
 /**
  * Compact knowledge search panel — theme-neutral via optional colors prop.
- * Provides searchable DERP plan provisions with citations. In connected mode
+ * Provides searchable COPERA plan provisions with citations. In connected mode
  * (member loaded), provisions are sorted by stage relevance and each shows
  * member-specific analysis with status badges computed from real typed data.
  * Consumed by: UtilityRail.tsx, KnowledgeSidebar.tsx
@@ -25,7 +25,7 @@ interface KnowledgeMiniPanelProps {
   colors?: KnowledgeColors
   /** AI composition rationale per component — rendered in "AI Insights" section */
   agentRationale?: Record<string, string>
-  /** AI composition knowledge context — DERP provision citations from agent */
+  /** AI composition knowledge context — COPERA provision citations from agent */
   agentKnowledge?: { provision_id: string; title: string; citation: string; relevance: string }[]
   /** Hide member identity indicator — portal header already shows member name/tier */
   hideIdentity?: boolean

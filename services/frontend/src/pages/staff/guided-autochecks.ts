@@ -23,7 +23,7 @@ export interface AutoCheckContext {
   retirementDate: string
 }
 
-/** Verify that the member's tier matches their hire date per RMC §18-401 */
+/** Verify that the member's division matches their hire date per C.R.S. §24-51-101 */
 function tierMatchesHireDate(tier: number, hireDate: string): boolean {
   const d = new Date(hireDate)
   if (tier === 1) return d < new Date('2004-09-01')

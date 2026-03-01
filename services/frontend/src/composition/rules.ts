@@ -1,3 +1,8 @@
+/**
+ * Workspace composition engine — deterministic component selection for COPERA.
+ * Consumed by: BenefitWorkspace, composition tests
+ * Depends on: Member, ServiceCreditSummary, DRORecord types
+ */
 import type { Member, ServiceCreditSummary, DRORecord } from '@/types/Member'
 
 // Component identifiers for workspace composition
@@ -12,16 +17,16 @@ export type ComponentId =
   | 'scenario-modeler'
   | 'dro-impact'
   | 'service-credit-summary'
-  | 'leave-payout'
+  | 'anti-spiking-detail'
   | 'early-retirement-reduction'
-  | 'ipr-panel'
+  | 'annual-increase'
 
 export interface CompositionResult {
   components: ComponentId[]
   reason: Record<ComponentId, string>
 }
 
-// Tier 1 (deterministic): Always-present components
+// Always-present components
 const ALWAYS_PRESENT: ComponentId[] = [
   'member-banner',
   'alert-bar',
@@ -30,53 +35,51 @@ const ALWAYS_PRESENT: ComponentId[] = [
   'service-credit-summary',
 ]
 
-// Tier 1 (deterministic): Components that appear when a retirement date is selected
+// Components that appear when a retirement date is selected
 const WITH_RETIREMENT_DATE: ComponentId[] = [
   'eligibility-panel',
   'benefit-calculation',
   'payment-options',
   'scenario-modeler',
-  'ipr-panel',
+  'annual-increase',
 ]
 
 /**
  * Workspace composition engine.
  *
- * Tier 1 (deterministic): Rule-based component selection based on member attributes.
- * Tier 2 (rule-based): Conditional components based on member situation.
- * Tier 3 (AI): Not implemented in POC — system is fully functional without it.
- *
+ * Deterministic rule-based component selection based on member attributes.
  * AI decides WHAT to show; the rules engine decides WHAT THE NUMBERS ARE.
  */
 export function composeWorkspace(
-  member: Member,
+  _member: Member,
   _serviceCredit?: ServiceCreditSummary,
   dros?: DRORecord[],
   hasRetirementDate?: boolean,
-  reductionFactor?: number
+  reductionFactor?: number,
+  antiSpikingApplied?: boolean
 ): CompositionResult {
   const components: ComponentId[] = [...ALWAYS_PRESENT]
   const reason: Partial<Record<ComponentId, string>> = {}
 
   // Always-present reasons
-  reason['member-banner'] = 'Always shown — member identification and tier'
+  reason['member-banner'] = 'Always shown — member identification and division'
   reason['alert-bar'] = 'Always shown — contextual alerts based on member situation'
   reason['employment-timeline'] = 'Always shown — employment history context'
-  reason['salary-table'] = 'Always shown — salary data with AMS calculation'
+  reason['salary-table'] = 'Always shown — salary data with HAS calculation'
   reason['service-credit-summary'] = 'Always shown — service credit breakdown'
 
-  // Tier 2: Conditional — Leave payout (only Tier 1/2 hired before 2010)
-  if (member.tier <= 2 && new Date(member.hire_date) < new Date('2010-01-01')) {
-    components.push('leave-payout')
-    reason['leave-payout'] = `Tier ${member.tier} member hired ${member.hire_date} (before 2010) — leave payout eligible per RMC §18-412`
+  // Conditional — Anti-spiking detail (when salary exceeds 108% cap)
+  if (antiSpikingApplied) {
+    components.push('anti-spiking-detail')
+    reason['anti-spiking-detail'] = 'Anti-spiking triggered — salary capped at 108% of prior year per C.R.S. §24-51-101(25.5)'
   }
 
-  // Tier 2: Conditional — DRO impact (only when DRO exists)
+  // Conditional — DRO impact (only when DRO exists)
   const hasDRO = dros && dros.length > 0
   if (hasDRO) {
     if (hasRetirementDate) {
       components.push('dro-impact')
-      reason['dro-impact'] = `Active DRO found — division calculation shown per RMC §18-420`
+      reason['dro-impact'] = 'Active DRO found — division calculation shown'
     }
   }
 
@@ -87,9 +90,9 @@ export function composeWorkspace(
     reason['benefit-calculation'] = 'Retirement date selected — calculating benefit'
     reason['payment-options'] = 'Retirement date selected — showing payment options'
     reason['scenario-modeler'] = 'Retirement date selected — enabling scenario comparison'
-    reason['ipr-panel'] = 'Retirement date selected — calculating IPR'
+    reason['annual-increase'] = 'Retirement date selected — showing annual increase projection'
 
-    // Tier 2: Conditional — Early retirement reduction (only when reduction applies)
+    // Conditional — Early retirement reduction (only when reduction applies)
     if (reductionFactor !== undefined && reductionFactor < 1.0) {
       components.push('early-retirement-reduction')
       reason['early-retirement-reduction'] = `Reduction factor ${reductionFactor.toFixed(4)} < 1.0 — early retirement reduction applies`

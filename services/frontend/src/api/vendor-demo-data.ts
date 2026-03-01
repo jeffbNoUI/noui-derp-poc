@@ -1,6 +1,6 @@
 /**
  * Vendor portal demo data fixtures — enrollment queue, IPR verifications, dashboard stats.
- * IPR uses EARNED service years only — purchased service credit is EXCLUDED (RMC §18-412).
+ * IPR uses EARNED service years only — purchased service credit is EXCLUDED (C.R.S. §24-51-1201).
  * Pre-Medicare rate: earned_years * $12.50/month; Post-Medicare rate: earned_years * $6.25/month.
  * Consumed by: VendorDashboard, VendorMemberDetail, vendor-demo-data.test.ts
  * Depends on: Vendor.ts types, demo-data.ts member fixtures (shared member IDs 10001-10004)
@@ -8,7 +8,7 @@
 import type { EnrollmentQueueItem, IPRVerification, VendorDashboardStats } from '@/types/Vendor'
 
 // ─── IPR Rate Constants ──────────────────────────────────────────────────────
-// Source: RMC §18-412 — Insurance Premium Reimbursement
+// Source: C.R.S. §24-51-1201 — Insurance Premium Reimbursement
 const IPR_PRE_MEDICARE_RATE = 12.50 // $/month per earned service year
 const IPR_POST_MEDICARE_RATE = 6.25 // $/month per earned service year
 

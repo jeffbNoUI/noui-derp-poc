@@ -106,7 +106,7 @@ export function ContributionSummary({ contributions }: Props) {
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           Only employee payroll deductions are refundable. Employer contributions (17.95%)
-          remain in the fund. Purchased service payments are not refundable. RMC §18-403(b).
+          remain in the fund. Purchased service payments are not refundable. C.R.S. §24-51-504.
         </div>
       </div>
     </div>

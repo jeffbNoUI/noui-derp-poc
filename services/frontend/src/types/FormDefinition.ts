@@ -1,5 +1,5 @@
 /**
- * Form definition types — schema-driven form rendering for all 20 DERP forms.
+ * Form definition types — schema-driven form rendering for all COPERA forms.
  * Consumed by: FormWizard, form-definitions/, LifeEventFlow
  * Depends on: Nothing (pure type definitions)
  */

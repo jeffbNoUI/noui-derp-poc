@@ -8,7 +8,7 @@ import type {
   EmployerDashboardStats,
 } from '@/types/Employer'
 
-// ─── Contribution rates from RMC §18-407 ────────────────────────────────────
+// ─── Contribution rates from C.R.S. §24-51-401 ────────────────────────────────────
 export const EMPLOYEE_RATE = 0.0845  // 8.45% employee contribution
 export const EMPLOYER_RATE = 0.1795  // 17.95% employer contribution
 
@@ -150,7 +150,7 @@ function buildReport(
     department: dept,
     employee_count: deptEmployees.length,
     total_gross_payroll: grossPayroll,
-    // Contribution rates from RMC §18-407
+    // Contribution rates from C.R.S. §24-51-401
     total_employee_contributions: Math.round(grossPayroll * EMPLOYEE_RATE * 100) / 100,
     total_employer_contributions: Math.round(grossPayroll * EMPLOYER_RATE * 100) / 100,
     status,
@@ -271,7 +271,7 @@ export const employerDemoApi = {
       pending_retirements: pending.length,
       monthly_payroll: totalPayroll,
       avg_service_years: Math.round(avgYears * 100) / 100,
-      // Rates from RMC §18-407
+      // Rates from C.R.S. §24-51-401
       contribution_rate_employee: EMPLOYEE_RATE,
       contribution_rate_employer: EMPLOYER_RATE,
     })

@@ -94,8 +94,8 @@ export const f16DisabilityApplication: FormDefinition = {
       title: 'Authorization & Signature',
       description: 'Authorize medical record release and sign.',
       fields: [
-        { key: 'ack_medical_release', type: 'checkbox', label: 'I authorize my medical providers to release records to DERP for evaluation of this application', required: true },
-        { key: 'ack_exam', type: 'checkbox', label: 'I understand DERP may require an independent medical examination', required: true },
+        { key: 'ack_medical_release', type: 'checkbox', label: 'I authorize my medical providers to release records to COPERA for evaluation of this application', required: true },
+        { key: 'ack_exam', type: 'checkbox', label: 'I understand COPERA may require an independent medical examination', required: true },
         { key: 'ack_truthful', type: 'checkbox', label: 'I certify all information is true and complete', required: true },
         { key: 'member_esign', type: 'esign', label: 'Applicant Signature', required: true },
       ],

@@ -15,7 +15,7 @@ import type { EmployerDashboardStats } from '@/types/Employer'
 const RECENT_ACTIVITY = [
   { date: '2026-02-25', text: 'March contribution reports generated for all departments', type: 'info' as const },
   { date: '2026-02-20', text: 'Robert Martinez (10001) retirement application moved to In Review', type: 'success' as const },
-  { date: '2026-02-18', text: 'February contribution reports submitted — awaiting DERP verification', type: 'info' as const },
+  { date: '2026-02-18', text: 'February contribution reports submitted — awaiting COPERA verification', type: 'info' as const },
   { date: '2026-02-15', text: 'Discrepancy flagged in Parks & Rec March report — salary mismatch for Charles Jackson', type: 'warning' as const },
   { date: '2026-02-10', text: 'Jennifer Kim (10002) retirement application submitted — documentation pending', type: 'info' as const },
 ]
@@ -108,7 +108,7 @@ export function EmployerDashboard() {
             >View Pending Retirements</button>
           </div>
 
-          {/* Contribution rates — RMC §18-407 */}
+          {/* Contribution rates — C.R.S. Title 24 Art. 51 */}
           <div style={{
             background: T.accent.surface, borderRadius: 10,
             border: `1px solid ${T.border.base}`, padding: 20,
@@ -125,7 +125,7 @@ export function EmployerDashboard() {
               <span style={{ fontSize: 14, fontWeight: 700, color: T.accent.primary }}>17.95%</span>
             </div>
             <div style={{ fontSize: 10, color: T.text.muted, marginTop: 10, fontStyle: 'italic' }}>
-              Per RMC \u00A718-407, effective Jan 2024
+              Per C.R.S. Title 24 Art. 51, effective Jan 2024
             </div>
           </div>
         </div>

@@ -1,18 +1,19 @@
+/**
+ * Member banner — displays member identity, division badge, HAS table, and service credit.
+ * Consumed by: BenefitWorkspace, guided view stages
+ * Depends on: Member, ServiceCreditSummary types, divisionMeta/hasTableMeta from theme
+ */
 import type { Member, ServiceCreditSummary } from '@/types/Member'
 import { formatDate } from '@/lib/utils'
+import { divisionMeta, hasTableMeta } from '@/theme'
 import { User, Calendar, Building2, Briefcase } from 'lucide-react'
 
-const tierLabels: Record<number, string> = {
-  1: 'Tier 1 \u2014 Hired before Sept 1, 2004',
-  2: 'Tier 2 \u2014 Sept 1, 2004 to June 30, 2011',
-  3: 'Tier 3 \u2014 On/after July 1, 2011',
-}
-
-// Aligned with canonical tierMeta in legacy.ts: Tier1=blue, Tier2=orange, Tier3=green
-const tierColors: Record<number, string> = {
-  1: 'bg-blue-100 text-blue-800 border-blue-200',
-  2: 'bg-orange-100 text-orange-800 border-orange-200',
-  3: 'bg-green-100 text-green-800 border-green-200',
+const divisionColors: Record<string, string> = {
+  State: 'bg-blue-100 text-blue-800 border-blue-200',
+  School: 'bg-sky-100 text-sky-800 border-sky-200',
+  LocalGov: 'bg-green-100 text-green-800 border-green-200',
+  Judicial: 'bg-purple-100 text-purple-800 border-purple-200',
+  DPS: 'bg-amber-100 text-amber-800 border-amber-200',
 }
 
 interface MemberBannerProps {
@@ -24,6 +25,8 @@ export function MemberBanner({ member, serviceCredit }: MemberBannerProps) {
   const age = Math.floor(
     (Date.now() - new Date(member.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)
   )
+  const dm = divisionMeta[member.division]
+  const htm = hasTableMeta[member.has_table]
 
   return (
     <div className="bg-white border border-border rounded-lg shadow-sm p-6 member-banner animate-fadeIn" data-print="member-header">
@@ -40,14 +43,21 @@ export function MemberBanner({ member, serviceCredit }: MemberBannerProps) {
           </div>
         </div>
 
-        <span
-          className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
-            tierColors[member.tier] ?? 'bg-gray-100 text-gray-800'
-          }`}
-          data-print="badge"
-        >
-          Tier {member.tier}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium border ${
+              divisionColors[member.division] ?? 'bg-gray-100 text-gray-800'
+            }`}
+            data-print="badge"
+          >
+            {dm?.label ?? member.division}
+          </span>
+          {htm && (
+            <span className="inline-flex items-center px-2 py-1 rounded text-xs font-mono bg-gray-100 text-gray-700 border border-gray-200">
+              {htm.name}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -82,7 +92,8 @@ export function MemberBanner({ member, serviceCredit }: MemberBannerProps) {
             )}
           </div>
           <p className="mt-2 text-xs text-muted italic">
-            Tier: {tierLabels[member.tier]}
+            {dm?.label ?? member.division} Division · {htm?.name ?? `HAS Table ${member.has_table}`} ({htm?.era ?? ''})
+            {htm && ` · Rule of ${htm.ruleOfN}`}
           </p>
         </div>
       )}

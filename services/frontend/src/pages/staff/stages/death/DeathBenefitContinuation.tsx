@@ -132,7 +132,7 @@ export function DeathBenefitContinuation({ deathBenefitElection: dbe, installmen
               {installments.formula}
             </div>
             <div style={{ color: C.textMuted, fontSize: '10px', marginTop: '4px' }}>
-              Source: RMC {'\u00A7'}18-411(d)
+              Source: C.R.S. {'\u00A7'}24-51-701
             </div>
           </div>
         </>

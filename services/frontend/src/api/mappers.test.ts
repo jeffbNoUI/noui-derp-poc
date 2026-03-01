@@ -15,6 +15,7 @@ import {
   mapDROResult, buildSyntheticIntake, fromBackendId,
 } from './mappers'
 import { toBackendId } from './client'
+import type { Member } from '@/types/Member'
 
 describe('toBackendId', () => {
   it('maps demo case short IDs to database format', () => {
@@ -67,7 +68,6 @@ describe('mapMember', () => {
     expect(m.hire_date).toBe('1997-06-15')
     expect(m.termination_date).toBeUndefined()
     expect(m.member_id).toBe('10001')
-    expect(m.tier).toBe(1)
   })
 
   it('handles already-formatted date strings', () => {
@@ -231,20 +231,18 @@ describe('mapBenefit', () => {
       reduction_factor: 1.0,
       reduced_monthly_benefit: 6117.68,
       maximum_monthly_benefit: 6117.68,
-      ipr: {
-        service_years_for_ipr: 28.75,
-        pre_medicare_rate: 12.51,
-        post_medicare_rate: 4.54,
-        pre_medicare_monthly: 359.66,
-        post_medicare_monthly: 130.52,
+      annual_increase: {
+        rate: 0.015,
+        first_eligible_date: '2028-03-01',
+        compound_method: 'compound',
+        note: 'Annual increase of 1.5% compound',
       },
       death_benefit: {
         retirement_type: 'rule_of_75',
-        tier: 1,
+        has_table: 1,
         base_amount: 5000,
         lump_sum_amount: 5000,
-        installment_50: 100,
-        installment_100: 50,
+        description: 'Statutory survivor benefits',
       },
     }
     const b = mapBenefit(goResp)
@@ -254,8 +252,7 @@ describe('mapBenefit', () => {
     expect(b.multiplier).toBe(0.02)
     expect(b.service_years_for_benefit).toBe(28.75)
     expect(b.reduction_factor).toBe(1.0)
-    expect(b.ipr).toBeDefined()
-    expect(b.ipr!.monthly_amount).toBe(359.66)
+    expect(b.annual_increase).toBeDefined()
     expect(b.death_benefit).toBeDefined()
     expect(b.death_benefit!.amount).toBe(5000)
     expect(b.audit_trail.length).toBeGreaterThan(0)
@@ -369,10 +366,11 @@ describe('mapDROResult', () => {
 
 describe('buildSyntheticIntake', () => {
   it('returns sensible defaults', () => {
-    const member = {
-      member_id: '10001', first_name: 'Robert', last_name: 'Martinez',
-      date_of_birth: '1963-03-08', hire_date: '1997-06-15', tier: 1,
-      status: 'Active', department: 'PW', position: 'Eng',
+    const member: Member = {
+      member_id: 'COPERA-001', first_name: 'Maria', last_name: 'Garcia',
+      date_of_birth: '1963-07-20', hire_date: '1998-01-01',
+      division: 'State', has_table: 1, has_table_name: 'PERA 1',
+      status: 'Active', department: 'Department of Revenue', position: 'Senior Financial Analyst',
     }
     const intake = buildSyntheticIntake(member)
     expect(intake.package_complete).toBe(false)

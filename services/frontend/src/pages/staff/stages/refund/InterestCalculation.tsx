@@ -120,7 +120,7 @@ export function InterestCalculation({ interest, contributionTotal }: Props) {
         background: C.accentMuted, border: `1px solid ${C.accentSolid}`,
       }}>
         <div style={{ color: C.accent, fontSize: '10.5px', fontWeight: 600, marginBottom: '2px' }}>
-          Interest Compounding — RMC &sect;18-403(c)
+          Interest Compounding — C.R.S. &sect;24-51-401
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           Interest accrues at {(interest.interest_rate * 100).toFixed(1)}% per annum, compounded annually on

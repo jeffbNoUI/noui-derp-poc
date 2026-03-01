@@ -1,6 +1,6 @@
 /**
  * Member forgot password page — email input with simulated "reset link sent" confirmation.
- * MyDERP branding, standalone page rendered outside MemberLayout chrome.
+ * MyCOPERA branding, standalone page rendered outside MemberLayout chrome.
  * Consumed by: router.tsx (/portal/forgot-password route)
  * Depends on: react-router-dom
  */
@@ -42,7 +42,7 @@ export function MemberForgotPasswordPage() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 12,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>D</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>C</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2e2e', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
             Reset Password
@@ -75,7 +75,7 @@ export function MemberForgotPasswordPage() {
           /* Email form */
           <form onSubmit={handleSubmit}>
             <div style={{ fontSize: 13, color: '#4a6363', marginBottom: 16, lineHeight: 1.5 }}>
-              Enter the email address associated with your MyDERP account and we'll send you a reset link.
+              Enter the email address associated with your MyCOPERA account and we'll send you a reset link.
             </div>
 
             <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#1a2e2e', marginBottom: 4 }}>Email Address</label>

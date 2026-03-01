@@ -58,16 +58,16 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDCC2',
     subtitle: 'Document completeness and application timeline',
     onboarding:
-      'Before any eligibility check or benefit calculation, the physical notarized retirement application ' +
+      'Before any eligibility check or benefit calculation, the retirement application ' +
       'and all required supporting documents must be in hand. The application must be filed within 30 calendar ' +
-      'days of the member\'s last day worked (\u00A718-402(10)). The complete package must arrive by the 15th ' +
+      'days of the member\'s last day worked (C.R.S. \u00A724-51-602). The complete package must arrive by the 15th ' +
       'of the month before the effective date to ensure on-time first payment. The retirement effective date ' +
-      'is always the first of the month following separation (\u00A718-402(10)).',
+      'is always the first of the month following separation.',
     rules: [
-      { citation: 'RMC \u00A718-402(10)', desc: 'Application within 30 days of last day worked' },
-      { citation: 'RMC \u00A718-402(10)', desc: 'Notarized signature required on application' },
-      { citation: 'DERP Policy', desc: 'Package by 15th of month before effective date for on-time payment' },
-      { citation: 'RMC \u00A718-402(10)', desc: 'Effective date: first of month following separation' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: 'Application within 30 days of last day worked' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: 'Notarized signature required on application' },
+      { citation: 'COPERA Policy', desc: 'Package by 15th of month before effective date for on-time payment' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: 'Effective date: first of month following separation' },
     ],
     checklist: [
       'Notarized application received',
@@ -89,17 +89,17 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDCCB',
     subtitle: 'Confirm member identity and data quality',
     onboarding:
-      'The tier classification, set by the member\'s hire date per \u00A718-401, determines everything downstream: ' +
-      'the benefit multiplier (2.0% vs 1.5%), the AMS window (36 vs 60 months), and the early retirement ' +
-      'reduction rate (3% vs 6% per year). Getting the tier wrong cascades errors through every subsequent stage. ' +
-      'Vesting requires 5 years of service (\u00A718-403) regardless of tier \u2014 confirm this before proceeding.',
+      'The HAS (Highest Average Salary) table, set by the member\'s hire date and division per C.R.S. \u00A724-51-101, determines everything downstream: ' +
+      'the benefit multiplier, the HAS window (36 or 60 months), and the early retirement ' +
+      'reduction rate. Getting the HAS table wrong cascades errors through every subsequent stage. ' +
+      'Vesting requires 5 years of service (C.R.S. \u00A724-51-602) regardless of table \u2014 confirm this before proceeding.',
     rules: [
-      { citation: 'RMC \u00A718-401', desc: 'Tier classification by hire date' },
-      { citation: 'RMC \u00A718-403', desc: '5-year vesting requirement, all tiers' },
+      { citation: 'C.R.S. \u00A724-51-101', desc: 'HAS table classification by hire date and division' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: '5-year vesting requirement, all tables' },
     ],
     checklist: [
       'Member name and ID match records',
-      'Tier classification correct for hire date',
+      'HAS table classification correct for hire date',
       'Employment history is complete',
       'No data quality flags outstanding',
     ],
@@ -107,7 +107,7 @@ export const STAGE_HELP: StageHelp[] = [
     nextAction: 'Review service credit breakdown',
     summaryFields: [
       { label: 'Member', path: 'member.first_name', format: 'text' },
-      { label: 'Tier', path: 'member.tier', format: 'badge', badgeColor: 'accent' },
+      { label: 'HAS Table', path: 'member.has_table_name', format: 'badge', badgeColor: 'accent' },
       { label: 'Vested', path: 'serviceCredit.total_for_eligibility', format: 'years' },
     ],
   },
@@ -118,13 +118,13 @@ export const STAGE_HELP: StageHelp[] = [
     subtitle: 'Earned vs. purchased service breakdown',
     onboarding:
       'Service credit has a critical split: earned service counts for both eligibility and benefit, but ' +
-      'purchased service (\u00A718-404(c)) counts only toward the benefit calculation. This means a member with ' +
+      'purchased service (C.R.S. \u00A724-51-505) counts only toward the benefit calculation. This means a member with ' +
       '20 earned years + 3 purchased years has 23 years for the benefit formula but only 20 years for ' +
-      'the Rule of 75/85 check. Mixing these up is the #1 source of eligibility errors.',
+      'the Rule of N check. Mixing these up is the #1 source of eligibility errors.',
     rules: [
-      { citation: 'RMC \u00A718-404', desc: 'Service credit calculation' },
-      { citation: 'RMC \u00A718-404(c)', desc: 'Purchased service: benefit only, not eligibility' },
-      { citation: 'RMC \u00A718-403', desc: '5-year vesting requirement' },
+      { citation: 'C.R.S. \u00A724-51-601', desc: 'Service credit calculation' },
+      { citation: 'C.R.S. \u00A724-51-505', desc: 'Purchased service: benefit only, not eligibility' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: '5-year vesting requirement' },
     ],
     checklist: [
       'Total service years correct',
@@ -146,21 +146,20 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDCC5',
     subtitle: 'Date selection and Rule of N evaluation',
     onboarding:
-      'Eligibility hinges on the Rule of N: age plus earned service years must reach 75 (Tiers 1-2, ' +
-      'min age 55 per \u00A718-408(b)) or 85 (Tier 3, min age 60 per \u00A718-408(c)). If the rule isn\'t met, ' +
-      'the member takes an early retirement reduction \u2014 3% per year under 65 for Tiers 1-2 (\u00A718-409(a)), ' +
-      '6% per year for Tier 3 (\u00A718-409(b)). Remember: only earned service counts here, not purchased.',
+      'Eligibility hinges on the Rule of N: age plus earned service years must reach the threshold for the ' +
+      'member\'s HAS table (80, 85, or 90 depending on hire date per C.R.S. \u00A724-51-602). If the rule isn\'t met, ' +
+      'the member takes an early retirement reduction based on years under age 65 ' +
+      '(C.R.S. \u00A724-51-604). Remember: only earned service counts here, not purchased.',
     rules: [
-      { citation: 'RMC \u00A718-408(b)', desc: 'Rule of 75: age + earned service \u2265 75 (min age 55)' },
-      { citation: 'RMC \u00A718-408(c)', desc: 'Rule of 85: age + earned service \u2265 85 (min age 60)' },
-      { citation: 'RMC \u00A718-409(a)', desc: 'Early reduction: 3% per year under 65 (Tiers 1-2)' },
-      { citation: 'RMC \u00A718-409(b)', desc: 'Early reduction: 6% per year under 65 (Tier 3)' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: 'Rule of 80/85/90: age + earned service >= threshold (varies by HAS table)' },
+      { citation: 'C.R.S. \u00A724-51-604', desc: 'Early retirement reduction based on years under 65' },
+      { citation: 'C.R.S. \u00A724-51-602', desc: 'Minimum retirement age varies by HAS table' },
     ],
     checklist: [
       'Retirement date is correct',
       'Age at retirement calculated correctly',
       'Rule of N evaluation uses earned service only',
-      'Reduction factor matches tier and age',
+      'Reduction factor matches HAS table and age',
     ],
     confirmLabel: 'Confirm Eligibility',
     nextAction: 'Review salary history and benefit calculation',
@@ -171,13 +170,13 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     whatIf: [
       {
-        question: 'What if Robert retired 2 years earlier at age 61?',
-        answer: 'Rule of 75 still met (61 + 26.75 = 87.75), but the leave payout window shifts. No reduction applies either way.',
+        question: 'What if Maria retired 2 years later at age 67?',
+        answer: 'Normal retirement age met at 65, so no benefit change from waiting. Additional service would increase the benefit formula result.',
         delta: 'neutral',
       },
       {
-        question: 'What if Jennifer had 2 more years of earned service?',
-        answer: 'Rule of 75 would be met (55 + 20.17 = 75.17). The 30% early retirement reduction drops to 0%, increasing her benefit from $1,633/mo to $2,333/mo.',
+        question: 'What if James had 5 more years of earned service?',
+        answer: 'Rule of 85 might be met depending on age, eliminating the early retirement reduction and significantly increasing the monthly benefit.',
         delta: 'increase',
       },
     ],
@@ -188,21 +187,20 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDCB0',
     subtitle: 'AMS window, salary table, formula, final amount',
     onboarding:
-      'The benefit formula is AMS \u00D7 multiplier \u00D7 service years. AMS is the Average Monthly Salary ' +
-      'over the highest consecutive 36 months for Tiers 1-2 or 60 months for Tier 3 (\u00A718-401(3)). ' +
-      'The multiplier is 2.0% for Tier 1, 1.5% for Tiers 2-3 (\u00A718-408(a)). If the member was hired ' +
-      'before January 1, 2010, a sick/vacation leave payout (\u00A718-412) is added to the final month of salary, ' +
-      'which can boost the AMS if that month falls within the highest window.',
+      'The benefit formula is HAS \u00D7 multiplier \u00D7 service years. HAS (Highest Average Salary) is the average monthly salary ' +
+      'over the highest consecutive 36 months (older HAS tables) or 60 months (newer tables) per C.R.S. \u00A724-51-101(24.5). ' +
+      'The multiplier varies by HAS table (2.5% for PERA 1, 2.0% for DPS, etc.) per C.R.S. \u00A724-51-604. ' +
+      'Anti-spiking provisions (C.R.S. \u00A724-51-101(24.5)) limit salary spikes that could inflate the HAS.',
     rules: [
-      { citation: 'RMC \u00A718-401(3)', desc: 'AMS: highest consecutive 36 or 60 months' },
-      { citation: 'RMC \u00A718-408(a)', desc: 'Multiplier: 2.0% Tier 1, 1.5% Tiers 2-3' },
-      { citation: 'RMC \u00A718-412', desc: 'Leave payout: hired before 2010, Tiers 1-2 only' },
+      { citation: 'C.R.S. \u00A724-51-101(24.5)', desc: 'HAS: highest consecutive 36 or 60 months, anti-spiking' },
+      { citation: 'C.R.S. \u00A724-51-604', desc: 'Multiplier varies by HAS table and division' },
+      { citation: 'C.R.S. \u00A724-51-101(24.5)', desc: 'Anti-spiking: salary increases capped at inflation threshold' },
     ],
     checklist: [
-      'AMS window period is correct',
+      'HAS window period is correct',
       'Salary amounts match payroll records',
-      'Leave payout applied correctly (if eligible)',
-      'Multiplier matches tier',
+      'Anti-spiking reviewed (if applicable)',
+      'Multiplier matches HAS table',
       'Final monthly benefit amount is accurate',
     ],
     confirmLabel: 'Approve Benefit Amount',
@@ -214,8 +212,8 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     whatIf: [
       {
-        question: 'What if Robert\u2019s leave payout were $30,000 instead of $52,000?',
-        answer: 'AMS drops from $10,639/mo to ~$10,027/mo. Monthly benefit decreases from $6,118/mo to ~$5,766/mo \u2014 a $352/mo difference.',
+        question: 'What if the member had a large salary increase in the final year?',
+        answer: 'Anti-spiking provisions would cap the included amount. Only salary increases within the inflation threshold are included in the HAS calculation.',
         delta: 'decrease',
       },
     ],
@@ -226,13 +224,13 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDCB3',
     subtitle: 'Survivor benefit elections and irrevocability',
     onboarding:
-      'The member elects one of four payment options (\u00A718-410): Maximum (highest monthly, no survivor benefit), ' +
-      'or Joint & Survivor at 100%, 75%, or 50% (reduced monthly, continues payments to the designated ' +
-      'beneficiary). Spousal consent is required for non-J&S elections (\u00A718-410(b)). This election is ' +
+      'The member elects a payment option per C.R.S. \u00A724-51-604. PERA divisions offer Options 1 (Maximum), 2, and 3. ' +
+      'DPS offers Options A (Maximum), B (Modified), P2, and P3. Survivor benefit options reduce the monthly amount but ' +
+      'continue payments to the designated beneficiary. Spousal consent is required for certain elections. This election is ' +
       'irrevocable once the first payment is received \u2014 the member cannot change their mind later.',
     rules: [
-      { citation: 'RMC \u00A718-410', desc: 'Four payment options: Maximum, J&S 100%, 75%, 50%' },
-      { citation: 'RMC \u00A718-410(b)', desc: 'Spousal consent required for non-J&S elections' },
+      { citation: 'C.R.S. \u00A724-51-604', desc: 'Payment options: PERA (1, 2, 3), DPS (A, B, P2, P3)' },
+      { citation: 'C.R.S. \u00A724-51-604', desc: 'Spousal consent required for certain elections' },
     ],
     checklist: [
       'All four option amounts displayed correctly',
@@ -248,8 +246,8 @@ export const STAGE_HELP: StageHelp[] = [
     ],
     whatIf: [
       {
-        question: 'What if Robert chose J&S 100% instead of Maximum?',
-        answer: 'Monthly benefit drops from $6,118/mo to ~$5,323/mo, but his beneficiary receives the same amount for life if he passes first.',
+        question: 'What if the member chose a survivor option instead of Maximum?',
+        answer: 'Monthly benefit is reduced by the survivor factor, but the designated beneficiary receives continued payments for life.',
         delta: 'decrease',
       },
     ],
@@ -260,24 +258,23 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\uD83D\uDEE1',
     subtitle: 'IPR and death benefit amounts',
     onboarding:
-      'Two supplemental benefits apply. The Increased Pension Reserve (IPR, \u00A718-414) provides $150 per year ' +
-      'of earned service (purchased service excluded) as a pre-Medicare supplement. The death benefit ' +
-      '(\u00A718-413(a)) is $5,000 for normal retirement; for early retirement (\u00A718-413(b)), it\'s reduced by $250/year ' +
-      '(Tiers 1-2) or $500/year (Tier 3) for each year under age 65.',
+      'Two supplemental benefits apply. The Annual Increase (C.R.S. \u00A724-51-1002) provides a compound ' +
+      'annual adjustment (1.0% or 1.5% depending on HAS table) starting March 1 of the second year after retirement. ' +
+      'The death benefit (C.R.S. \u00A724-51-607) provides survivor payments based on the member\'s retirement type ' +
+      'and elected payment option.',
     rules: [
-      { citation: 'RMC \u00A718-414', desc: 'IPR: $150/year of earned service (purchased excluded)' },
-      { citation: 'RMC \u00A718-413(a)', desc: 'Death benefit: $5,000 normal retirement' },
-      { citation: 'RMC \u00A718-413(b)', desc: 'Death benefit early reduction: $250 or $500/year under 65' },
+      { citation: 'C.R.S. \u00A724-51-1002', desc: 'Annual Increase: 1.0-1.5% compound, starts second year' },
+      { citation: 'C.R.S. \u00A724-51-607', desc: 'Death benefit provisions for retirees' },
     ],
     checklist: [
-      'IPR uses earned service only (not purchased)',
+      'Annual increase rate correct for HAS table',
       'Death benefit amount correct for retirement type',
-      'Early retirement death benefit reduction applied if applicable',
+      'First eligible date for annual increase verified',
     ],
     confirmLabel: 'Confirm Supplementals',
     nextAction: 'Review DRO impact (if applicable) or proceed to final review',
     summaryFields: [
-      { label: 'IPR', path: 'benefit.ipr.monthly_amount', format: 'fmt' },
+      { label: 'Annual Increase', path: 'benefit.annual_increase.rate', format: 'text' },
       { label: 'Death Benefit', path: 'benefit.death_benefit.amount', format: 'fmt' },
     ],
   },
@@ -287,13 +284,13 @@ export const STAGE_HELP: StageHelp[] = [
     icon: '\u2696',
     subtitle: 'Domestic Relations Order impact',
     onboarding:
-      'A Domestic Relations Order (DRO, \u00A718-415) divides the member\'s benefit with a former spouse. The marital ' +
+      'A Domestic Relations Order (DRO, C.R.S. \u00A724-51-606) divides the member\'s benefit with a former spouse. The marital ' +
       'fraction is calculated as marital service years (from marriage to divorce) divided by total service ' +
       'years. The alternate payee\'s share is deducted from the member\'s gross benefit before the payment ' +
-      'option reduction is applied (\u00A718-415(b)).',
+      'option reduction is applied.',
     rules: [
-      { citation: 'RMC \u00A718-415', desc: 'DRO marital fraction: marital service / total service' },
-      { citation: 'RMC \u00A718-415(b)', desc: 'DRO division applied before payment option reduction' },
+      { citation: 'C.R.S. \u00A724-51-606', desc: 'DRO marital fraction: marital service / total service' },
+      { citation: 'C.R.S. \u00A724-51-606', desc: 'DRO division applied before payment option reduction' },
     ],
     checklist: [
       'Marital fraction calculated correctly',

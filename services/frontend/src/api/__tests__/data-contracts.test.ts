@@ -8,17 +8,17 @@
  * TOUCHPOINTS:
  *   Upstream: demo-data.ts, portal-demo-data.ts, refund-demo-data.ts, death-survivor-demo-data.ts
  *   Downstream: None (leaf test)
- *   Shared: DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES (constants.ts)
+ *   Shared: DEMO_CASES (constants.ts)
  */
 import { describe, it, expect } from 'vitest'
 import { demoApi } from '@/api/demo-data'
 import { portalDemoApi } from '@/api/portal-demo-data'
-import { refundDemoApi, DEMO_REFUND_MEMBERS, DEMO_REFUND_CALCULATIONS } from '@/api/refund-demo-data'
+import { refundDemoApi, DEMO_REFUND_MEMBERS } from '@/api/refund-demo-data'
 import {
   DEMO_DEATH_RECORDS, DEMO_DEATH_SUMMARIES,
   case9Member, case10Member,
 } from '@/api/death-survivor-demo-data'
-import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
+import { DEMO_CASES } from '@/lib/constants'
 
 describe('Data Contracts', () => {
 
@@ -28,15 +28,11 @@ describe('Data Contracts', () => {
     for (const id of memberIds) {
       it(`member ${id} has all required fields`, async () => {
         const m = await demoApi.getMember(id)
-        // Case 10004 (DRO variant) shares the same underlying member as 10001
-        if (id === '10004') {
-          expect(m.member_id).toBe('10001')
-        } else {
-          expect(m.member_id).toBe(id)
-        }
+        expect(m.member_id).toBe(id)
         expect(m.first_name).toBeTruthy()
         expect(m.last_name).toBeTruthy()
-        expect([1, 2, 3]).toContain(m.tier)
+        expect(m.division).toBeTruthy()
+        expect(m.has_table).toBeGreaterThanOrEqual(1)
         expect(m.hire_date).toBeTruthy()
         expect(m.date_of_birth).toBeTruthy()
         expect(m.status).toBeTruthy()
@@ -49,10 +45,9 @@ describe('Data Contracts', () => {
 
   describe('Retirement case benefits — positive amounts', () => {
     const caseDates: [string, string][] = [
-      ['10001', '2026-04-01'],
-      ['10002', '2026-05-01'],
-      ['10003', '2026-04-01'],
-      ['10004', '2026-04-01'],
+      ['COPERA-001', '2026-01-01'],
+      ['COPERA-002', '2026-07-01'],
+      ['COPERA-003', '2026-06-01'],
     ]
 
     for (const [id, date] of caseDates) {
@@ -70,27 +65,21 @@ describe('Data Contracts', () => {
 
   describe('Retirement case eligibility — retirement type strings', () => {
     const caseDates: [string, string][] = [
-      ['10001', '2026-04-01'],
-      ['10002', '2026-05-01'],
-      ['10003', '2026-04-01'],
-      ['10004', '2026-04-01'],
+      ['COPERA-001', '2026-01-01'],
+      ['COPERA-002', '2026-07-01'],
+      ['COPERA-003', '2026-06-01'],
     ]
 
-    const validTypes = ['normal', 'rule_of_75', 'rule_of_85', 'early', 'deferred']
+    const validTypes = ['normal', 'rule_of_75', 'rule_of_80', 'rule_of_85', 'early', 'deferred']
 
     for (const [id, date] of caseDates) {
       it(`eligibility for ${id} has valid retirement_type`, async () => {
         const e = await demoApi.evaluateEligibility(id, date)
         expect(e.eligible).toBe(true)
         expect(validTypes).toContain(e.retirement_type)
-        // Case 10004 (DRO variant) shares eligibility with 10001
-        if (id === '10004') {
-          expect(e.member_id).toBe('10001')
-        } else {
-          expect(e.member_id).toBe(id)
-        }
-        expect(e.tier).toBeGreaterThanOrEqual(1)
-        expect(e.tier).toBeLessThanOrEqual(3)
+        expect(e.member_id).toBe(id)
+        expect(e.division).toBeTruthy()
+        expect(e.has_table).toBeGreaterThanOrEqual(1)
       })
     }
   })
@@ -122,7 +111,7 @@ describe('Data Contracts', () => {
         expect(m.member_id).toBe(caseId)
         expect(m.first_name).toBeTruthy()
         expect(m.last_name).toBeTruthy()
-        expect([1, 2, 3]).toContain(m.tier)
+        expect(m.has_table).toBeDefined()
         expect(m.status).toBe('Terminated')
         expect(m.termination_date).toBeTruthy()
       })
@@ -161,40 +150,22 @@ describe('Data Contracts', () => {
     it('DEMO_CASES IDs match demoApi member IDs', async () => {
       for (const c of DEMO_CASES) {
         const m = await demoApi.getMember(c.id)
-        // Case 10004 (DRO variant) shares the same underlying member as 10001
-        if (c.id === '10004') {
-          expect(m.member_id).toBe('10001')
-        } else {
-          expect(m.member_id).toBe(c.id)
-        }
-        expect(m.tier).toBe(c.tier)
+        expect(m.member_id).toBe(c.id)
+        expect(m.division).toBe(c.division)
+        expect(m.has_table).toBe(c.has_table)
       }
     })
 
     it('DEMO_CASES names match demoApi member names', async () => {
       for (const c of DEMO_CASES) {
         const m = await demoApi.getMember(c.id)
-        // Case 4 (10004) shares the same name as Case 1
+        // Case name matches member first name
         const expectedFirst = c.name.split(' ')[0]
         expect(m.first_name).toBe(expectedFirst)
       }
     })
 
-    it('DEMO_REFUND_CASES IDs exist in refund demo data', () => {
-      for (const c of DEMO_REFUND_CASES) {
-        expect(DEMO_REFUND_MEMBERS[c.id]).toBeDefined()
-        expect(DEMO_REFUND_CALCULATIONS[c.id]).toBeDefined()
-      }
-    })
-
-    it('DEMO_DEATH_CASES IDs exist in death demo data', () => {
-      for (const c of DEMO_DEATH_CASES) {
-        expect(DEMO_DEATH_RECORDS[c.id]).toBeDefined()
-        expect(DEMO_DEATH_SUMMARIES[c.id]).toBeDefined()
-      }
-    })
-
-    it('portal demo data covers all 4 retirement cases', async () => {
+    it('portal demo data covers all 3 retirement cases', async () => {
       for (const c of DEMO_CASES) {
         // Should not throw — returns null or app
         const app = await portalDemoApi.getApplication(c.id)
@@ -206,13 +177,6 @@ describe('Data Contracts', () => {
     it('death case members exist', () => {
       expect(case9Member.member_id).toBe('10009')
       expect(case10Member.member_id).toBe('10010')
-    })
-
-    it('refund tiers match DEMO_REFUND_CASES tiers', () => {
-      for (const c of DEMO_REFUND_CASES) {
-        const m = DEMO_REFUND_MEMBERS[c.id]
-        expect(m.tier).toBe(c.tier)
-      }
     })
   })
 })

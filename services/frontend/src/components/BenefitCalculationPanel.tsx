@@ -1,3 +1,8 @@
+/**
+ * Benefit calculation panel — shows formula, step-by-step calc, annual increase, death benefit.
+ * Consumed by: BenefitWorkspace, guided Stage4
+ * Depends on: BenefitResult type, formatCurrency/formatPercent utils, CalculationTrace
+ */
 import { useState } from 'react'
 import type { BenefitResult } from '@/types/Member'
 import { formatCurrency, formatPercent } from '@/lib/utils'
@@ -32,20 +37,38 @@ export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps
 
       {/* Formula Display */}
       <div className="p-4 bg-gray-50 border border-border rounded-lg font-mono text-sm mb-4 formula" data-print="formula">
-        <p className="text-muted text-xs mb-2 font-sans">Formula (Tier {result.tier}):</p>
+        <p className="text-muted text-xs mb-2 font-sans">
+          Formula ({result.has_table_name} · {result.division} Division):
+        </p>
         <p>{result.formula_display}</p>
       </div>
+
+      {/* Anti-spiking notice */}
+      {result.anti_spiking_applied && (
+        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg mb-4 text-sm text-amber-800">
+          <strong>Anti-spiking applied.</strong> Salary capped at 108% of prior year per C.R.S. §24-51-101(25.5).
+          {result.anti_spiking_detail && result.anti_spiking_detail.length > 0 && (
+            <div className="mt-2 text-xs">
+              {result.anti_spiking_detail.filter(d => d.cap_applied).map((d, i) => (
+                <div key={i}>
+                  Year {d.year}: actual ${d.actual_pay.toLocaleString()} → capped ${d.used_pay.toLocaleString()} (108% cap: ${d.cap_amount.toLocaleString()})
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Step-by-step calculation */}
       <div className="space-y-3">
         <CalcStep
-          label="Average Monthly Salary (AMS)"
+          label="Highest Average Salary (HAS)"
           detail={`Highest ${result.ams_window_months} consecutive months`}
           value={formatCurrency(result.ams)}
         />
         <CalcStep
           label="Multiplier"
-          detail={`Tier ${result.tier} rate`}
+          detail="2.5% — all COPERA divisions (C.R.S. §24-51-603)"
           value={formatPercent(result.multiplier)}
         />
         <CalcStep
@@ -55,7 +78,7 @@ export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps
         />
         <CalcStep
           label="Gross Monthly Benefit"
-          detail={`AMS x ${formatPercent(result.multiplier)} x ${result.service_years_for_benefit.toFixed(2)}`}
+          detail={`HAS x ${formatPercent(result.multiplier)} x ${result.service_years_for_benefit.toFixed(2)}`}
           value={formatCurrency(result.gross_monthly_benefit)}
           highlight
         />
@@ -65,7 +88,7 @@ export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps
             <div className="border-t border-border pt-3">
               <CalcStep
                 label="Early Retirement Reduction"
-                detail={`${result.retirement_type} \u2014 factor: ${result.reduction_factor.toFixed(4)}`}
+                detail={`${result.retirement_type} — factor: ${result.reduction_factor.toFixed(4)}`}
                 value={formatPercent(result.reduction_factor)}
                 warning
               />
@@ -82,31 +105,28 @@ export function BenefitCalculationPanel({ result }: BenefitCalculationPanelProps
         {!isReduced && (
           <CalcStep
             label="Net Monthly Benefit"
-            detail={`No reduction applied \u2014 ${result.retirement_type}`}
+            detail={`No reduction applied — ${result.retirement_type}`}
             value={formatCurrency(result.net_monthly_benefit)}
             highlight
           />
         )}
       </div>
 
-      {/* IPR */}
-      {result.ipr && (
+      {/* Annual Increase (C.R.S. §24-51-1001) */}
+      {result.annual_increase && (
         <div className="mt-4 pt-4 border-t border-border">
           <h3 className="text-sm font-semibold text-gray-900 mb-2">
-            Increase in Pension for Retirees (IPR)
+            Annual Increase (C.R.S. §24-51-1001)
           </h3>
           <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted">Rate per year</span>
-            <span className="font-mono" data-monetary>{formatCurrency(result.ipr.rate_per_year)}/yr</span>
-            <span className="text-muted">Eligible service years</span>
-            <span className="font-mono">{result.ipr.eligible_service_years.toFixed(2)}</span>
-            <span className="text-muted">Medicare eligible</span>
-            <span>{result.ipr.medicare_eligible ? 'Yes ($6.25/yr)' : 'No ($12.50/yr)'}</span>
-            <span className="text-muted">Annual IPR</span>
-            <span className="font-mono font-semibold" data-monetary>{formatCurrency(result.ipr.annual_amount)}</span>
-            <span className="text-muted">Monthly IPR</span>
-            <span className="font-mono font-semibold" data-monetary>{formatCurrency(result.ipr.monthly_amount)}</span>
+            <span className="text-muted">Rate</span>
+            <span className="font-mono">{(result.annual_increase.rate * 100).toFixed(1)}% compound</span>
+            <span className="text-muted">First eligible</span>
+            <span className="font-mono">{result.annual_increase.first_eligible_date}</span>
+            <span className="text-muted">Method</span>
+            <span>{result.annual_increase.compound_method}</span>
           </div>
+          <p className="text-xs text-muted mt-2 italic">{result.annual_increase.note}</p>
         </div>
       )}
 

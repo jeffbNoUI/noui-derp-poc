@@ -8,7 +8,7 @@
  */
 import type {
   Member, ServiceCreditSummary, DRORecord, EligibilityResult,
-  BenefitResult, IPRResult, DeathBenefitResult, PaymentOption,
+  BenefitResult, AnnualIncreaseInfo, DeathBenefitResult, PaymentOption,
   PaymentOptionsResult, ScenarioResult, DROResult, AuditEntry,
   ApplicationIntake, Beneficiary,
 } from '@/types/Member'
@@ -47,7 +47,9 @@ export function mapMember(raw: Record<string, unknown>): Member {
     last_name: String(raw.last_name ?? ''),
     date_of_birth: toDateStr(raw.date_of_birth as string),
     hire_date: toDateStr(raw.hire_date as string),
-    tier: Number(raw.tier ?? 0),
+    division: String(raw.division ?? ''),
+    has_table: Number(raw.has_table ?? 0),
+    has_table_name: String(raw.has_table_name ?? ''),
     status: String(raw.status_code ?? raw.status ?? ''),
     department: String(raw.department ?? ''),
     position: String(raw.position ?? ''),
@@ -162,7 +164,7 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
     rule_name: 'Vesting',
     description: `Vested: ${raw.vested ? 'Yes' : 'No'} (${totalSvcYears.toFixed(2)} years)`,
     result: raw.vested ? 'PASS' : 'FAIL',
-    source_reference: 'RMC §18-403',
+    source_reference: 'C.R.S. §24-51-401',
   })
   if (ruleApplicable) {
     audit.push({
@@ -170,7 +172,7 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
       rule_name: `Rule of ${ruleApplicable}`,
       description: `Sum: ${Number(ruleOfNSum ?? 0).toFixed(2)}, min age met: ${ruleMinAge ? 'Yes' : 'No'}`,
       result: ruleQualifies && ruleMinAge ? 'PASS' : 'FAIL',
-      source_reference: `RMC §18-404`,
+      source_reference: `C.R.S. §24-51-401`,
     })
   }
   audit.push({
@@ -178,7 +180,7 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
     rule_name: 'Early Retirement Reduction',
     description: `Reduction: ${reductionPct}%, factor: ${reductionFactor}`,
     result: 'INFO',
-    source_reference: 'RMC §18-409(b)',
+    source_reference: 'C.R.S. §24-51-605',
   })
 
   // Determine rule_of_n_value — Go returns ruleOfNSum (camelCase) or rule_of_n_sum
@@ -188,7 +190,9 @@ export function mapEligibility(raw: Record<string, unknown>, retirementDate: str
   return {
     member_id: fromBackendId(String(raw.member_id ?? raw.memberId ?? '')),
     retirement_date: retirementDate,
-    tier: Number(raw.tier ?? 0),
+    division: String(raw.division ?? ''),
+    has_table: Number(raw.has_table ?? 0),
+    has_table_name: String(raw.has_table_name ?? ''),
     age_at_retirement: ageAtRet,
     eligible,
     retirement_type: retType,
@@ -230,16 +234,15 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
   // Formula string
   const formula = String(raw.formula ?? `$${amsValue.toFixed(2)} × ${(multiplier * 100).toFixed(1)}% × ${serviceYears.toFixed(2)} years`)
 
-  // Map IPR — Go returns camelCase field names
-  const iprObj = raw.ipr as Record<string, unknown> | undefined
-  let ipr: IPRResult | undefined
-  if (iprObj) {
-    ipr = {
-      annual_amount: Number(iprObj.pre_medicare_monthly ?? iprObj.preMedicareMonthly ?? 0) * 12,
-      monthly_amount: Number(iprObj.pre_medicare_monthly ?? iprObj.preMedicareMonthly ?? 0),
-      rate_per_year: Number(iprObj.pre_medicare_rate ?? iprObj.preMedicareRate ?? 0),
-      eligible_service_years: Number(iprObj.service_years_for_ipr ?? iprObj.serviceYearsForIpr ?? 0),
-      medicare_eligible: false,
+  // Map annual increase — COPERA uses compound annual increases instead of IPR
+  const aiObj = (raw.annual_increase ?? raw.annualIncrease) as Record<string, unknown> | undefined
+  let annual_increase: AnnualIncreaseInfo | undefined
+  if (aiObj) {
+    annual_increase = {
+      rate: Number(aiObj.rate ?? 0),
+      first_eligible_date: String(aiObj.first_eligible_date ?? aiObj.firstEligibleDate ?? ''),
+      compound_method: String(aiObj.compound_method ?? aiObj.compoundMethod ?? 'compound'),
+      note: String(aiObj.note ?? ''),
     }
   }
 
@@ -249,8 +252,9 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
   if (dbObj) {
     deathBenefit = {
       amount: Number(dbObj.lump_sum_amount ?? dbObj.lumpSumAmount ?? dbObj.amount ?? 0),
-      tier: Number(dbObj.tier ?? raw.tier ?? 0),
+      has_table: Number(dbObj.has_table ?? raw.has_table ?? 0),
       retirement_type: String(dbObj.retirement_type ?? dbObj.retirementType ?? retirementType),
+      description: String(dbObj.description ?? ''),
     }
   }
 
@@ -261,14 +265,14 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
     rule_name: 'Average Monthly Salary',
     description: `AMS: $${amsValue.toFixed(2)} (${amsWindowMonths}-month window)`,
     result: 'CALCULATED',
-    source_reference: 'RMC §18-401',
+    source_reference: 'C.R.S. §24-51-101',
   })
   audit.push({
     rule_id: 'BENEFIT-FORMULA',
     rule_name: 'Benefit Formula',
     description: formula,
     result: 'CALCULATED',
-    source_reference: 'RMC §18-406',
+    source_reference: 'C.R.S. §24-51-602',
   })
   if (reductionFactor < 1) {
     audit.push({
@@ -276,16 +280,19 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
       rule_name: 'Early Retirement Reduction',
       description: `Factor: ${reductionFactor.toFixed(4)} (${((1 - reductionFactor) * 100).toFixed(1)}% reduction)`,
       result: 'APPLIED',
-      source_reference: 'RMC §18-409(b)',
+      source_reference: 'C.R.S. §24-51-605',
     })
   }
 
   return {
     member_id: fromBackendId(String(raw.member_id ?? raw.memberId ?? '')),
     retirement_date: String(raw.retirement_date ?? raw.retirementDate ?? ''),
-    tier: Number(raw.tier ?? 0),
+    division: String(raw.division ?? ''),
+    has_table: Number(raw.has_table ?? 0),
+    has_table_name: String(raw.has_table_name ?? ''),
     ams: amsValue,
     ams_window_months: amsWindowMonths,
+    annual_has: Number(raw.annual_has ?? amsValue * 12),
     service_years_for_benefit: serviceYears,
     multiplier,
     gross_annual_benefit: grossAnnual,
@@ -294,7 +301,8 @@ export function mapBenefit(raw: Record<string, unknown>): BenefitResult {
     retirement_type: retirementType,
     net_monthly_benefit: maxMonthly,
     formula_display: formula,
-    ipr,
+    anti_spiking_applied: Boolean(raw.anti_spiking_applied ?? raw.antiSpikingApplied ?? false),
+    annual_increase,
     death_benefit: deathBenefit,
     audit_trail: audit,
   }
@@ -319,6 +327,7 @@ export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsR
     options.push({
       option_name: String(max.name ?? 'Maximum'),
       option_type: 'maximum',
+      display_name: String(max.display_name ?? max.displayName ?? 'Option 1 — Maximum'),
       monthly_amount: Number(max.monthly_benefit ?? max.monthlyBenefit ?? 0),
       reduction_factor: Number(max.factor ?? 1),
       description: 'Maximum monthly benefit with no survivor benefit',
@@ -336,6 +345,7 @@ export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsR
       options.push({
         option_name: String(opt.name ?? label),
         option_type: snakeKey,
+        display_name: String(opt.display_name ?? opt.displayName ?? label),
         monthly_amount: Number(opt.monthly_benefit ?? opt.monthlyBenefit ?? 0),
         reduction_factor: Number(opt.factor ?? 1),
         survivor_pct: Number(pct),
@@ -346,6 +356,7 @@ export function mapPaymentOptions(raw: Record<string, unknown>): PaymentOptionsR
 
   return {
     base_monthly_benefit: baseBenefit,
+    division: String(po.division ?? ''),
     options,
   }
 }

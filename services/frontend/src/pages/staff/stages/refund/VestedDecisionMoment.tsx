@@ -150,7 +150,7 @@ export function VestedDecisionMoment({ comparison, serviceYears, memberAge }: Pr
         background: C.dangerMuted, border: `1px solid ${C.dangerBorder}`,
       }}>
         <div style={{ color: C.danger, fontSize: '10.5px', fontWeight: 600, marginBottom: '2px' }}>
-          Irrevocable Decision — RMC &sect;18-404
+          Irrevocable Decision — C.R.S. &sect;24-51-401
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           Taking a refund permanently forfeits all pension rights. This decision cannot be reversed.

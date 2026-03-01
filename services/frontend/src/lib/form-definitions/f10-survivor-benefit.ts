@@ -102,7 +102,7 @@ export const f10SurvivorBenefit: FormDefinition = {
       description: 'Certify and sign your application.',
       fields: [
         { key: 'ack_truthful', type: 'checkbox', label: 'I certify all information is true and complete', required: true },
-        { key: 'ack_notify', type: 'checkbox', label: 'I agree to notify DERP of any changes to my eligibility', required: true },
+        { key: 'ack_notify', type: 'checkbox', label: 'I agree to notify COPERA of any changes to my eligibility', required: true },
         { key: 'applicant_esign', type: 'esign', label: 'Applicant Signature', required: true },
       ],
       canContinue: (state) => !!state.ack_truthful && !!state.ack_notify && !!state.applicant_esign,

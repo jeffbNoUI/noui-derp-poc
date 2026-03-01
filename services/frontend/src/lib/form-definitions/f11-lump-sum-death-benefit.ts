@@ -53,7 +53,7 @@ export const f11LumpSumDeathBenefit: FormDefinition = {
       title: 'Payment Method',
       description: 'How to receive the death benefit.',
       fields: [
-        { key: 'info_amount', type: 'info_block', label: 'Death Benefit Amount', infoText: 'The standard DERP death benefit is $5,000. For early retirees, the amount may be reduced based on age at death.' },
+        { key: 'info_amount', type: 'info_block', label: 'Death Benefit Amount', infoText: 'The standard COPERA death benefit is $5,000. For early retirees, the amount may be reduced based on age at death.' },
         { key: 'payment_method', type: 'radio', label: 'Payment Method', required: true, options: [
           { value: 'direct_deposit', label: 'Direct Deposit' },
           { value: 'check', label: 'Paper Check' },

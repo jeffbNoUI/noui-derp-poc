@@ -47,7 +47,7 @@ export function Step7ReviewSubmit({ T, draft, onUpdate, member: m, ben, opts }: 
       </div>
       {[
         { key: 'ack_irrevocable' as const, label: 'I understand that once retirement benefits begin, neither the selected benefit option nor the designated beneficiary can ever be changed.' },
-        { key: 'ack_notarize' as const, label: 'I understand I must print, sign before a notary, and submit the notarized application to DERP.' },
+        { key: 'ack_notarize' as const, label: 'I understand I must print, sign before a notary, and submit the notarized application to Colorado PERA.' },
       ].map(ack => (
         <label key={ack.key} style={{
           display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer',

@@ -1,3 +1,8 @@
+/**
+ * Workspace shell — top-level layout wrapper with branding, member search, demo mode banner.
+ * Consumed by: BenefitWorkspace (expert view)
+ * Depends on: isDemoMode from demo-data
+ */
 import type { ReactNode } from 'react'
 import { Shield, Eye } from 'lucide-react'
 import { isDemoMode } from '@/api/demo-data'
@@ -18,9 +23,9 @@ export function WorkspaceShell({ children, memberId, onMemberSearch }: Workspace
               <Shield className="w-6 h-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-900">DERP Retirement Workspace</h1>
+              <h1 className="text-lg font-bold text-gray-900">COPERA Retirement Workspace</h1>
               <p className="text-xs text-muted">
-                Denver Employees Retirement Plan — Retirement Application
+                Colorado PERA — Retirement Application
               </p>
             </div>
           </div>

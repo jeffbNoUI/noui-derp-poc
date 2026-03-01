@@ -33,10 +33,10 @@ export const f04DroAgreement: FormDefinition = {
       title: 'Marriage & Divorce Details',
       description: 'Dates relevant to the marital fraction calculation.',
       fields: [
-        { key: 'info_marital', type: 'info_block', label: 'Why These Dates Matter', infoText: 'DERP uses the marital fraction (overlap of marriage and DERP membership) to determine the portion of benefits subject to division. Only service earned during the marriage is divisible.' },
+        { key: 'info_marital', type: 'info_block', label: 'Why These Dates Matter', infoText: 'COPERA uses the marital fraction (overlap of marriage and COPERA membership) to determine the portion of benefits subject to division. Only service earned during the marriage is divisible.' },
         { key: 'marriage_date', type: 'date', label: 'Date of Marriage', required: true },
         { key: 'divorce_date', type: 'date', label: 'Date of Divorce (or expected)', required: true },
-        { key: 'member_hire_date', type: 'display', label: 'DERP Membership Start', prepopulateFrom: 'member.hire_date', readOnly: true },
+        { key: 'member_hire_date', type: 'display', label: 'COPERA Membership Start', prepopulateFrom: 'member.hire_date', readOnly: true },
       ],
     },
     {
@@ -81,7 +81,7 @@ export const f04DroAgreement: FormDefinition = {
       title: 'Signatures',
       description: 'Both parties must sign the agreement.',
       fields: [
-        { key: 'info_legal', type: 'info_block', label: 'Legal Notice', infoText: 'This agreement must be incorporated into a court order and submitted to DERP for approval. DERP will review the order to ensure it complies with plan provisions. Both parties should seek independent legal counsel.' },
+        { key: 'info_legal', type: 'info_block', label: 'Legal Notice', infoText: 'This agreement must be incorporated into a court order and submitted to COPERA for approval. COPERA will review the order to ensure it complies with plan provisions. Both parties should seek independent legal counsel.' },
         { key: 'member_esign', type: 'esign', label: 'Member Signature', helpText: 'I agree to the terms of this domestic relations order', required: true },
         { key: 'alt_payee_esign', type: 'esign', label: 'Alternate Payee Signature', helpText: 'I agree to the terms of this domestic relations order', required: true },
       ],

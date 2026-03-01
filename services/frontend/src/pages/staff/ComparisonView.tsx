@@ -182,8 +182,8 @@ export function ComparisonView() {
         lineHeight: '1.5',
       }}>
         The rules engine calculated these values using certified plan provisions.
-        Differences reflect tier-specific multipliers, AMS windows, and reduction rates
-        as defined in the Revised Municipal Code.
+        Differences reflect division-specific HAS windows, reduction rates, and Rule of N thresholds
+        as defined in C.R.S. Title 24 Article 51.
       </div>
     </div>
   )

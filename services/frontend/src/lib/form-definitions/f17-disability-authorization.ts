@@ -30,7 +30,7 @@ export const f17DisabilityAuthorization: FormDefinition = {
       title: 'Authorization',
       description: 'Sign the authorization.',
       fields: [
-        { key: 'info_scope', type: 'info_block', label: 'Scope of Authorization', infoText: 'This authorization permits the named provider to release medical records to the Denver Employees Retirement Plan solely for the purpose of evaluating your disability retirement application. This authorization expires 12 months from the date of signature.' },
+        { key: 'info_scope', type: 'info_block', label: 'Scope of Authorization', infoText: 'This authorization permits the named provider to release medical records to Colorado PERA solely for the purpose of evaluating your disability retirement application. This authorization expires 12 months from the date of signature.' },
         { key: 'patient_esign', type: 'esign', label: 'Patient Signature', helpText: 'I authorize release of my medical records as described above', required: true },
       ],
       canContinue: (state) => !!state.patient_esign,

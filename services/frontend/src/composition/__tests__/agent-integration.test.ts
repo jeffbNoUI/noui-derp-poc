@@ -32,7 +32,7 @@ function makeFullSpec(extraComponents: string[] = [], overrides?: Partial<AgentW
     },
     alerts: [],
     knowledge_context: [
-      { provision_id: 'RMC-18-408', title: 'Rule of 75', citation: 'RMC §18-408(b)', relevance: 'Applies to Tier 1 members' },
+      { provision_id: 'CRS-24-51-603', title: 'Rule of 75', citation: 'C.R.S. §24-51-603', relevance: 'Applies to Tier 1 members' },
     ],
     composed_by: 'agent',
     ...overrides,
@@ -95,7 +95,7 @@ describe('Agent composition integration — rationale availability', () => {
   it('knowledge_context entries are present', () => {
     const spec = makeFullSpec()
     expect(spec.knowledge_context.length).toBeGreaterThan(0)
-    expect(spec.knowledge_context[0].provision_id).toBe('RMC-18-408')
+    expect(spec.knowledge_context[0].provision_id).toBe('CRS-24-51-603')
   })
 })
 

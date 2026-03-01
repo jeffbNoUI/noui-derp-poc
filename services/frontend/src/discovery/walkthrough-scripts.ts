@@ -52,7 +52,7 @@ export const WALKTHROUGHS: WalkthroughDefinition[] = [
         id: 'wt-learning-toggles',
         selector: '[data-discovery="learning-toggles"]',
         headline: 'Layer Toggles',
-        body: 'Use these pills to show/hide the three layers: Onboarding (teaching narrative), Rules (RMC citations), and Checklist (verification items). Each layer is independent.',
+        body: 'Use these pills to show/hide the three layers: Onboarding (teaching narrative), Rules (C.R.S. citations), and Checklist (verification items). Each layer is independent.',
         placement: 'left',
       },
       {

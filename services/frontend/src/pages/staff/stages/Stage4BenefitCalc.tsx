@@ -1,6 +1,6 @@
 /**
  * Guided mode Stage 4 — Salary & Benefit Calculation.
- * AMS window, salary table, leave payout, formula, final monthly benefit.
+ * HAS window, salary table, leave payout, formula, final monthly benefit.
  * Consumed by: GuidedWorkspace (stage renderer)
  * Depends on: StageProps, theme (C, tierMeta, fmt), Badge
  */
@@ -62,8 +62,8 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
   return (
     <div>
       {/* AMS window info */}
-      <Field label="AMS Window" value={`${ben.ams_window_months} consecutive months`}
-        sub={m.tier === 3 ? 'Tier 3: 60-month (vs 36 for Tier 1/2)' : undefined}
+      <Field label="HAS Window" value={`${ben.ams_window_months} consecutive months`}
+        sub={m.tier === 3 ? 'Division 3: 60-month (vs 36 for Division 1/2)' : undefined}
         badge={m.tier === 3 ? { text: '60 months', bg: C.tier3Muted, color: C.tier3 } : undefined} />
 
       {/* Salary table */}
@@ -141,7 +141,7 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
       }}>
         <div style={{
           color: C.textMuted, fontSize: '9px', textTransform: 'uppercase' as const, letterSpacing: '1.5px',
-        }}>{(ben.multiplier * 100).toFixed(1)}% {'\u00D7'} AMS {'\u00D7'} Service</div>
+        }}>{(ben.multiplier * 100).toFixed(1)}% {'\u00D7'} HAS {'\u00D7'} Service</div>
         <div style={{
           color: C.accent, fontSize: '26px', fontWeight: 700, fontFamily: 'monospace',
           marginTop: '4px', textShadow: `0 0 25px ${C.accentGlow}`,
@@ -158,10 +158,10 @@ export function Stage4BenefitCalc({ memberId, member: m, benefit: ben, eligibili
 
       {(() => {
         const multEntry = ben.audit_trail?.find(e => e.rule_id.startsWith('RULE-MULT'))
-        const field = <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} sub="RMC \u00A718-401" />
+        const field = <Field label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} sub="C.R.S. \u00A724-51-101" />
         return multEntry ? <WhyPopover entry={multEntry}>{field}</WhyPopover> : field
       })()}
-      <Field label="AMS" value={fmt(ben.ams)} />
+      <Field label="HAS" value={fmt(ben.ams)} />
       <Field label="Service (for benefit)" value={`${ben.service_years_for_benefit}y`} />
       {(() => {
         const calcEntry = ben.audit_trail?.find(e => e.rule_id === 'RULE-CALC-001')

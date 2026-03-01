@@ -1,5 +1,5 @@
-// Re-export legacy theme (C, tierMeta, fmt) for backward compatibility
-export { C, tierMeta } from './legacy'
+// Re-export legacy theme (C, tierMeta, divisionMeta, hasTableMeta, fmt) for backward compatibility
+export { C, tierMeta, divisionMeta, hasTableMeta } from './legacy'
 export { fmt } from '@/lib/constants'
 
 // New portal theme system

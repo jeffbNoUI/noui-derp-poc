@@ -53,8 +53,8 @@ function VendorLayoutInner() {
                 <div style={{
                   fontSize: 14, fontWeight: 700, color: T.text.primary,
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}>DERP Vendor Portal</div>
-                <div style={{ fontSize: 10, color: T.text.muted }}>Insurance Enrollment & IPR</div>
+                }}>COPERA Vendor Portal</div>
+                <div style={{ fontSize: 10, color: T.text.muted }}>Insurance Enrollment & PERACare</div>
               </div>
             </div>
 

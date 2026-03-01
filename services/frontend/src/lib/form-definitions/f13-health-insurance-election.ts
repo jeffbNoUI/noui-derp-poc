@@ -1,5 +1,5 @@
 /**
- * F13 Health Insurance Election — enroll in DERP health insurance at retirement.
+ * F13 Health Insurance Election — enroll in COPERA health insurance at retirement.
  * Consumed by: FORM_REGISTRY
  * Depends on: FormDefinition type
  */
@@ -8,7 +8,7 @@ import type { FormDefinition } from '@/types/FormDefinition'
 export const f13HealthInsuranceElection: FormDefinition = {
   formId: 'F13',
   formName: 'Health Insurance Election',
-  formDescription: 'Elect health insurance coverage through DERP upon retirement.',
+  formDescription: 'Elect health insurance coverage through COPERA upon retirement.',
   processType: 'retirement',
   estimatedMinutes: 15,
   steps: [
@@ -27,7 +27,7 @@ export const f13HealthInsuranceElection: FormDefinition = {
       title: 'Coverage Election',
       description: 'Choose your coverage level.',
       fields: [
-        { key: 'elect_insurance', type: 'radio', label: 'Do you want to enroll in DERP health insurance?', required: true, options: [
+        { key: 'elect_insurance', type: 'radio', label: 'Do you want to enroll in COPERA health insurance?', required: true, options: [
           { value: 'yes', label: 'Yes, I want to enroll' },
           { value: 'no', label: 'No, I decline coverage' },
         ]},
@@ -69,7 +69,7 @@ export const f13HealthInsuranceElection: FormDefinition = {
       title: 'Premium Deduction',
       description: 'How premiums will be paid.',
       fields: [
-        { key: 'info_ipr', type: 'info_block', label: 'Insurance Premium Reduction (IPR)', infoText: 'If you are eligible, DERP may apply an Insurance Premium Reduction to offset your premium costs. This is calculated based on your years of service and tier.' },
+        { key: 'info_ipr', type: 'info_block', label: 'Insurance Premium Reduction (IPR)', infoText: 'If you are eligible, COPERA may apply an Insurance Premium Reduction to offset your premium costs. This is calculated based on your years of service and tier.' },
         { key: 'premium_method', type: 'radio', label: 'Premium Payment Method', required: true, options: [
           { value: 'benefit_deduction', label: 'Deduct from monthly benefit (recommended)' },
           { value: 'direct_pay', label: 'Pay premiums directly' },

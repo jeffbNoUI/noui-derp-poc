@@ -1,5 +1,5 @@
 /**
- * Knowledge Assistant demo — searchable DERP plan provisions with statutory citations.
+ * Knowledge Assistant demo — searchable COPERA plan provisions with statutory citations.
  * Standalone mode (general provisions) and Connected mode (member-specific analysis).
  * Consumed by: router.tsx (/demos/knowledge-assistant route)
  * Depends on: React (useState, useEffect, useRef, useCallback)
@@ -54,7 +54,7 @@ const MONO = `'JetBrains Mono', 'SF Mono', 'Fira Code', monospace`;
 
 const JENNIFER_KIM = {
   name: "Jennifer Kim",
-  memberId: "DERP-2008-04421",
+  memberId: "COPERA-2008-04421",
   dob: "June 22, 1970",
   age: 55,
   hireDate: "March 1, 2008",
@@ -364,7 +364,7 @@ function EmptyState({ isConnected }) {
     <div style={{ textAlign: "center", padding: "48px 24px" }}>
       <div style={{ fontSize: 40, marginBottom: 16, opacity: 0.3 }}>&#x1F4D6;</div>
       <div style={{ fontSize: 15, fontWeight: 600, color: C.text, marginBottom: 6 }}>
-        Search DERP Plan Provisions
+        Search COPERA Plan Provisions
       </div>
       <div style={{ fontSize: 13, color: C.textSecondary, marginBottom: 24, maxWidth: 380, margin: "0 auto 24px" }}>
         Type a question or topic to find the authoritative provision with statutory citation.
@@ -489,7 +489,7 @@ export function KnowledgeAssistant() {
           onClear={() => handleSearch("")}
           placeholder={isConnected
             ? `Search provisions for ${JENNIFER_KIM.name}...`
-            : "Search DERP plan provisions..."}
+            : "Search COPERA plan provisions..."}
           autoFocus
         />
 

@@ -6,7 +6,7 @@
 import type { ContributionFileRow, ContributionFileMetadata } from '@/types/Employer'
 import { DEMO_EMPLOYER_EMPLOYEES } from '@/api/employer-demo-data'
 
-// Contribution rates from RMC §18-407
+// Contribution rates from C.R.S. §24-51-401
 const EMPLOYEE_RATE = 0.0845
 const EMPLOYER_RATE = 0.1795
 

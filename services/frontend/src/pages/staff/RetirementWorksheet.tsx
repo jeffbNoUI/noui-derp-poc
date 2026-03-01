@@ -2,44 +2,35 @@
  * Printable retirement calculation worksheet — full-page print-optimized layout.
  * Shows complete calculation chain: eligibility, salary/AMS, benefit, payment options, supplemental.
  * Consumed by: StaffWorksheetView.tsx (via /staff/case/:memberId/worksheet route)
- * Depends on: Member types, theme (fmt, tierMeta)
+ * Depends on: Member types, theme (fmt, divisionMeta, hasTableMeta)
  */
 import { fmt } from '@/lib/constants'
-import { tierMeta } from '@/theme'
+import { divisionMeta, hasTableMeta } from '@/theme'
 import type { Member, BenefitResult, EligibilityResult, PaymentOptionsResult, DROResult, ServiceCreditSummary } from '@/types/Member'
 
 // Salary period data for demo display (same as BenefitWorkspace)
+// COPERA demo cases — salary data populated from demo-data fixtures
 const SALARY_ROWS: Record<string, { period: string; months: number; monthly: number }[]> = {
-  '10001': [
-    { period: '2023 (Apr-Dec)', months: 9, monthly: 8792.75 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 9144.50 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 9420.25 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 9702.83 },
+  'COPERA-001': [
+    { period: '2023 (Jan-Dec)', months: 12, monthly: 7500.00 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 7725.00 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 7956.75 },
   ],
-  '10002': [
-    { period: '2023 (May-Dec)', months: 8, monthly: 7007.42 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 7287.75 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 7506.33 },
-    { period: '2026 (Jan-Apr)', months: 4, monthly: 7731.50 },
+  'COPERA-002': [
+    { period: '2023 (Jul-Dec)', months: 6, monthly: 5500.00 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 5665.00 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 5835.00 },
+    { period: '2026 (Jan-Jun)', months: 6, monthly: 6010.00 },
   ],
-  '10003': [
-    { period: '2021 (Apr-Dec)', months: 9, monthly: 6250.00 },
-    { period: '2022 (Jan-Dec)', months: 12, monthly: 6437.50 },
-    { period: '2023 (Jan-Dec)', months: 12, monthly: 6695.00 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 6962.80 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 7171.67 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 7386.82 },
-  ],
-  '10004': [
-    { period: '2023 (Apr-Dec)', months: 9, monthly: 8792.75 },
-    { period: '2024 (Jan-Dec)', months: 12, monthly: 9144.50 },
-    { period: '2025 (Jan-Dec)', months: 12, monthly: 9420.25 },
-    { period: '2026 (Jan-Mar)', months: 3, monthly: 9702.83 },
+  'COPERA-003': [
+    { period: '2023 (Jan-Dec)', months: 12, monthly: 9200.00 },
+    { period: '2024 (Jan-Dec)', months: 12, monthly: 9476.00 },
+    { period: '2025 (Jan-Dec)', months: 12, monthly: 9760.28 },
   ],
 }
 
 const LEAVE_PAYOUTS: Record<string, number> = {
-  '10001': 52000, '10002': 0, '10003': 0, '10004': 52000,
+  'COPERA-001': 0, 'COPERA-002': 0, 'COPERA-003': 0,
 }
 
 interface RetirementWorksheetProps {
@@ -128,14 +119,15 @@ export function RetirementWorksheet({
   member: m, eligibility: elig, benefit: ben, paymentOptions: opts,
   droCalc: dro, serviceCredit: sc, retirementDate, electedOption, caseId,
 }: RetirementWorksheetProps) {
-  const tc = tierMeta[m.tier] || tierMeta[1]
-  const ruleType = m.tier === 3 ? 'Rule of 85' : 'Rule of 75'
-  const ruleTarget = m.tier === 3 ? 85 : 75
+  const tc = divisionMeta[m.division] || divisionMeta['State']
+  const ht = hasTableMeta[m.has_table] || hasTableMeta[1]
+  const ruleType = elig.rule_of_n_label ?? `Rule of ${ht.ruleOfN}`
+  const ruleTarget = elig.rule_of_n_threshold ?? ht.ruleOfN
   const ruleSum = elig.rule_of_n_value ?? 0
-  const ruleMet = elig.retirement_type === 'rule_of_75' || elig.retirement_type === 'rule_of_85'
+  const ruleMet = elig.retirement_type === 'rule_of_n'
   const reductionPct = Math.round((1 - elig.reduction_factor) * 100)
-  const reductionRate = m.tier === 3 ? 6 : 3
   const yrsUnder65 = Math.max(0, 65 - elig.age_at_retirement)
+  const reductionRate = reductionPct > 0 && yrsUnder65 > 0 ? Math.round(reductionPct / yrsUnder65) : 0
   const salaryRows = SALARY_ROWS[m.member_id] || []
   const leavePayout = LEAVE_PAYOUTS[m.member_id] || 0
   const elOpt = opts?.options.find(o => o.option_type === electedOption)
@@ -145,12 +137,12 @@ export function RetirementWorksheet({
     <div data-print="worksheet" style={S.page}>
       {/* Header */}
       <div data-print="worksheet-header" style={S.header}>
-        <div style={S.title}>Denver Employees Retirement Plan</div>
+        <div style={S.title}>Colorado Public Employees' Retirement Association</div>
         <div style={S.title}>Retirement Calculation Worksheet</div>
         <div style={S.subtitle}>
           Member: {m.first_name} {m.last_name} ({m.member_id})
           {' \u00B7 '} Retirement Date: {retirementDate}
-          {' \u00B7 '} {tc.label}
+          {' \u00B7 '} {tc.label} {' \u00B7 '} {ht.name}
           {caseId ? ` \u00B7 Case #${caseId}` : ''}
         </div>
       </div>
@@ -222,7 +214,7 @@ export function RetirementWorksheet({
             {ben.formula_display}
           </div>
         </div>
-        <Row label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} />
+        <Row label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${ht.name})`} />
         <Row label="AMS" value={fmt(ben.ams)} />
         <Row label="Service (for benefit)" value={`${ben.service_years_for_benefit}y`} />
         <Row label="Gross Monthly" value={fmt(ben.gross_monthly_benefit)} />
@@ -286,11 +278,8 @@ export function RetirementWorksheet({
       {/* Supplemental */}
       <div data-print="worksheet-section" style={S.section}>
         <div style={S.sectionTitle}>Supplemental</div>
-        {ben.ipr && (
-          <>
-            <Row label="IPR (pre-Medicare)" value={`${fmt(ben.ipr.monthly_amount)}/mo ($12.50 x ${ben.ipr.eligible_service_years}y)`} />
-            <Row label="IPR (post-Medicare)" value={`${fmt(ben.ipr.monthly_amount / 2)}/mo ($6.25 x ${ben.ipr.eligible_service_years}y)`} />
-          </>
+        {ben.annual_increase && (
+          <Row label="Annual Increase" value={`${(ben.annual_increase.rate * 100).toFixed(1)}% compound, starting ${ben.annual_increase.first_eligible_date}`} />
         )}
         {ben.death_benefit && (
           <Row label="Death Benefit" value={fmt(ben.death_benefit.amount)} />

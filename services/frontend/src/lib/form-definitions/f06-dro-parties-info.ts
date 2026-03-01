@@ -42,7 +42,7 @@ export const f06DroPartiesInfo: FormDefinition = {
       title: 'Employment & Benefit History',
       description: 'Key dates for marital fraction calculation.',
       fields: [
-        { key: 'member_hire_date', type: 'display', label: 'DERP Membership Start', prepopulateFrom: 'member.hire_date', readOnly: true },
+        { key: 'member_hire_date', type: 'display', label: 'COPERA Membership Start', prepopulateFrom: 'member.hire_date', readOnly: true },
         { key: 'marriage_date', type: 'date', label: 'Date of Marriage', required: true },
         { key: 'separation_date', type: 'date', label: 'Date of Separation' },
         { key: 'divorce_date', type: 'date', label: 'Date of Divorce Decree' },
@@ -56,7 +56,7 @@ export const f06DroPartiesInfo: FormDefinition = {
     {
       id: 'contact-prefs',
       title: 'Contact Preferences',
-      description: 'How should DERP communicate regarding this DRO?',
+      description: 'How should COPERA communicate regarding this DRO?',
       fields: [
         { key: 'contact_member_via', type: 'select', label: 'Member preferred contact', options: [
           { value: 'mail', label: 'Mail' },
@@ -68,7 +68,7 @@ export const f06DroPartiesInfo: FormDefinition = {
           { value: 'email', label: 'Email' },
           { value: 'phone', label: 'Phone' },
         ]},
-        { key: 'info_privacy', type: 'info_block', label: 'Privacy Notice', infoText: 'DERP will communicate separately with each party. Neither party will receive copies of correspondence sent to the other party.' },
+        { key: 'info_privacy', type: 'info_block', label: 'Privacy Notice', infoText: 'COPERA will communicate separately with each party. Neither party will receive copies of correspondence sent to the other party.' },
       ],
     },
   ],

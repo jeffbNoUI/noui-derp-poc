@@ -1,18 +1,18 @@
-// Package eligibility implements the DERP eligibility evaluation logic.
+// Package eligibility implements the COPERA eligibility evaluation logic.
 // Consumed by: api/handlers.go
 // Depends on: models (types), rules (statutory tables and constants)
 //
-// Evaluation order per RULE-ELIG-HIERARCHY:
-//   1. Determine tier from hire date
+// Evaluation order per COPERA hierarchy:
+//   1. Determine HAS table from membership date + vesting status
 //   2. Calculate age at retirement
 //   3. Separate earned vs purchased service
 //   4. Check vesting (5 years earned)
-//   5. Check normal retirement (age 65+, 5 years)
-//   6. Check Rule of 75/85 (tier-specific, earned service only)
-//   7. Check early retirement (tier-specific min age, 5 years)
+//   5. Check normal retirement (table-specific age, 5 years)
+//   6. Check Rule of N (table-specific: 80/85/88/90, earned service only)
+//   7. Check early retirement (table-specific min age, 5 years)
 //   8. If none qualify → deferred
 //
-// CRITICAL: Rule of 75/85 and IPR use EARNED service only.
+// CRITICAL: Rule of N uses EARNED service only (purchased excluded).
 // Benefit calculation uses TOTAL service (earned + purchased).
 package eligibility
 
@@ -25,15 +25,13 @@ import (
 	"github.com/noui-derp-poc/intelligence/internal/rules"
 )
 
-// Evaluate performs the complete eligibility evaluation for a member.
-//
-// CRITICAL: Rule of 75/85 and IPR use EARNED service only.
-// Benefit calculation uses TOTAL service (earned + purchased).
-// See RULE-SVC-PURCHASED, RULE-SVC-SEPARATION.
+// Evaluate performs the complete eligibility evaluation for a COPERA member.
 func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, retirementDate time.Time) models.EligibilityResult {
 	result := models.EligibilityResult{
 		MemberID:              member.MemberID,
-		Tier:                  member.Tier,
+		Division:              member.Division,
+		HASTable:              member.HASTable,
+		HASTableName:          rules.HASTableName(member.HASTable),
 		EvaluationDate:        retirementDate.Format("2006-01-02"),
 		EarnedServiceYears:    svcCredit.EarnedYears,
 		PurchasedServiceYears: svcCredit.PurchasedYears,
@@ -54,14 +52,26 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 		TraceID:         fmt.Sprintf("calc-%s-%s-elig", retirementDate.Format("20060102"), member.MemberID),
 		MemberID:        member.MemberID,
 		CalculationType: "eligibility",
-		EngineVersion:   "1.0.0",
+		EngineVersion:   "1.0.0-copera",
 		Assumptions: []string{
 			"[Q-CALC-03] Using integer age (completed years), not monthly proration",
 		},
 	}
 	stepNum := 0
 
-	// Step 1: Age calculation
+	// Step 1: HAS table determination
+	stepNum++
+	trace.Steps = append(trace.Steps, models.CalculationStep{
+		StepNumber:      stepNum,
+		RuleID:          "RULE-HAS-TABLE",
+		RuleName:        "HAS Table Determination",
+		SourceReference: "C.R.S. §24-51-602, CMPTIER0",
+		Description:     "Identify member's HAS table from CMPTIER0 system record",
+		Result:          fmt.Sprintf("HAS Table = %s (table %d)", result.HASTableName, member.HASTable),
+		Notes:           fmt.Sprintf("Division: %s", member.Division),
+	})
+
+	// Step 2: Age calculation
 	stepNum++
 	trace.Steps = append(trace.Steps, models.CalculationStep{
 		StepNumber:      stepNum,
@@ -74,42 +84,29 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 		Result:          fmt.Sprintf("%d completed years", age),
 	})
 
-	// Step 2: Vesting — 5 years earned service. Source: RMC §18-401
+	// Step 3: Vesting — 5 years earned service. Source: C.R.S. §24-51-401(1.7)
 	result.Vested = svcCredit.TotalForElig >= rules.VestingYears
 	stepNum++
 	trace.Steps = append(trace.Steps, models.CalculationStep{
 		StepNumber:      stepNum,
 		RuleID:          "RULE-VESTING",
 		RuleName:        "Vesting Requirement",
-		SourceReference: "RMC §18-402(31)",
+		SourceReference: "C.R.S. §24-51-401(1.7)",
 		Description:     "Check if member has 5 or more years of earned service",
 		Formula:         "earnedServiceYears >= 5.00",
 		Substitution:    fmt.Sprintf("%.2f >= 5.00", svcCredit.TotalForElig),
 		Result:          fmt.Sprintf("vested = %v", result.Vested),
-		Notes:           "Purchased service is EXCLUDED from vesting check",
+		Notes:           "Purchased service excluded from vesting check",
 	})
 
-	// Leave payout eligibility: hired before Jan 1, 2010. Source: RULE-LEAVE-PAYOUT
-	if member.HireDate != nil {
-		cutoff := time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)
-		result.LeavePayoutEligible = member.HireDate.Before(cutoff)
-		if result.LeavePayoutEligible {
-			result.LeavePayoutNote = "Hired before 2010-01-01 — eligible for sick/vacation leave payout"
-		} else {
-			result.LeavePayoutNote = "Hired on or after 2010-01-01 — not eligible"
-		}
-	}
-
-	// Initialize paths array — all pathways are evaluated for transparency
+	// Initialize paths array — all pathways evaluated for transparency
 	var paths []models.EligibilityPath
 
 	if !result.Vested {
 		result.RetirementType = "not_eligible"
 		result.ReductionFactor = 0
-
 		paths = buildPaths(result, age, svcCredit)
 		result.Paths = paths
-
 		trace.FinalResult = map[string]string{
 			"retirementType":  "not_eligible",
 			"reason":          "Not vested (less than 5 years earned service)",
@@ -119,8 +116,9 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 		return result
 	}
 
-	// Step 3: Normal retirement — age 65+, vested. Source: RMC §18-409(a)
-	normalEligible := age >= rules.NormalRetirementAge
+	// Step 4: Normal retirement — table-specific age, vested
+	nra := rules.NormalRetirementAge(member.HASTable)
+	normalEligible := age >= nra
 	if normalEligible {
 		result.NormalRetirementEligible = true
 		result.ReductionFactor = 1.0
@@ -131,42 +129,41 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 		StepNumber:      stepNum,
 		RuleID:          "RULE-NORMAL-RET",
 		RuleName:        "Normal Retirement",
-		SourceReference: "RMC §18-409(a)",
-		Description:     "Check if member qualifies for normal retirement (age 65+, vested)",
-		Formula:         "age >= 65 AND vested",
-		Substitution:    fmt.Sprintf("%d >= 65 AND %v", age, result.Vested),
+		SourceReference: fmt.Sprintf("C.R.S. §24-51-602 (%s)", result.HASTableName),
+		Description:     fmt.Sprintf("Check if member qualifies for normal retirement (age %d+, vested)", nra),
+		Formula:         fmt.Sprintf("age >= %d AND vested", nra),
+		Substitution:    fmt.Sprintf("%d >= %d AND %v", age, nra, result.Vested),
 		Result:          fmt.Sprintf("eligible = %v", normalEligible),
 	})
 
-	// Step 4: Rule of 75/85 — earned service only, tier-specific minimum age
+	// Step 5: Rule of N — earned service only, table-specific threshold and min age
 	evaluateRuleOfN(&result, age, svcCredit)
-	ruleOfNThreshold := rules.RuleOfNThreshold(member.Tier)
-	ruleOfNMinAge := rules.RuleOfNMinAge(member.Tier)
-	ruleLabel := fmt.Sprintf("Rule of %d", ruleOfNThreshold)
+	ruleOfNThreshold := rules.RuleOfNThreshold(member.HASTable)
+	ruleOfNMinAgeVal := rules.RuleOfNMinAge(member.HASTable)
+	ruleLabel := rules.RuleOfNLabel(member.HASTable)
 
 	stepNum++
 	trace.Steps = append(trace.Steps, models.CalculationStep{
 		StepNumber:      stepNum,
 		RuleID:          fmt.Sprintf("RULE-RULE-OF-%d", ruleOfNThreshold),
 		RuleName:        ruleLabel,
-		SourceReference: "RMC §18-409(a)",
-		Description:     fmt.Sprintf("Check if age + earned service >= %d with minimum age %d", ruleOfNThreshold, ruleOfNMinAge),
-		Formula:         fmt.Sprintf("age + earnedService >= %d AND age >= %d", ruleOfNThreshold, ruleOfNMinAge),
-		Substitution:    fmt.Sprintf("%.2f + %.2f = %.2f >= %d AND %d >= %d", result.AgeAtRetirement, svcCredit.TotalForElig, result.RuleOfNSum, ruleOfNThreshold, age, ruleOfNMinAge),
+		SourceReference: fmt.Sprintf("C.R.S. §24-51-602 (%s)", result.HASTableName),
+		Description:     fmt.Sprintf("Check if age + earned service >= %d with minimum age %d", ruleOfNThreshold, ruleOfNMinAgeVal),
+		Formula:         fmt.Sprintf("age + earnedService >= %d AND age >= %d", ruleOfNThreshold, ruleOfNMinAgeVal),
+		Substitution:    fmt.Sprintf("%.2f + %.2f = %.2f >= %d AND %d >= %d", result.AgeAtRetirement, svcCredit.TotalForElig, result.RuleOfNSum, ruleOfNThreshold, age, ruleOfNMinAgeVal),
 		IntermediateValues: map[string]string{
 			"ageAtRetirement":    fmt.Sprintf("%.2f", result.AgeAtRetirement),
 			"earnedServiceYears": fmt.Sprintf("%.2f", svcCredit.TotalForElig),
 			"sum":                fmt.Sprintf("%.2f", result.RuleOfNSum),
 			"threshold":          fmt.Sprintf("%d", ruleOfNThreshold),
-			"minimumAge":         fmt.Sprintf("%d", ruleOfNMinAge),
+			"minimumAge":         fmt.Sprintf("%d", ruleOfNMinAgeVal),
 		},
 		Result: fmt.Sprintf("qualifies = %v", result.RuleOfNQualifies),
-		Notes:  "Purchased service is EXCLUDED from Rule of N calculation",
+		Notes:  "Purchased service EXCLUDED from Rule of N calculation",
 	})
 
-	// If normal retirement was set, keep it (Rule of N is evaluated for transparency)
+	// If normal retirement was set, keep it (Rule of N evaluated for transparency)
 	if normalEligible {
-		evaluateRuleOfN(&result, age, svcCredit)
 		paths = buildPaths(result, age, svcCredit)
 		result.Paths = paths
 		trace.FinalResult = map[string]string{
@@ -179,11 +176,7 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 
 	if result.RuleOfNQualifies {
 		result.ReductionFactor = 1.0
-		if member.Tier == 3 {
-			result.RetirementType = "rule_of_85"
-		} else {
-			result.RetirementType = "rule_of_75"
-		}
+		result.RetirementType = fmt.Sprintf("rule_of_%d", ruleOfNThreshold)
 		paths = buildPaths(result, age, svcCredit)
 		result.Paths = paths
 		trace.FinalResult = map[string]string{
@@ -194,43 +187,34 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 		return result
 	}
 
-	// Step 5: Early retirement — tier-specific minimum age, vested
-	minAge := rules.MinEarlyRetirementAge(member.Tier)
+	// Step 6: Early retirement — table-specific minimum age, vested
+	minAge := rules.MinEarlyRetirementAge(member.HASTable)
 	earlyEligible := age >= minAge
 
 	if earlyEligible {
 		result.EarlyRetirementEligible = true
-		result.YearsUnder65 = rules.NormalRetirementAge - age
+		result.YearsUnder65 = 65 - age
 
-		// Look up reduction factor from statutory table
-		factor := rules.ReductionFactor(member.Tier, age)
+		factor := rules.ReductionFactor(member.HASTable, age)
 		result.ReductionFactor = factor
 		result.EarlyRetirementReductionPct = math.Round((1.0 - factor) * 100)
 		result.RetirementType = "early"
 	}
 
-	ratePerYear := "3%"
-	ruleID := "RULE-EARLY-REDUCE-T12"
-	if member.Tier == 3 {
-		ratePerYear = "6%"
-		ruleID = "RULE-EARLY-REDUCE-T3"
-	}
-
 	stepNum++
 	earlyStep := models.CalculationStep{
 		StepNumber:      stepNum,
-		RuleID:          ruleID,
+		RuleID:          "RULE-EARLY-RET",
 		RuleName:        "Early Retirement",
-		SourceReference: "RMC §18-409(b)",
-		Description:     fmt.Sprintf("Check early retirement eligibility (age >= %d, vested) with %s/year reduction", minAge, ratePerYear),
-		Formula:         fmt.Sprintf("age >= %d AND vested; reduction = %s × (65 - age)", minAge, ratePerYear),
+		SourceReference: fmt.Sprintf("C.R.S. §24-51-605 (%s)", result.HASTableName),
+		Description:     fmt.Sprintf("Check early retirement eligibility (age >= %d, vested)", minAge),
+		Formula:         fmt.Sprintf("age >= %d AND vested", minAge),
 		Substitution:    fmt.Sprintf("%d >= %d AND %v", age, minAge, result.Vested),
 		Result:          fmt.Sprintf("eligible = %v", earlyEligible),
 	}
 	if earlyEligible {
 		earlyStep.IntermediateValues = map[string]string{
 			"yearsUnder65":    fmt.Sprintf("%d", result.YearsUnder65),
-			"reductionRate":   ratePerYear + " per year",
 			"reductionPct":    fmt.Sprintf("%.0f%%", result.EarlyRetirementReductionPct),
 			"reductionFactor": fmt.Sprintf("%.2f", result.ReductionFactor),
 		}
@@ -238,7 +222,6 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 	trace.Steps = append(trace.Steps, earlyStep)
 
 	if !earlyEligible {
-		// Deferred: vested but doesn't meet any retirement type
 		result.RetirementType = "deferred"
 		result.ReductionFactor = 0
 	}
@@ -262,17 +245,22 @@ func Evaluate(member models.MemberData, svcCredit models.ServiceCreditSummary, r
 func buildPaths(result models.EligibilityResult, age int, svcCredit models.ServiceCreditSummary) []models.EligibilityPath {
 	var paths []models.EligibilityPath
 
+	nra := rules.NormalRetirementAge(result.HASTable)
+	ruleOfNThreshold := rules.RuleOfNThreshold(result.HASTable)
+	ruleOfNMinAgeVal := rules.RuleOfNMinAge(result.HASTable)
+	ruleLabel := rules.RuleOfNLabel(result.HASTable)
+
 	// Normal retirement path
 	paths = append(paths, models.EligibilityPath{
-		PathType:         "normal",
-		DisplayName:      "Normal Retirement",
-		Eligible:         result.NormalRetirementEligible,
-		ApplicableToTier: true,
+		PathType:          "normal",
+		DisplayName:       "Normal Retirement",
+		Eligible:          result.NormalRetirementEligible,
+		ApplicableToTable: true,
 		Conditions: []models.EligibilityCondition{
 			{
 				Name:     "Minimum Age",
-				Met:      age >= rules.NormalRetirementAge,
-				Required: "65",
+				Met:      age >= nra,
+				Required: fmt.Sprintf("%d", nra),
 				Actual:   fmt.Sprintf("%d", age),
 			},
 			{
@@ -284,84 +272,35 @@ func buildPaths(result models.EligibilityResult, age int, svcCredit models.Servi
 		},
 	})
 
-	// Rule of 75/85 path
-	ruleOfNThreshold := rules.RuleOfNThreshold(result.Tier)
-	ruleOfNMinAge := rules.RuleOfNMinAge(result.Tier)
-	ruleOfNName := fmt.Sprintf("Rule of %d", ruleOfNThreshold)
-	isApplicable := true
-	if result.Tier == 3 {
-		// Rule of 75 not applicable to Tier 3
-		paths = append(paths, models.EligibilityPath{
-			PathType:         "rule75",
-			DisplayName:      "Rule of 75",
-			Eligible:         false,
-			ApplicableToTier: false,
-			Conditions: []models.EligibilityCondition{
-				{Name: "Tier 1 or 2 only", Met: false, Required: "Tier 1 or 2", Actual: fmt.Sprintf("Tier %d", result.Tier)},
+	// Rule of N path
+	paths = append(paths, models.EligibilityPath{
+		PathType:          fmt.Sprintf("rule%d", ruleOfNThreshold),
+		DisplayName:       ruleLabel,
+		Eligible:          result.RuleOfNQualifies,
+		ApplicableToTable: true,
+		Conditions: []models.EligibilityCondition{
+			{
+				Name:     "Minimum Age",
+				Met:      result.RuleOfNMinAgeMet,
+				Required: fmt.Sprintf("%d", ruleOfNMinAgeVal),
+				Actual:   fmt.Sprintf("%d", age),
 			},
-		})
-		// Rule of 85 is the applicable one
-		paths = append(paths, models.EligibilityPath{
-			PathType:         "rule85",
-			DisplayName:      ruleOfNName,
-			Eligible:         result.RuleOfNQualifies,
-			ApplicableToTier: isApplicable,
-			Conditions: []models.EligibilityCondition{
-				{
-					Name:     "Minimum Age",
-					Met:      result.RuleOfNMinAgeMet,
-					Required: fmt.Sprintf("%d", ruleOfNMinAge),
-					Actual:   fmt.Sprintf("%d", age),
-				},
-				{
-					Name:     fmt.Sprintf("Age + Earned Service ≥ %d", ruleOfNThreshold),
-					Met:      result.RuleOfNSum >= float64(ruleOfNThreshold),
-					Required: fmt.Sprintf("%.2f", float64(ruleOfNThreshold)),
-					Actual:   fmt.Sprintf("%.2f", result.RuleOfNSum),
-				},
+			{
+				Name:     fmt.Sprintf("Age + Earned Service ≥ %d", ruleOfNThreshold),
+				Met:      result.RuleOfNSum >= float64(ruleOfNThreshold),
+				Required: fmt.Sprintf("%.2f", float64(ruleOfNThreshold)),
+				Actual:   fmt.Sprintf("%.2f", result.RuleOfNSum),
 			},
-		})
-	} else {
-		// Rule of 75 applicable to Tiers 1&2
-		paths = append(paths, models.EligibilityPath{
-			PathType:         "rule75",
-			DisplayName:      ruleOfNName,
-			Eligible:         result.RuleOfNQualifies,
-			ApplicableToTier: isApplicable,
-			Conditions: []models.EligibilityCondition{
-				{
-					Name:     "Minimum Age",
-					Met:      result.RuleOfNMinAgeMet,
-					Required: fmt.Sprintf("%d", ruleOfNMinAge),
-					Actual:   fmt.Sprintf("%d", age),
-				},
-				{
-					Name:     fmt.Sprintf("Age + Earned Service ≥ %d", ruleOfNThreshold),
-					Met:      result.RuleOfNSum >= float64(ruleOfNThreshold),
-					Required: fmt.Sprintf("%.2f", float64(ruleOfNThreshold)),
-					Actual:   fmt.Sprintf("%.2f", result.RuleOfNSum),
-				},
-			},
-		})
-		// Rule of 85 not applicable
-		paths = append(paths, models.EligibilityPath{
-			PathType:         "rule85",
-			DisplayName:      "Rule of 85",
-			Eligible:         false,
-			ApplicableToTier: false,
-			Conditions: []models.EligibilityCondition{
-				{Name: "Tier 3 only", Met: false, Required: "Tier 3", Actual: fmt.Sprintf("Tier %d", result.Tier)},
-			},
-		})
-	}
+		},
+	})
 
 	// Early retirement path
-	minEarlyAge := rules.MinEarlyRetirementAge(result.Tier)
+	minEarlyAge := rules.MinEarlyRetirementAge(result.HASTable)
 	earlyPath := models.EligibilityPath{
-		PathType:         "early",
-		DisplayName:      "Early Retirement",
-		Eligible:         result.EarlyRetirementEligible,
-		ApplicableToTier: true,
+		PathType:          "early",
+		DisplayName:       "Early Retirement",
+		Eligible:          result.EarlyRetirementEligible,
+		ApplicableToTable: true,
 		Conditions: []models.EligibilityCondition{
 			{
 				Name:     "Minimum Age",
@@ -386,29 +325,21 @@ func buildPaths(result models.EligibilityResult, age int, svcCredit models.Servi
 	return paths
 }
 
-// evaluateRuleOfN checks Rule of 75 (Tiers 1&2) or Rule of 85 (Tier 3).
+// evaluateRuleOfN checks the Rule of N for the member's HAS table.
 // Uses EARNED service only — purchased service is excluded.
 func evaluateRuleOfN(result *models.EligibilityResult, age int, svcCredit models.ServiceCreditSummary) {
-	threshold := rules.RuleOfNThreshold(result.Tier)
-	minAge := rules.RuleOfNMinAge(result.Tier)
+	threshold := rules.RuleOfNThreshold(result.HASTable)
+	minAge := rules.RuleOfNMinAge(result.HASTable)
 
-	if result.Tier == 3 {
-		result.RuleOfNApplicable = "85"
-	} else {
-		result.RuleOfNApplicable = "75"
-	}
-
-	// Sum uses EARNED service only (TotalForElig excludes purchased)
+	result.RuleOfNApplicable = fmt.Sprintf("%d", threshold)
 	result.RuleOfNSum = result.AgeAtRetirement + svcCredit.TotalForElig
 	result.RuleOfNMinAgeMet = age >= minAge
 	result.RuleOfNQualifies = result.RuleOfNSum >= float64(threshold) && result.RuleOfNMinAgeMet
 }
 
 // ageAtDate calculates age in completed years at a given date.
-// ASSUMPTION: [Q-CALC-03] Using integer age (completed years), not monthly proration.
 func ageAtDate(dob, asOf time.Time) float64 {
 	years := asOf.Year() - dob.Year()
-	// Adjust if birthday hasn't occurred yet in the target year
 	if asOf.Month() < dob.Month() || (asOf.Month() == dob.Month() && asOf.Day() < dob.Day()) {
 		years--
 	}

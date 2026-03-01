@@ -38,7 +38,7 @@ const MONO = `'JetBrains Mono', 'SF Mono', monospace`;
 // ============================================================
 const MEMBER = {
   name: "Jennifer Kim",
-  memberId: "DERP-2008-04421",
+  memberId: "COPERA-2008-04421",
   dob: "1970-06-22",
   dobDisplay: "June 22, 1970",
   age: 55,
@@ -84,7 +84,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "error",
           message: `Tier ${MEMBER.tier} minimum early retirement age is ${minAge}. ${MEMBER.name} would be ${ageAtRetirement.toFixed(1)} at this date.`,
-          citation: MEMBER.tier === 3 ? "RMC §18-404(b)" : "RMC §18-404(a)",
+          citation: MEMBER.tier === 3 ? "C.R.S. §24-51-602(b)" : "C.R.S. §24-51-602(a)",
         });
       }
 
@@ -95,7 +95,7 @@ function validateField(fieldId, value, allFields) {
           message: `Retirement effective date must be the first of a month.`,
           suggestion: `Did you mean ${d.toLocaleDateString("en-US", { month: "long" })} 1, ${d.getFullYear()}?`,
           suggestedValue: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-01`,
-          citation: "RMC §18-400",
+          citation: "C.R.S. §24-51-601",
         });
       }
 
@@ -106,7 +106,7 @@ function validateField(fieldId, value, allFields) {
           message: `Retirement date must be after the last day worked (${ldw.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}).`,
           suggestion: `The earliest valid retirement date is ${firstOfNextMonth.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}.`,
           suggestedValue: `${firstOfNextMonth.getFullYear()}-${String(firstOfNextMonth.getMonth() + 1).padStart(2, "0")}-01`,
-          citation: "RMC §18-400",
+          citation: "C.R.S. §24-51-601",
         });
       }
 
@@ -119,14 +119,14 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "info",
           message: `Earned service: ${MEMBER.earnedService.decimal} years. Purchased service: ${MEMBER.purchasedService.decimal} years (excluded from Rule of 75). Rule of 75: ${ageAtRetirement.toFixed(1)} + ${MEMBER.earnedService.decimal} = ${ruleSum.toFixed(2)} — not met. Early retirement reduction: ${reduction}% (3% × ${yearsUnder65} years under 65).`,
-          citation: "RMC §18-403(a), §18-404(a)",
+          citation: "C.R.S. §24-51-601, §24-51-602",
           insight: ruleSum > 73 ? `${MEMBER.name} is ${(75 - ruleSum).toFixed(2)} points from Rule of 75. The scenario modeler can show when this threshold is reached.` : null,
         });
       } else if (ruleSum >= 75 && ageAtRetirement >= minAge) {
         validations.push({
           severity: "info",
           message: `Rule of 75 met: ${ageAtRetirement.toFixed(1)} + ${MEMBER.earnedService.decimal} = ${ruleSum.toFixed(2)} ≥ 75. No early retirement reduction applies.`,
-          citation: "RMC §18-403(a)",
+          citation: "C.R.S. §24-51-601",
           isPositive: true,
         });
       }
@@ -165,21 +165,21 @@ function validateField(fieldId, value, allFields) {
           validations.push({
             severity: "warning",
             message: `This amount is ${pctChange.toFixed(0)}% higher than the previous month ($${prev.toLocaleString()}). ${MEMBER.name} was hired ${MEMBER.hireDateDisplay} (before Jan 1, 2010) and is eligible for leave payout inclusion. If a sick/vacation cash-out is included, this may be correct.`,
-            citation: "RMC §18-391(13), §18-396",
+            citation: "C.R.S. §24-51-101(42), §24-51-606",
             actions: ["Confirm leave payout included", "Correct the amount"],
           });
         } else {
           validations.push({
             severity: "warning",
             message: `This amount is ${pctChange.toFixed(0)}% higher than the previous month ($${prev.toLocaleString()}). ${MEMBER.name} was hired after Jan 1, 2010 and is NOT eligible for leave payout. Please verify this salary figure.`,
-            citation: "RMC §18-391(13)",
+            citation: "C.R.S. §24-51-101(42)",
           });
         }
       } else if (pctChange < -10) {
         validations.push({
           severity: "warning",
           message: `This amount is ${Math.abs(pctChange).toFixed(0)}% lower than the previous month ($${prev.toLocaleString()}). This may indicate a furlough or reduced schedule. If within the AMS window, the member may want to purchase furlough days to offset the impact.`,
-          citation: "RMC §18-396(b)",
+          citation: "C.R.S. §24-51-606(b)",
         });
       }
 
@@ -188,7 +188,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "info",
           message: `This amount ($${salary.toLocaleString()}) is above the current AMS ($${MEMBER.currentAMS.toLocaleString()}). If this month falls within the highest 36-month window, it will increase the AMS and benefit amount.`,
-          citation: "RMC §18-391(3)",
+          citation: "C.R.S. §24-51-101(3)",
           isPositive: true,
         });
       }
@@ -206,7 +206,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "error",
           message: `Member records show ${MEMBER.purchasedService.decimal} years of purchased service. The entered value (${years}) does not match. Purchased service amounts are established at time of purchase and cannot be changed during retirement processing.`,
-          citation: "RMC §18-411",
+          citation: "C.R.S. §24-51-611",
           suggestion: `Correct value: ${MEMBER.purchasedService.decimal} years`,
           suggestedValue: MEMBER.purchasedService.decimal.toString(),
         });
@@ -215,7 +215,7 @@ function validateField(fieldId, value, allFields) {
       validations.push({
         severity: "info",
         message: `Purchased service (${MEMBER.purchasedService.decimal} years) is included in the benefit formula (multiplier × AMS × ${MEMBER.totalService.decimal} total years) but excluded from Rule of 75 eligibility (age + ${MEMBER.earnedService.decimal} earned years only).`,
-        citation: "RMC §18-403, §18-411",
+        citation: "C.R.S. §24-51-601, §24-51-611",
       });
       break;
     }
@@ -228,7 +228,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "warning",
           message: `Computed earned service from employment records is ${expected} years (${MEMBER.earnedService.years}y ${MEMBER.earnedService.months}m). The entered value (${years}) differs by ${Math.abs(years - expected).toFixed(2)} years. Please verify against employment history.`,
-          citation: "RMC §18-391(16)",
+          citation: "C.R.S. §24-51-101(16)",
           suggestion: `Expected: ${expected} years`,
           suggestedValue: expected.toString(),
         });
@@ -240,8 +240,8 @@ function validateField(fieldId, value, allFields) {
       if (v === "maximum" && MEMBER.maritalStatus === "Married") {
         validations.push({
           severity: "warning",
-          message: `${MEMBER.name} is married. Electing Maximum (Single Life) requires notarized spousal consent. Ensure DERP Spousal Consent form is submitted with the retirement package.`,
-          citation: "RMC §18-406(c)",
+          message: `${MEMBER.name} is married. Electing Maximum (Single Life) requires notarized spousal consent. Ensure COPERA Spousal Consent form is submitted with the retirement package.`,
+          citation: "C.R.S. §24-51-605",
           actions: ["Confirm spousal consent on file"],
         });
       }
@@ -249,7 +249,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "info",
           message: `${MEMBER.name} is not married. No spousal consent required. All payment options are available without restriction.`,
-          citation: "RMC §18-406(c)",
+          citation: "C.R.S. §24-51-605",
           isPositive: true,
         });
       }
@@ -263,7 +263,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "warning",
           message: `Beneficiary is a minor (age ${age}). A legal guardian or trust must be designated to receive benefits on behalf of the minor. Additional documentation may be required.`,
-          citation: "RMC §18-405",
+          citation: "C.R.S. §24-51-604",
         });
       }
       if (age > 100) {
@@ -281,7 +281,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "error",
           message: `Lump-sum death benefit must be elected as either 50 or 100 monthly installments. "${v}" is not a valid election.`,
-          citation: "RMC §18-407",
+          citation: "C.R.S. §24-51-607",
         });
       }
       if (v === "50" || v === "100") {
@@ -292,7 +292,7 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "info",
           message: `Early retirement Tier ${MEMBER.tier}: $5,000 − ($250 × ${yearsUnder65} years under 65) = $${lsdb.toLocaleString()} lump-sum death benefit. At ${v} installments: $${monthly}/month to beneficiary. This election is irrevocable.`,
-          citation: "RMC §18-407",
+          citation: "C.R.S. §24-51-607",
         });
       }
       break;
@@ -310,20 +310,20 @@ function validateField(fieldId, value, allFields) {
         validations.push({
           severity: "error",
           message: `Application received ${daysAfterLDW} days after last day worked. The 30-day filing window expired on ${deadline.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}. This application may be rejected.`,
-          citation: "RMC §18-400",
+          citation: "C.R.S. §24-51-601",
         });
       } else if (d > ldw) {
         validations.push({
           severity: "info",
           message: `Application received ${daysAfterLDW} days after last day worked. Within the 30-day filing window (${30 - daysAfterLDW} days remaining). ✓`,
-          citation: "RMC §18-400",
+          citation: "C.R.S. §24-51-601",
           isPositive: true,
         });
       } else if (d <= ldw) {
         validations.push({
           severity: "info",
           message: `Application received before last day worked. Filing window has not started yet — this is acceptable.`,
-          citation: "RMC §18-400",
+          citation: "C.R.S. §24-51-601",
           isPositive: true,
         });
       }
@@ -774,7 +774,7 @@ export function DataEntryValidator() {
         }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: C.primary, flexShrink: 0, animation: "pulse 2s infinite" }} />
           <span style={{ fontSize: 12, color: C.primary, fontWeight: 600 }}>
-            All validations reference governing document provisions. Rules sourced from RMC §18-391 through §18-430.7.
+            All validations reference governing document provisions. Rules sourced from C.R.S. Title 24 Article 51.
           </span>
         </div>
       </div>

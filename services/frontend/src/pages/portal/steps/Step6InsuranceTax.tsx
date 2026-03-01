@@ -17,7 +17,7 @@ export function Step6InsuranceTax({ T, draft, onUpdate, ben }: StepProps) {
       {ben.ipr && (
         <>
           <div style={{ fontSize: 13, color: T.text.secondary, marginBottom: 16 }}>
-            DERP can reduce your health insurance premiums through the Insurance Premium Reduction (IPR).
+            Colorado PERA can reduce your health insurance premiums through the Insurance Premium Reduction (IPR).
           </div>
 
           {/* Pre-Medicare vs Post-Medicare comparison */}
@@ -47,7 +47,7 @@ export function Step6InsuranceTax({ T, draft, onUpdate, ben }: StepProps) {
             borderLeft: `3px solid ${T.status.info}`, marginBottom: 20,
           }}>
             <div style={{ fontSize: 12, color: T.status.info }}>
-              To receive the IPR, you must enroll in a DERP group health insurance plan.
+              To receive the IPR, you must enroll in a Colorado PERA group health insurance plan.
             </div>
           </div>
 
@@ -59,7 +59,7 @@ export function Step6InsuranceTax({ T, draft, onUpdate, ben }: StepProps) {
             />
             <div>
               <div style={{ fontSize: 13, fontWeight: 600, color: T.text.primary }}>
-                I want to enroll in DERP health insurance
+                I want to enroll in Colorado PERA health insurance
               </div>
               <div style={{ fontSize: 11, color: T.text.muted, marginTop: 2 }}>
                 A Health Insurance Election Form will be added to your required documents.

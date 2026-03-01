@@ -1,5 +1,5 @@
 /**
- * Member portal layout — MyDERP branding header, nav tabs, member selector dropdown.
+ * Member portal layout — MyCOPERA branding header, nav tabs, member selector dropdown.
  * Light theme (teal accent, white surfaces) from noui-multi-portal.jsx prototype.
  * Wraps children in ThemeProvider (memberTheme) and PortalAuthProvider.
  * AuthGate redirects to /portal/login in non-demo mode when unauthenticated.
@@ -51,13 +51,13 @@ function MemberLayoutInner() {
                 background: T.accent.primary,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
               }}>
-                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>D</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#fff' }}>C</span>
               </div>
               <div>
                 <div style={{
                   fontSize: 14, fontWeight: 700, color: T.text.primary,
                   fontFamily: "'Plus Jakarta Sans', sans-serif",
-                }}>MyDERP</div>
+                }}>MyCOPERA</div>
                 <div style={{ fontSize: 10, color: T.text.muted }}>Your Retirement Journey</div>
               </div>
             </div>

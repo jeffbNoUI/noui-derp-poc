@@ -28,7 +28,7 @@ const STATUS_BADGE: Record<string, { text: string; color: string; bg: string }> 
   discrepancy: { text: 'Discrepancy', color: '#dc2626', bg: '#dc262620' },
 }
 
-// Contribution rates from RMC §18-407
+// Contribution rates from C.R.S. §24-51-401
 const EMPLOYEE_RATE = 0.0845
 const EMPLOYER_RATE = 0.1795
 
@@ -107,7 +107,7 @@ export function ContributionReview() {
       ),
     },
     {
-      key: 'tier', label: 'Tier', width: '60px',
+      key: 'tier', label: 'Div', width: '60px',
       render: (row: ContributionFileRow) => {
         const colors: Record<number, { color: string; bg: string }> = {
           1: { color: '#3b82f6', bg: '#3b82f620' },
@@ -115,7 +115,7 @@ export function ContributionReview() {
           3: { color: '#f59e0b', bg: '#f59e0b20' },
         }
         const tc = colors[row.tier] || { color: C.textMuted, bg: `${C.textMuted}20` }
-        return <Badge text={`T${row.tier}`} color={tc.color} bg={tc.bg} />
+        return <Badge text={`D${row.tier}`} color={tc.color} bg={tc.bg} />
       },
     },
     {

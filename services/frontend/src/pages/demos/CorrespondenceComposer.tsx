@@ -155,7 +155,7 @@ function generateBlocks(caseData) {
     id: "approval", title: "Retirement Approval", layer: 2, tier: 1,
     source: "Layer 2: Process Orchestrator",
     condition: "Case stage = Approved",
-    content: `We are pleased to confirm that your application for ${c.retirementType} retirement from the Denver Employees Retirement Plan has been approved, effective ${c.retirementDate}. Your last day of active employment is recorded as ${c.lastDayWorked}.`,
+    content: `We are pleased to confirm that your application for ${c.retirementType} retirement from the Colorado Public Employees' Retirement Association has been approved, effective ${c.retirementDate}. Your last day of active employment is recorded as ${c.lastDayWorked}.`,
   });
 
   // BLOCK 3: Tier and eligibility (Layer 2 — Rules Engine)
@@ -166,7 +166,7 @@ function generateBlocks(caseData) {
     id: "eligibility", title: "Eligibility Determination", layer: 2, tier: 1,
     source: "Layer 2: Rules Engine",
     condition: "Always included",
-    citation: c.retirementType.includes("Rule of") ? "RMC §18-403" : "RMC §18-404",
+    citation: c.retirementType.includes("Rule of") ? "C.R.S. §24-51-601" : "C.R.S. §24-51-602",
     content: eligContent,
   });
 
@@ -176,7 +176,7 @@ function generateBlocks(caseData) {
       id: "purchased-service", title: "Purchased Service Note", layer: 3, tier: 2,
       source: "Layer 3: Relevance Engine (conditional)",
       condition: "Member has purchased service credit",
-      citation: "RMC §18-403, §18-411",
+      citation: "C.R.S. §24-51-601, §24-51-611",
       content: `Your ${c.purchasedService} of purchased service credit is included in your benefit calculation but was excluded from the Rule of 75 eligibility determination, as required by statute. Your total service for benefit calculation purposes is ${c.earnedService} earned + ${c.purchasedService} purchased.`,
     });
   }
@@ -187,7 +187,7 @@ function generateBlocks(caseData) {
       id: "leave-payout", title: "Leave Payout Impact", layer: 3, tier: 2,
       source: "Layer 3: Relevance Engine (conditional)",
       condition: "Member hired before Jan 1, 2010 AND leave payout exists",
-      citation: "RMC §18-391(13), §18-396",
+      citation: "C.R.S. §24-51-101(42), §24-51-606",
       content: `Your leave payout of ${c.leavePayout} for unused sick and vacation leave has been included in your final month's pensionable compensation. This amount is reflected in the Average Monthly Salary (AMS) calculation shown below, as you were hired before January 1, 2010 and qualify for this provision.`,
     });
   }
@@ -207,7 +207,7 @@ function generateBlocks(caseData) {
     id: "calculation", title: "Benefit Calculation", layer: 1, tier: 1,
     source: "Layer 1: Calculation Engine + Layer 2: Rules",
     condition: "Always included",
-    citation: "RMC §18-401, §18-402",
+    citation: "C.R.S. §24-51-601, §24-51-602",
     content: calcContent,
     isMonospace: true,
   });
@@ -223,7 +223,7 @@ function generateBlocks(caseData) {
     id: "payment-option", title: "Payment Option Election", layer: 2, tier: 1,
     source: "Layer 2: Rules Engine + Layer 1: Member Election",
     condition: "Always included",
-    citation: "RMC §18-405, §18-406",
+    citation: "C.R.S. §24-51-604, §24-51-605",
     content: payContent,
     isMonospace: true,
   });
@@ -234,7 +234,7 @@ function generateBlocks(caseData) {
       id: "spousal-consent", title: "Spousal Consent Confirmation", layer: 3, tier: 2,
       source: "Layer 3: Relevance Engine (conditional)",
       condition: "Member is married AND elected J&S option",
-      citation: "RMC §18-406(c)",
+      citation: "C.R.S. §24-51-605",
       content: `As you are married, your spouse ${c.spouse.name} has been designated as your Joint & Survivor beneficiary. We have received the required spousal consent documentation. If your spouse wishes to review this election, please contact our office before your first benefit payment is processed.`,
     });
   }
@@ -245,7 +245,7 @@ function generateBlocks(caseData) {
       id: "dro-notice", title: "Domestic Relations Order", layer: 3, tier: 2,
       source: "Layer 3: Relevance Engine (conditional)",
       condition: "Active DRO on file",
-      citation: "RMC §18-430.1 through §18-430.7",
+      citation: "C.R.S. §24-51-801 through §24-51-807",
       content: `A Domestic Relations Order (DRO) is on file for your retirement account. The following division has been applied per the court order:\n\n` +
         `  Alternate Payee:     ${c.dro.alternatePayer}\n` +
         `  Marriage Period:     ${c.dro.marriageDate} to ${c.dro.divorceDate}\n` +
@@ -268,7 +268,7 @@ function generateBlocks(caseData) {
     id: "death-benefit", title: "Lump-Sum Death Benefit", layer: 2, tier: 1,
     source: "Layer 2: Rules Engine",
     condition: "Always included",
-    citation: "RMC §18-407",
+    citation: "C.R.S. §24-51-607",
     content: deathContent,
   });
 
@@ -278,7 +278,7 @@ function generateBlocks(caseData) {
       id: "early-reduction-note", title: "Early Retirement Reduction Notice", layer: 3, tier: 2,
       source: "Layer 3: Relevance Engine (conditional)",
       condition: "Retirement type = Early",
-      citation: "RMC §18-404",
+      citation: "C.R.S. §24-51-602",
       content: `Please note that the early retirement reduction of ${c.reduction} is a permanent adjustment to your benefit amount. This reduction remains in effect for the duration of your retirement and will also apply to any cost-of-living adjustments that may be approved by the Board in future years.`,
     });
   }
@@ -288,7 +288,7 @@ function generateBlocks(caseData) {
     id: "closing", title: "Closing", layer: 2, tier: 1,
     source: "Layer 2: Process Orchestrator",
     condition: "Always included",
-    content: `Your first retirement benefit payment will be processed on ${c.retirementDate}, contingent upon receipt of all required documentation. If you have questions about this determination, please contact the DERP office at (303) 839-5419.\n\nSincerely,\n\nDenver Employees Retirement Plan\nBenefits Administration`,
+    content: `Your first retirement benefit payment will be processed on ${c.retirementDate}, contingent upon receipt of all required documentation. If you have questions about this determination, please contact the COPERA office at (303) 839-5419.\n\nSincerely,\n\nColorado Public Employees' Retirement Association\nBenefits Administration`,
   });
 
   return blocks;
@@ -572,7 +572,7 @@ export function CorrespondenceComposer() {
           }}>
             <div>
               <div style={{ fontSize: 18, fontWeight: 800, color: C.primary, letterSpacing: -0.3 }}>
-                DENVER EMPLOYEES RETIREMENT PLAN
+                COLORADO PUBLIC EMPLOYEES' RETIREMENT ASSOCIATION
               </div>
               <div style={{ fontSize: 12, color: C.textSecondary, marginTop: 4 }}>
                 777 Pearl Street · Denver, CO 80203 · (303) 839-5419

@@ -37,13 +37,13 @@ const EMPLOYER_DOCS: DocItem[] = [
 const STATUS_TIMELINE: Record<string, Array<{ date: string; event: string; type: 'info' | 'success' | 'warning' }>> = {
   '10001': [
     { date: '2026-02-10', event: 'Retirement application submitted by member', type: 'info' },
-    { date: '2026-02-12', event: 'Application received by DERP — initial review started', type: 'info' },
+    { date: '2026-02-12', event: 'Application received by COPERA — initial review started', type: 'info' },
     { date: '2026-02-15', event: 'Employer documentation requested', type: 'warning' },
     { date: '2026-02-20', event: 'All employer documents received — moved to In Review', type: 'success' },
   ],
   '10002': [
     { date: '2026-02-10', event: 'Retirement application submitted by member', type: 'info' },
-    { date: '2026-02-12', event: 'Application received by DERP — documentation review', type: 'info' },
+    { date: '2026-02-12', event: 'Application received by COPERA — documentation review', type: 'info' },
     { date: '2026-02-18', event: 'Employer documentation requested — awaiting response', type: 'warning' },
   ],
   '10003': [

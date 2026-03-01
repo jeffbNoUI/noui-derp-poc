@@ -193,7 +193,7 @@ export function VendorMemberDetail() {
           IPR Verification
         </h2>
         <div style={{ fontSize: 11, color: T.text.muted, marginBottom: 16 }}>
-          Insurance Premium Reimbursement — RMC §18-412
+          Insurance Premium Reimbursement — C.R.S. §24-51-1201
         </div>
 
         {/* Earned service years */}
@@ -228,7 +228,7 @@ export function VendorMemberDetail() {
           border: `1px solid ${T.border.subtle}`, marginBottom: 16,
         }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: T.text.primary, marginBottom: 12 }}>
-            Rate Calculation (RMC §18-412)
+            Rate Calculation (C.R.S. §24-51-1201)
           </div>
 
           {/* Pre-Medicare */}

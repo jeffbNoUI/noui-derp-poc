@@ -10,7 +10,7 @@ export const NUDGE_RULES: NudgeRule[] = [
     id: 'idle-benefit-calc',
     trigger: { type: 'idle', stageId: 'benefit-calc', delayMs: 30000 },
     message: 'Taking time on the benefit calculation?',
-    hint: 'The Learning Module rules layer shows the exact formula and RMC citations. Toggle it on with the Rules pill button.',
+    hint: 'The Learning Module rules layer shows the exact formula and C.R.S. citations. Toggle it on with the Rules pill button.',
   },
   {
     id: 'idle-eligibility',

@@ -24,9 +24,9 @@ const LIFECYCLE_STEPS: LifecycleStep[] = [
     id: 1,
     phase: 'Detection',
     title: 'Source Document Change Detected',
-    description: 'Denver City Council passes Ordinance 2026-042 amending RMC §18-407, increasing the employer contribution rate from 17.95% to 19.00% effective July 1, 2026.',
+    description: 'The Colorado General Assembly passes SB26-042 amending C.R.S. §24-51-401, increasing the employer contribution rate from 21.40% to 22.50% effective July 1, 2026.',
     detail: 'The AI monitors governing document feeds and flags the amendment as affecting 3 configured rules in the rules engine.',
-    artifact: 'Ordinance 2026-042\nSection: RMC §18-407(a)\nChange: Employer contribution rate\nFrom: 17.95%\nTo: 19.00%\nEffective: July 1, 2026',
+    artifact: 'SB26-042\nSection: C.R.S. §24-51-401(1.7)\nChange: Employer contribution rate\nFrom: 21.40%\nTo: 22.50%\nEffective: July 1, 2026',
     aiRole: 'Scans source documents, identifies affected rules, creates change request',
     humanRole: 'Verifies AI correctly identified the source and scope',
   },
@@ -36,7 +36,7 @@ const LIFECYCLE_STEPS: LifecycleStep[] = [
     title: 'Impact Analysis Generated',
     description: 'AI analyzes the downstream impact: employer portal contribution calculations, monthly reporting totals, and actuarial valuation inputs.',
     detail: 'The system traces all code paths that reference the employer contribution rate constant and generates an impact report.',
-    artifact: 'Impact Analysis — CR-2026-042\n\nAffected Rules:\n  1. CONTRIBUTION_RATE_EMPLOYER (rules/tables.go:47)\n  2. Employer overview aggregation (employer_handlers.go:39)\n  3. Contribution report validation (connector fixtures)\n\nAffected Outputs:\n  - Employer Portal → Dashboard → contribution_rate_employer\n  - Employer Portal → Contribution Reporting → rate validation\n  - Monthly payroll deduction calculations\n\nRegression Risk: MEDIUM\n  - 12 tests reference 17.95%\n  - 3 demo fixtures use hardcoded rate\n  - 1 API response includes rate constant',
+    artifact: 'Impact Analysis — CR-2026-042\n\nAffected Rules:\n  1. CONTRIBUTION_RATE_EMPLOYER (rules/tables.go:47)\n  2. Employer overview aggregation (employer_handlers.go:39)\n  3. Contribution report validation (connector fixtures)\n\nAffected Outputs:\n  - Employer Portal → Dashboard → contribution_rate_employer\n  - Employer Portal → Contribution Reporting → rate validation\n  - Monthly payroll deduction calculations\n\nRegression Risk: MEDIUM\n  - 12 tests reference 21.40%\n  - 3 demo fixtures use hardcoded rate\n  - 1 API response includes rate constant',
     aiRole: 'Traces all references, generates impact report, identifies test coverage',
     humanRole: 'Reviews impact scope, confirms no missed dependencies',
   },
@@ -50,16 +50,16 @@ const LIFECYCLE_STEPS: LifecycleStep[] = [
 
 // rules/contribution_rates.yaml
 contribution_rates:
-  - version: "2024-01-01"
-    employer_rate: 0.1795
-    employee_rate: 0.0845
-    source: "RMC §18-407(a), DERP Handbook Jan 2024"
+  - version: "2024-07-01"
+    employer_rate: 0.2140
+    employee_rate: 0.1050
+    source: "C.R.S. §24-51-401(1.7), PERA Tables 2024"
     status: active
 
   - version: "2026-07-01"    # NEW
-    employer_rate: 0.1900     # Changed from 0.1795
-    employee_rate: 0.0845     # Unchanged
-    source: "RMC §18-407(a), Ord. 2026-042"
+    employer_rate: 0.2250     # Changed from 0.2140
+    employee_rate: 0.1050     # Unchanged
+    source: "C.R.S. §24-51-401(1.7), SB26-042"
     status: pending_certification
 
 Note: Prior version preserved for retroactive calculations.
@@ -76,19 +76,19 @@ AI drafted this change. Human certification required before activation.`,
     artifact: `Generated Regression Tests — CR-2026-042
 
 TestContributionRate_PreEffective (6 tests):
-  ✓ employer_rate = 17.95% for dates before July 1, 2026
-  ✓ employee_rate = 8.45% for dates before July 1, 2026
-  ✓ monthly_employer_contribution matches at 17.95%
+  ✓ employer_rate = 21.40% for dates before July 1, 2026
+  ✓ employee_rate = 10.50% for dates before July 1, 2026
+  ✓ monthly_employer_contribution matches at 21.40%
   ✓ boundary: June 30, 2026 uses old rate
-  ✓ demo Case 1 (Robert Martinez) unchanged at 17.95%
-  ✓ employer overview returns 17.95% for current period
+  ✓ demo Case 1 (Maria Garcia) unchanged at 21.40%
+  ✓ employer overview returns 21.40% for current period
 
 TestContributionRate_PostEffective (6 tests):
-  ✓ employer_rate = 19.00% for dates on/after July 1, 2026
-  ✓ employee_rate = 8.45% for dates on/after July 1, 2026
-  ✓ monthly_employer_contribution matches at 19.00%
+  ✓ employer_rate = 22.50% for dates on/after July 1, 2026
+  ✓ employee_rate = 10.50% for dates on/after July 1, 2026
+  ✓ monthly_employer_contribution matches at 22.50%
   ✓ boundary: July 1, 2026 uses new rate
-  ✓ employer portal shows 19.00% for July+ reports
+  ✓ employer portal shows 22.50% for July+ reports
   ✓ contribution discrepancy detected if old rate submitted after July 1
 
 Result: 12 tests generated, 12 passed`,
@@ -108,9 +108,9 @@ Date: March 15, 2026
 Decision: APPROVED
 
 Verification Notes:
-  ✓ Confirmed Ordinance 2026-042 text matches AI-extracted rate (19.00%)
+  ✓ Confirmed SB26-042 text matches AI-extracted rate (22.50%)
   ✓ Confirmed effective date July 1, 2026
-  ✓ Confirmed employee rate unchanged at 8.45%
+  ✓ Confirmed employee rate unchanged at 10.50%
   ✓ Reviewed impact analysis — 3 affected rules identified, all covered
   ✓ Reviewed 12 regression tests — all passing
   ✓ Confirmed prior rate preserved for retroactive calculations
@@ -187,7 +187,7 @@ export function ChangeManagementDemo() {
           fontSize: 11, color: '#94a3b8', background: '#1e293b',
           padding: '6px 14px', borderRadius: 6, border: '1px solid #334155',
         }}>
-          Scenario: Employer Contribution Rate Change (RMC §18-407)
+          Scenario: Employer Contribution Rate Change (C.R.S. §24-51-401)
         </div>
       </div>
 
@@ -365,7 +365,7 @@ export function ChangeManagementDemo() {
             <br />
             <strong>Principle 3:</strong> Rules changes follow full SDLC — no rule reaches production without human approval.
             <br />
-            <strong>Principle 4:</strong> Source of truth is the governing document (Ordinance 2026-042), not the legacy database.
+            <strong>Principle 4:</strong> Source of truth is the governing document (SB26-042), not the legacy database.
           </div>
         </div>
       </div>

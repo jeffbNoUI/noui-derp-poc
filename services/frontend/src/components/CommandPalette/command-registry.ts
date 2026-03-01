@@ -18,14 +18,15 @@ export function buildCommands(
 
   // Demo cases
   const suffix = isGuided ? '/guided' : ''
-  for (const c of DEMO_CASES) {
-    const caseNum = c.id === '10004' ? '4' : String(Number(c.id) - 10000)
+  for (let i = 0; i < DEMO_CASES.length; i++) {
+    const c = DEMO_CASES[i]
+    const caseNum = String(i + 1)
     commands.push({
       id: `case-${c.id}`,
       label: `${c.name} — Case ${caseNum}`,
       category: 'Case',
       icon: '\uD83D\uDCC1',
-      keywords: [c.label, `tier ${c.tier}`, c.id],
+      keywords: [c.label, c.division, c.id],
       action: () => navigate(`/staff/case/${c.id}${suffix}`),
     })
   }

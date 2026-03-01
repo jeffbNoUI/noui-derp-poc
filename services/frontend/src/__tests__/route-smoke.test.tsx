@@ -33,7 +33,7 @@ describe('Route Smoke Tests', () => {
     it('displays the platform title and sections', () => {
       const { container } = renderWithRouter(<PortalSwitcher />)
       const view = within(container)
-      expect(view.getByText('Denver Employees Retirement Plan')).toBeInTheDocument()
+      expect(view.getByText('Colorado Public Employees\' Retirement Association')).toBeInTheDocument()
       expect(view.getByText('NoUI Platform')).toBeInTheDocument()
     })
 
@@ -90,19 +90,16 @@ describe('Route Smoke Tests', () => {
       expect(view.getByText('NoUI Proof of Concept')).toBeInTheDocument()
     })
 
-    it('renders all three process type sections', () => {
+    it('renders retirement application section', () => {
       const { container } = renderWithRouter(<DemoLanding />)
       const view = within(container)
       expect(view.getByText('Retirement Application')).toBeInTheDocument()
-      expect(view.getByText('Contribution Refund')).toBeInTheDocument()
-      expect(view.getByText('Death & Survivor Benefits')).toBeInTheDocument()
     })
 
-    it('renders case count badges', () => {
+    it('renders case count badge', () => {
       const { container } = renderWithRouter(<DemoLanding />)
       const view = within(container)
-      expect(view.getByText('4 Cases')).toBeInTheDocument()
-      expect(view.getAllByText('2 Cases')).toHaveLength(2)
+      expect(view.getByText('3 Cases')).toBeInTheDocument()
     })
 
     it('renders the role selector with default Benefits Analyst', () => {
@@ -115,13 +112,9 @@ describe('Route Smoke Tests', () => {
     it('renders demo case names', () => {
       const { container } = renderWithRouter(<DemoLanding />)
       const view = within(container)
-      expect(view.getByText('Robert Martinez + DRO')).toBeInTheDocument()
-      expect(view.getByText('Jennifer Kim')).toBeInTheDocument()
-      expect(view.getByText('David Washington')).toBeInTheDocument()
-      expect(view.getByText('Maria Santos')).toBeInTheDocument()
-      expect(view.getByText('Thomas Chen')).toBeInTheDocument()
-      expect(view.getByText('Margaret Thompson')).toBeInTheDocument()
-      expect(view.getByText('James Rivera')).toBeInTheDocument()
+      expect(view.getByText('Maria Garcia')).toBeInTheDocument()
+      expect(view.getByText('James Chen')).toBeInTheDocument()
+      expect(view.getByText('Sarah Williams')).toBeInTheDocument()
     })
 
     it('renders secondary link buttons', () => {
@@ -145,19 +138,11 @@ describe('Route Smoke Tests', () => {
       expect(view.getByText('Phase 1: Transparent')).toBeInTheDocument()
     })
 
-    it('renders retirement application section with 4 Cases badge', () => {
+    it('renders retirement application section with 3 Cases badge', () => {
       const { container } = renderWithRouter(<StaffWelcomeScreen />)
       const view = within(container)
       expect(view.getByText('Retirement Application')).toBeInTheDocument()
-      expect(view.getByText('4 Cases')).toBeInTheDocument()
-    })
-
-    it('renders contribution refund and death & survivor sections', () => {
-      const { container } = renderWithRouter(<StaffWelcomeScreen />)
-      const view = within(container)
-      expect(view.getByText('Contribution Refund')).toBeInTheDocument()
-      expect(view.getByText('Death & Survivor Benefits')).toBeInTheDocument()
-      expect(view.getAllByText('2 Cases').length).toBeGreaterThanOrEqual(2)
+      expect(view.getByText('3 Cases')).toBeInTheDocument()
     })
 
     it('renders mode toggle (Expert/Guided)', () => {
@@ -170,13 +155,9 @@ describe('Route Smoke Tests', () => {
     it('renders all demo case names', () => {
       const { container } = renderWithRouter(<StaffWelcomeScreen />)
       const view = within(container)
-      expect(view.getAllByText('Robert Martinez').length).toBeGreaterThanOrEqual(1)
-      expect(view.getByText('Jennifer Kim')).toBeInTheDocument()
-      expect(view.getByText('David Washington')).toBeInTheDocument()
-      expect(view.getByText('Maria Santos')).toBeInTheDocument()
-      expect(view.getByText('Thomas Chen')).toBeInTheDocument()
-      expect(view.getByText('Margaret Thompson')).toBeInTheDocument()
-      expect(view.getByText('James Rivera')).toBeInTheDocument()
+      expect(view.getByText('Maria Garcia')).toBeInTheDocument()
+      expect(view.getByText('James Chen')).toBeInTheDocument()
+      expect(view.getByText('Sarah Williams')).toBeInTheDocument()
     })
 
     it('renders quick action buttons', () => {

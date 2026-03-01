@@ -1,48 +1,34 @@
 /**
- * Demo landing page — focused entry point for live demonstrations to DERP leadership.
- * Shows case cards across three process types: retirement, refund, death & survivor.
+ * Demo landing page — focused entry point for live demonstrations to COPERA leadership.
+ * Shows case cards for retirement application processing across COPERA divisions.
  * Consumed by: router.tsx (/demo route)
- * Depends on: DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES (constants), react-router-dom, tierMeta (theme)
+ * Depends on: DEMO_CASES (constants), react-router-dom, divisionMeta (theme)
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
-import { tierMeta } from '@/theme'
+import { DEMO_CASES } from '@/lib/constants'
+import { divisionMeta } from '@/theme'
 
-const TIER_COLORS: Record<number, string> = { 1: '#1565c0', 2: '#e65100', 3: '#2e7d32' }
+const DIVISION_COLORS: Record<string, string> = {
+  State: '#003366',
+  School: '#0066a1',
+  LocalGov: '#2e7d32',
+  Judicial: '#6a1b9a',
+  DPS: '#c08b00',
+}
 
 const CASE_DETAILS: Record<string, { desc: string; features: string[] }> = {
-  '10001': {
-    desc: 'Rule of 75 retirement with leave payout and 75% J&S election',
-    features: ['Rule of 75 (91.75)', '36-month AMS', 'Leave payout', '75% J&S'],
+  'COPERA-001': {
+    desc: 'Normal retirement with Rule of 80 eligibility — State Division, PERA 1',
+    features: ['Rule of 80 (90≥80)', '36-month HAS', 'No anti-spiking', 'Options 1/2/3'],
   },
-  '10002': {
-    desc: 'Early retirement with purchased service and threshold proximity',
-    features: ['Early retirement', '30% reduction', 'Purchased service', '11 months to Rule of 75'],
+  'COPERA-002': {
+    desc: 'Early retirement with anti-spiking triggered — School Division, PERA 6',
+    features: ['Early retirement', '32% reduction', 'Anti-spiking (108% cap)', '1.0% annual increase'],
   },
-  '10003': {
-    desc: 'Tier 3 early retirement with 60-month AMS window',
-    features: ['Tier 3 rules', '60-month AMS', '6% per year reduction', '$500/yr death benefit reduction'],
-  },
-  '10004': {
-    desc: 'Rule of 75 retirement with active Domestic Relations Order',
-    features: ['DRO split (40%)', 'Marital fraction 63.48%', 'DRO before J&S', 'Fixed alternate payee amount'],
-  },
-  '10007': {
-    desc: 'Non-vested termination with contribution refund and interest calculation',
-    features: ['Non-vested (3.83yr)', '$18,639 gross', 'Interest compounding', 'Tax withholding options'],
-  },
-  '10008': {
-    desc: 'Vested member choosing between refund and deferred pension benefit',
-    features: ['Vested (7.08yr)', 'Forfeiture decision', 'Deferred comparison', 'Rollover options'],
-  },
-  '10009': {
-    desc: 'Retired member death with 75% J&S survivor benefit continuation',
-    features: ['75% J&S election', '$2,436/mo survivor', 'Overpayment review', 'Installment continuation'],
-  },
-  '10010': {
-    desc: 'Active non-vested member death with contribution refund to beneficiary',
-    features: ['Active member', 'Non-vested', 'Contribution refund', 'Beneficiary determination'],
+  'COPERA-003': {
+    desc: 'DPS Rule of 80 retirement with pop-up payment options',
+    features: ['DPS division', 'Rule of 80', 'Options A/B/P2/P3', 'Pop-up feature'],
   },
 }
 
@@ -62,25 +48,25 @@ export function DemoLanding() {
   return (
     <div style={{
       minHeight: '100vh', display: 'flex', flexDirection: 'column' as const,
-      background: '#f6f9f9', fontFamily: "'Source Sans 3', sans-serif",
+      background: '#f5f7fa', fontFamily: "'Source Sans 3', sans-serif",
     }}>
       {/* Header bar */}
       <div style={{
-        background: '#00363a', padding: '12px 32px',
+        background: '#001a33', padding: '12px 32px',
         display: 'flex', alignItems: 'center', justifyContent: 'space-between',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <div style={{
-            width: 30, height: 30, borderRadius: 6, background: '#00796b',
+            width: 30, height: 30, borderRadius: 6, background: '#003366',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: 13, fontWeight: 800, color: '#fff',
           }}>N</div>
           <span style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>
-            Denver Employees Retirement Plan
+            Colorado PERA
           </span>
           <span style={{
-            color: '#4db6ac', fontSize: 10, marginLeft: 8,
-            border: '1px solid #4db6ac', borderRadius: 3, padding: '1px 6px',
+            color: '#c08b00', fontSize: 10, marginLeft: 8,
+            border: '1px solid #c08b00', borderRadius: 3, padding: '1px 6px',
           }}>POC</span>
         </div>
 
@@ -91,7 +77,7 @@ export function DemoLanding() {
             value={role}
             onChange={e => handleRoleChange(e.target.value)}
             style={{
-              background: '#004d40', color: '#e0f2f1', border: '1px solid #4db6ac',
+              background: '#002244', color: '#e0e8f0', border: '1px solid #336699',
               borderRadius: 4, padding: '4px 8px', fontSize: 11, cursor: 'pointer',
             }}
           >
@@ -104,7 +90,7 @@ export function DemoLanding() {
       {toast && (
         <div style={{
           position: 'fixed', top: 56, left: '50%', transform: 'translateX(-50%)',
-          background: '#00796b', color: '#fff', padding: '8px 20px',
+          background: '#003366', color: '#fff', padding: '8px 20px',
           borderRadius: 6, fontSize: 12, fontWeight: 500, zIndex: 1000,
           boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
           animation: 'fadeIn 0.2s ease',
@@ -117,23 +103,23 @@ export function DemoLanding() {
         alignItems: 'center', padding: '48px 20px',
       }}>
         <div style={{
-          fontSize: 11, color: '#00796b', textTransform: 'uppercase' as const,
+          fontSize: 11, color: '#003366', textTransform: 'uppercase' as const,
           letterSpacing: 2, fontWeight: 600, marginBottom: 8,
         }}>NoUI Proof of Concept</div>
         <div style={{
-          fontSize: 24, fontWeight: 700, color: '#1a2e2e',
+          fontSize: 24, fontWeight: 700, color: '#1a2233',
           fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 8,
         }}>Staff Processing Workspaces</div>
         <div style={{
-          fontSize: 13, color: '#4a6363', marginBottom: 40, maxWidth: 560,
+          fontSize: 13, color: '#4a5568', marginBottom: 40, maxWidth: 560,
           textAlign: 'center' as const, lineHeight: 1.6,
         }}>
-          Three process types — retirement, contribution refund, and death &amp; survivor — each with
-          transparent, stage-by-stage processing. 52 business rules traced to the Revised Municipal Code.
+          Multi-division pension administration — State, School, Local Government, Judicial, and DPS.
+          Every calculation traced to C.R.S. Title 24 Article 51.
         </div>
 
         {/* ── Retirement Application ── */}
-        <SectionLabel title="Retirement Application" count={4} color="#00796b" />
+        <SectionLabel title="Retirement Application" count={3} color="#003366" />
         <div style={{
           display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
           gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
@@ -142,104 +128,12 @@ export function DemoLanding() {
             <CaseCard
               key={c.id}
               caseNum={i + 1}
-              name={`${c.name}${c.id === '10004' ? ' + DRO' : ''}`}
+              name={c.name}
               details={CASE_DETAILS[c.id]}
-              tier={c.tier}
+              division={c.division}
               onClick={() => navigate(`/staff/case/${c.id}/guided`)}
             />
           ))}
-        </div>
-
-        {/* ── Contribution Refund ── */}
-        <SectionLabel title="Contribution Refund" count={2} color="#e65100" />
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
-        }}>
-          {DEMO_REFUND_CASES.map((c, i) => (
-            <CaseCard
-              key={c.id}
-              caseNum={i + 7}
-              name={c.name}
-              details={CASE_DETAILS[c.id]}
-              tier={c.tier}
-              onClick={() => navigate(`/staff/refund/${c.id}`)}
-            />
-          ))}
-        </div>
-
-        {/* ── Death & Survivor Benefits ── */}
-        <SectionLabel title="Death & Survivor Benefits" count={2} color="#c62828" />
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
-        }}>
-          {DEMO_DEATH_CASES.map((c, i) => (
-            <CaseCard
-              key={c.id}
-              caseNum={i + 9}
-              name={c.name}
-              details={CASE_DETAILS[c.id]}
-              tier={c.tier}
-              onClick={() => navigate(`/staff/death/${c.id}`)}
-            />
-          ))}
-        </div>
-
-        {/* ── Member Life Events ── */}
-        <SectionLabel title="Member Life Events" count={7} color="#00796b" />
-        <div style={{
-          display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)',
-          gap: 16, width: '100%', maxWidth: 720, marginBottom: 32,
-        }}>
-          <button onClick={() => navigate('/portal/life-events')} style={{
-            padding: 20, background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: '4px solid #00796b',
-            cursor: 'pointer', textAlign: 'left' as const,
-            boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
-            transition: 'all 0.2s', fontFamily: 'inherit',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>MEMBER PORTAL</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#00796b', background: '#e0f2f1', padding: '2px 8px', borderRadius: 4 }}>7 Events</span>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>Life Event Hub</div>
-            <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>
-              Members choose their life situation and the system assembles the right forms automatically.
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
-              {['Retirement', 'Divorce/DRO', 'Death/Survivor', 'Disability', 'Life Changes'].map(f => (
-                <span key={f} style={{ fontSize: 9.5, color: '#5a7878', background: '#f0f5f5', padding: '2px 7px', borderRadius: 3 }}>{f}</span>
-              ))}
-            </div>
-          </button>
-          <button onClick={() => navigate('/staff/queue')} style={{
-            padding: 20, background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: '4px solid #1565c0',
-            cursor: 'pointer', textAlign: 'left' as const,
-            boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
-            transition: 'all 0.2s', fontFamily: 'inherit',
-          }}
-            onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'; e.currentTarget.style.transform = 'translateY(-2px)' }}
-            onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'; e.currentTarget.style.transform = 'translateY(0)' }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>STAFF WORKSPACE</span>
-              <span style={{ fontSize: 10, fontWeight: 700, color: '#1565c0', background: '#e3f2fd', padding: '2px 8px', borderRadius: 4 }}>Work Queue</span>
-            </div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>Staff Work Queue</div>
-            <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>
-              Portal submissions flow to the staff work queue. Review forms, approve or request more information.
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
-              {['Form Review', 'Approval Workflow', 'Portal Bridge'].map(f => (
-                <span key={f} style={{ fontSize: 9.5, color: '#5a7878', background: '#f0f5f5', padding: '2px 7px', borderRadius: 3 }}>{f}</span>
-              ))}
-            </div>
-          </button>
         </div>
 
         {/* Secondary links */}
@@ -249,68 +143,68 @@ export function DemoLanding() {
         }}>
           <button onClick={() => navigate('/demos/data-quality')} style={{
             padding: '16px 20px', background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 10,
+            border: '1px solid #d1d9e6', borderRadius: 10,
             cursor: 'pointer', textAlign: 'left' as const,
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#c62828' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d4e0e0' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d9e6' }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e2e', marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2233', marginBottom: 3 }}>
               Data Quality
             </div>
-            <div style={{ fontSize: 11, color: '#5a7878' }}>45 findings across 6 detector types</div>
+            <div style={{ fontSize: 11, color: '#5a6b7f' }}>IBM i data assessment findings</div>
           </button>
           <button onClick={() => navigate('/demos/operational')} style={{
             padding: '16px 20px', background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 10,
+            border: '1px solid #d1d9e6', borderRadius: 10,
             cursor: 'pointer', textAlign: 'left' as const,
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#1565c0' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d4e0e0' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#003366' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d9e6' }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e2e', marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2233', marginBottom: 3 }}>
               Population Analysis
             </div>
-            <div style={{ fontSize: 11, color: '#5a7878' }}>Eligibility projections and workload</div>
+            <div style={{ fontSize: 11, color: '#5a6b7f' }}>Eligibility projections and workload</div>
           </button>
           <button onClick={() => navigate('/demos/change-management')} style={{
             padding: '16px 20px', background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 10,
+            border: '1px solid #d1d9e6', borderRadius: 10,
             cursor: 'pointer', textAlign: 'left' as const,
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = '#8b5cf6' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d4e0e0' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d9e6' }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e2e', marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2233', marginBottom: 3 }}>
               Change Management
             </div>
-            <div style={{ fontSize: 11, color: '#5a7878' }}>AI-accelerated rule change lifecycle</div>
+            <div style={{ fontSize: 11, color: '#5a6b7f' }}>AI-accelerated rule change lifecycle</div>
           </button>
           <button onClick={() => navigate('/')} style={{
             padding: '16px 20px', background: '#fff',
-            border: '1px solid #d4e0e0', borderRadius: 10,
+            border: '1px solid #d1d9e6', borderRadius: 10,
             cursor: 'pointer', textAlign: 'left' as const,
             transition: 'all 0.15s', fontFamily: 'inherit',
           }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = '#00796b' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d4e0e0' }}
+            onMouseEnter={e => { e.currentTarget.style.borderColor = '#003366' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = '#d1d9e6' }}
           >
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2e2e', marginBottom: 3 }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: '#1a2233', marginBottom: 3 }}>
               Full Platform
             </div>
-            <div style={{ fontSize: 11, color: '#5a7878' }}>All capabilities and demo services</div>
+            <div style={{ fontSize: 11, color: '#5a6b7f' }}>All capabilities and demo services</div>
           </button>
         </div>
 
         {/* Footer */}
         <div style={{
-          fontSize: 10, color: '#9bb0b0', marginTop: 40, textAlign: 'center' as const,
+          fontSize: 10, color: '#9ba8b8', marginTop: 40, textAlign: 'center' as const,
           maxWidth: 500, lineHeight: 1.6,
         }}>
-          The rules engine is configured with certified plan provisions from the Revised Municipal Code.
+          The rules engine is configured with certified plan provisions from C.R.S. Title 24 Article 51.
           AI composes the workspace to show the right information for each situation.
           Every calculation is transparent and verifiable.
         </div>
@@ -328,7 +222,7 @@ function SectionLabel({ title, count, color }: { title: string; count: number; c
       width: '100%', maxWidth: 720, marginBottom: 12,
     }}>
       <div style={{ width: 3, height: 18, borderRadius: 2, background: color }} />
-      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a2e2e' }}>{title}</span>
+      <span style={{ fontSize: 13, fontWeight: 700, color: '#1a2233' }}>{title}</span>
       <span style={{
         fontSize: 10, color, fontWeight: 600,
         background: `${color}15`, padding: '2px 8px', borderRadius: 4,
@@ -339,42 +233,42 @@ function SectionLabel({ title, count, color }: { title: string; count: number; c
 
 // ─── Case Card ──────────────────────────────────────────────────────────
 
-function CaseCard({ caseNum, name, details, tier, onClick }: {
+function CaseCard({ caseNum, name, details, division, onClick }: {
   caseNum: number; name: string; details: { desc: string; features: string[] }
-  tier: number; onClick: () => void
+  division: string; onClick: () => void
 }) {
-  const color = TIER_COLORS[tier]
-  const tm = tierMeta[tier]
+  const color = DIVISION_COLORS[division] ?? '#003366'
+  const dm = divisionMeta[division]
   return (
     <button onClick={onClick} style={{
       padding: 20, background: '#fff',
-      border: '1px solid #d4e0e0', borderRadius: 12, borderLeft: `4px solid ${color}`,
+      border: '1px solid #d1d9e6', borderRadius: 12, borderLeft: `4px solid ${color}`,
       cursor: 'pointer', textAlign: 'left' as const,
-      boxShadow: '0 2px 8px rgba(0,54,58,0.06)',
+      boxShadow: '0 2px 8px rgba(0,20,60,0.06)',
       transition: 'all 0.2s', fontFamily: 'inherit',
     }}
       onMouseEnter={e => {
-        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,54,58,0.10)'
+        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,20,60,0.10)'
         e.currentTarget.style.transform = 'translateY(-2px)'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,54,58,0.06)'
+        e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,20,60,0.06)'
         e.currentTarget.style.transform = 'translateY(0)'
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-        <span style={{ fontSize: 10, color: '#5a7878', fontWeight: 600 }}>CASE {caseNum}</span>
+        <span style={{ fontSize: 10, color: '#5a6b7f', fontWeight: 600 }}>CASE {caseNum}</span>
         <span style={{
-          fontSize: 10, fontWeight: 700, color, background: tm.muted,
+          fontSize: 10, fontWeight: 700, color, background: dm?.muted ?? `${color}15`,
           padding: '2px 8px', borderRadius: 4,
-        }}>Tier {tier}</span>
+        }}>{dm?.label ?? division}</span>
       </div>
-      <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2e2e', marginBottom: 4 }}>{name}</div>
-      <div style={{ fontSize: 11.5, color: '#4a6363', lineHeight: 1.5, marginBottom: 10 }}>{details.desc}</div>
+      <div style={{ fontSize: 15, fontWeight: 700, color: '#1a2233', marginBottom: 4 }}>{name}</div>
+      <div style={{ fontSize: 11.5, color: '#4a5568', lineHeight: 1.5, marginBottom: 10 }}>{details.desc}</div>
       <div style={{ display: 'flex', flexWrap: 'wrap' as const, gap: 4 }}>
         {details.features.map(f => (
           <span key={f} style={{
-            fontSize: 9.5, color: '#5a7878', background: '#f0f5f5',
+            fontSize: 9.5, color: '#5a6b7f', background: '#eef2f7',
             padding: '2px 7px', borderRadius: 3,
           }}>{f}</span>
         ))}

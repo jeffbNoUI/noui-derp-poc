@@ -55,10 +55,10 @@ export function EmployerLoginPage() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 12,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>D</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>C</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            DERP Employer Portal
+            COPERA Employer Portal
           </div>
           <div style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>Department Reporting & Coordination</div>
         </div>
@@ -99,7 +99,7 @@ export function EmployerLoginPage() {
           background: '#f8fafc', borderRadius: 6, border: '1px solid #e2e8f0',
           lineHeight: 1.5,
         }}>
-          Contact your DERP administrator for portal access credentials.
+          Contact your COPERA administrator for portal access credentials.
         </div>
 
         {/* Demo quick-access */}

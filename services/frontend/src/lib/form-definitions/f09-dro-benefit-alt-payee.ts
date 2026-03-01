@@ -27,12 +27,12 @@ export const f09DroBenefitAltPayee: FormDefinition = {
     },
     {
       id: 'member-reference',
-      title: 'DERP Member Reference',
+      title: 'COPERA Member Reference',
       description: 'Identify the member whose benefit is being divided.',
       fields: [
-        { key: 'member_name', type: 'text', label: 'DERP Member Name', required: true },
+        { key: 'member_name', type: 'text', label: 'COPERA Member Name', required: true },
         { key: 'dro_case_number', type: 'text', label: 'Court Case Number', required: true },
-        { key: 'dro_approval_date', type: 'date', label: 'Date DRO Was Approved by DERP' },
+        { key: 'dro_approval_date', type: 'date', label: 'Date DRO Was Approved by COPERA' },
       ],
     },
     {

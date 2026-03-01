@@ -55,7 +55,7 @@ export function VendorLoginPage() {
             <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>V</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2e2e', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            DERP Vendor Portal
+            COPERA Vendor Portal
           </div>
           <div style={{ fontSize: 12, color: '#5a7878', marginTop: 2 }}>Insurance Enrollment & IPR</div>
         </div>
@@ -96,7 +96,7 @@ export function VendorLoginPage() {
           background: '#f0fdf4', borderRadius: 6, border: '1px solid #d1fae5',
           lineHeight: 1.5,
         }}>
-          Contact DERP to set up vendor portal access for your organization.
+          Contact COPERA to set up vendor portal access for your organization.
         </div>
 
         {/* Demo quick-access */}

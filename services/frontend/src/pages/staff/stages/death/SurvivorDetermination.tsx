@@ -77,7 +77,7 @@ export function SurvivorDetermination({ member: m, survivorClaims, activeMemberD
               <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.5' }}>
                 {m.first_name} {m.last_name} had not met the 5-year vesting requirement.
                 {' '}{claim.survivor_first_name} {claim.survivor_last_name} is entitled to a
-                refund of accumulated contributions plus interest. RMC {'\u00A7'}18-411.
+                refund of accumulated contributions plus interest. C.R.S. {'\u00A7'}24-51-701.
               </div>
             </div>
           )}

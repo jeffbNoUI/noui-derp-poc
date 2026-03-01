@@ -33,7 +33,7 @@ export function Stage2ServiceCredit({ member: m, memberId, serviceCredit: sc }: 
         <Field label="Military Service" value={`${sc.military_service_years} years`} />
       )}
       <Field label="Total Service (Benefit)" value={`${sc.total_for_benefit} years`} highlight
-        sub="Used in benefit formula: AMS × multiplier × service" />
+        sub="Used in benefit formula: HAS × multiplier × service" />
       <Field label={`Total Service (${ruleType})`} value={`${sc.total_for_eligibility} years`}
         sub={hasPurchased ? 'Purchased service excluded' : 'Same as total — no purchased service'}
         badge={hasPurchased
@@ -42,7 +42,7 @@ export function Stage2ServiceCredit({ member: m, memberId, serviceCredit: sc }: 
 
       {/* Vesting status */}
       <Field label="Vesting Requirement" value={sc.earned_service_years >= 5 ? 'Met' : 'Not Met'}
-        sub="5 years required for all tiers (RMC §18-403)"
+        sub="5 years required for all divisions (C.R.S. §24-51-401)"
         badge={sc.earned_service_years >= 5
           ? { text: `${sc.earned_service_years}y ≥ 5y`, bg: C.successMuted, color: C.success }
           : { text: `${sc.earned_service_years}y < 5y`, bg: C.dangerMuted, color: C.danger }} />
@@ -140,7 +140,7 @@ export function Stage2ServiceCredit({ member: m, memberId, serviceCredit: sc }: 
           </div>
           <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
             {sc.purchased_service_years} years of purchased service counts toward the benefit calculation
-            but is excluded from {ruleType} and IPR eligibility per RMC §18-407.
+            but is excluded from {ruleType} and IPR eligibility per C.R.S. §24-51-401.
           </div>
         </div>
       )}

@@ -1,6 +1,6 @@
 /**
  * Member-specific knowledge enhancements — computes contextual analysis for each
- * DERP provision based on real typed member data. Pure logic, no React.
+ * COPERA provision based on real typed member data. Pure logic, no React.
  * Consumed by: KnowledgeMiniPanel.tsx (utility rail connected mode)
  * Depends on: Member.ts types, constants.ts (fmt)
  */
@@ -74,29 +74,33 @@ type EnhancementFn = (
 const enhancers: Record<string, EnhancementFn> = {
 
   'rule-75': (m, e, _b, sc) => {
-    if (m.tier === 3) return null // Rule of 75 doesn't apply to Tier 3
+    // Legacy alias — redirects to generic rule-of-n for COPERA
     if (!e || !sc) return null
+    const ruleLabel = e.rule_of_n_label ?? 'Rule of N'
+    const threshold = e.rule_of_n_threshold ?? 80
     const age = e.age_at_retirement
     const earned = sc.earned_service_years
     const sum = e.rule_of_n_value ?? (age + earned)
-    const met = sum >= 75 && age >= 55
+    const met = sum >= threshold
     return {
       label: 'MEMBER ANALYSIS',
-      content: `${memberName(m)} — Age ${age} + ${earned.toFixed(2)}y earned = ${sum.toFixed(2)}. Rule of 75: ${met ? 'MET' : 'NOT MET (need 75, min age 55)'}`,
+      content: `${memberName(m)} — Age ${age} + ${earned.toFixed(2)}y earned = ${sum.toFixed(2)}. ${ruleLabel}: ${met ? 'MET' : `NOT MET (need ${threshold})`}`,
       status: met ? 'met' : 'not-met',
     }
   },
 
   'rule-85': (m, e, _b, sc) => {
-    if (m.tier !== 3) return null // Rule of 85 only applies to Tier 3
+    // Legacy alias — redirects to generic rule-of-n for COPERA
     if (!e || !sc) return null
+    const ruleLabel = e.rule_of_n_label ?? 'Rule of N'
+    const threshold = e.rule_of_n_threshold ?? 85
     const age = e.age_at_retirement
     const earned = sc.earned_service_years
     const sum = e.rule_of_n_value ?? (age + earned)
-    const met = sum >= 85 && age >= 60
+    const met = sum >= threshold
     return {
       label: 'MEMBER ANALYSIS',
-      content: `${memberName(m)} — Age ${age} + ${earned.toFixed(2)}y earned = ${sum.toFixed(2)}. Rule of 85: ${met ? 'MET' : 'NOT MET (need 85, min age 60)'}`,
+      content: `${memberName(m)} — Age ${age} + ${earned.toFixed(2)}y earned = ${sum.toFixed(2)}. ${ruleLabel}: ${met ? 'MET' : `NOT MET (need ${threshold})`}`,
       status: met ? 'met' : 'not-met',
     }
   },
@@ -105,21 +109,20 @@ const enhancers: Record<string, EnhancementFn> = {
     if (!sc || sc.purchased_service_years === 0) return null
     return {
       label: 'MEMBER ANALYSIS',
-      content: `${sc.earned_service_years.toFixed(2)}y earned + ${sc.purchased_service_years.toFixed(2)}y purchased. Purchased excluded from Rule of 75/85 eligibility but included in benefit formula (${sc.total_for_benefit.toFixed(2)}y for benefit calc).`,
+      content: `${sc.earned_service_years.toFixed(2)}y earned + ${sc.purchased_service_years.toFixed(2)}y purchased. Purchased excluded from Rule of N eligibility but included in benefit formula (${sc.total_for_benefit.toFixed(2)}y for benefit calc).`,
       status: 'caution',
     }
   },
 
   'early-retirement': (m, e) => {
-    if (m.tier === 3) return null // Tier 3 uses different provision
     if (!e) return null
     const isEarly = e.retirement_type === 'early'
+    const reductionPct = Math.round((1 - e.reduction_factor) * 100)
     const yearsUnder = Math.max(0, Math.floor(65 - e.age_at_retirement))
     if (isEarly) {
-      const pct = yearsUnder * 3
       return {
         label: 'MEMBER ANALYSIS',
-        content: `${memberName(m)} — Age ${e.age_at_retirement}, ${yearsUnder} year${yearsUnder !== 1 ? 's' : ''} under 65. Reduction: 3% x ${yearsUnder} = ${pct}%.`,
+        content: `${memberName(m)} — Age ${e.age_at_retirement}, ${yearsUnder} year${yearsUnder !== 1 ? 's' : ''} under 65. Reduction: ${reductionPct}%.`,
         status: 'not-met',
       }
     }
@@ -131,21 +134,21 @@ const enhancers: Record<string, EnhancementFn> = {
   },
 
   'early-retirement-tier3': (m, e) => {
-    if (m.tier !== 3) return null
+    // Legacy alias — now redirects to generic early-retirement for COPERA
     if (!e) return null
     const isEarly = e.retirement_type === 'early'
+    const reductionPct = Math.round((1 - e.reduction_factor) * 100)
     const yearsUnder = Math.max(0, Math.floor(65 - e.age_at_retirement))
     if (isEarly) {
-      const pct = yearsUnder * 6
       return {
         label: 'MEMBER ANALYSIS',
-        content: `${memberName(m)} — Age ${e.age_at_retirement}, ${yearsUnder} year${yearsUnder !== 1 ? 's' : ''} under 65. Tier 3 reduction: 6% x ${yearsUnder} = ${pct}%.`,
+        content: `${memberName(m)} — Age ${e.age_at_retirement}, ${yearsUnder} year${yearsUnder !== 1 ? 's' : ''} under 65. Reduction: ${reductionPct}%.`,
         status: 'not-met',
       }
     }
     return {
       label: 'MEMBER ANALYSIS',
-      content: `${memberName(m)} qualifies for unreduced benefits — Tier 3 early retirement reduction does not apply.`,
+      content: `${memberName(m)} qualifies for unreduced benefits — early retirement reduction does not apply.`,
       status: 'met',
     }
   },
@@ -162,24 +165,19 @@ const enhancers: Record<string, EnhancementFn> = {
 
   'ams-window': (m, _e, b) => {
     if (!b) return null
-    const window = m.tier === 3 ? 60 : 36
     return {
       label: 'MEMBER ANALYSIS',
-      content: `Tier ${m.tier}: highest ${window} consecutive months. AMS = ${fmt(b.ams)}.`,
+      content: `${m.has_table_name ?? `HAS Table ${m.has_table}`}: highest ${b.ams_window_months} consecutive months. HAS = ${fmt(b.ams)}.`,
       status: 'info',
     }
   },
 
   'leave-payout': (m) => {
-    const hireDate = new Date(m.hire_date)
-    const cutoff = new Date('2010-01-01')
-    const eligible = hireDate < cutoff
+    // COPERA uses anti-spiking provisions instead of leave payout inclusion
     return {
       label: 'MEMBER ANALYSIS',
-      content: eligible
-        ? `${memberName(m)} hired ${m.hire_date} (before 2010) — eligible for leave payout inclusion in AMS.`
-        : `${memberName(m)} hired ${m.hire_date} (on/after 2010) — not eligible for leave payout.`,
-      status: eligible ? 'met' : 'not-met',
+      content: `${memberName(m)} — Salary subject to anti-spiking review per C.R.S. §24-51-101(24.5). Salary increases exceeding inflation threshold are excluded from HAS calculation.`,
+      status: 'info',
     }
   },
 
@@ -218,10 +216,11 @@ const enhancers: Record<string, EnhancementFn> = {
   },
 
   'ipr': (_m, _e, b) => {
-    if (!b?.ipr) return null
+    // COPERA uses Annual Increase instead of IPR
+    if (!b?.annual_increase) return null
     return {
       label: 'MEMBER ANALYSIS',
-      content: `IPR: ${fmt(b.ipr.monthly_amount)}/mo (${fmt(b.ipr.rate_per_year)}/yr x ${b.ipr.eligible_service_years.toFixed(2)}y earned). ${b.ipr.medicare_eligible ? 'Medicare-eligible rate.' : 'Non-Medicare rate.'}`,
+      content: `Annual Increase: ${(b.annual_increase.rate * 100).toFixed(1)}% compound, first eligible ${b.annual_increase.first_eligible_date}. Method: ${b.annual_increase.compound_method}.`,
       status: 'info',
     }
   },
@@ -238,7 +237,7 @@ const enhancers: Record<string, EnhancementFn> = {
   'spousal-consent': (m) => {
     return {
       label: 'MEMBER ANALYSIS',
-      content: `Tier ${m.tier} member — if married, spouse must consent to any option other than 50%+ J&S with spouse as beneficiary.`,
+      content: `${m.has_table_name ?? 'PERA'} member — if married, spouse must consent to any option other than the survivor option with spouse as beneficiary.`,
       status: 'caution',
     }
   },

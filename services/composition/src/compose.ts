@@ -40,9 +40,9 @@ async function postService(baseUrl: string, path: string, reqBody: unknown): Pro
   return respBody.data ?? respBody
 }
 
-/** Convert frontend short ID (10001) to backend format (M-100001). Pass through if already prefixed. */
+/** Convert frontend short ID (COPERA-001) to backend format (M-100001). Pass through if already prefixed. */
 const DEMO_CASE_MAP: Record<string, string> = {
-  '10001': 'M-100001', '10002': 'M-100002', '10003': 'M-100003', '10004': 'M-100001',
+  'COPERA-001': 'M-100001', 'COPERA-002': 'M-100002', 'COPERA-003': 'M-100003',
 }
 function toBackendId(id: string): string {
   if (DEMO_CASE_MAP[id]) return DEMO_CASE_MAP[id]
@@ -213,12 +213,12 @@ export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
 
 /** Build a static fallback from member context. */
 function staticFallback(req: ComposeRequest, context: { member: unknown; dros: unknown }): WorkspaceSpec {
-  const m = context.member as { tier?: number; hire_date?: string; hireDate?: string }
+  const m = context.member as { division?: string; has_table?: number; hire_date?: string; hireDate?: string }
   const dros = context.dros as unknown[]
 
   return staticCompose(req, {
-    tier: m.tier ?? 1,
-    hire_date: m.hire_date ?? m.hireDate ?? '2000-01-01',
+    division: m.division ?? 'State',
+    has_table: m.has_table ?? 1,
     has_dros: Array.isArray(dros) && dros.length > 0,
   })
 }

@@ -9,7 +9,7 @@ import type {
   EmployerEmployee,
 } from '@/types/Employer'
 
-// Contribution rates from RMC §18-407
+// Contribution rates from C.R.S. §24-51-401
 export const EMPLOYEE_RATE = 0.0845
 export const EMPLOYER_RATE = 0.1795
 // Tolerance for contribution math check (±$0.01)

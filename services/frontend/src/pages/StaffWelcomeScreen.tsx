@@ -1,15 +1,14 @@
 /**
  * Staff welcome screen — process type sections with demo case cards.
- * Three sections: Retirement Application (Cases 1-4), Contribution Refund (Cases 7-8),
- * Death & Survivor Benefits (Cases 9-10). Each routes to its dedicated workspace.
+ * Retirement Application section with COPERA demo cases.
  * Consumed by: router.tsx (index route under /staff)
- * Depends on: Badge, DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES, theme (C, tierMeta)
+ * Depends on: Badge, DEMO_CASES, theme (C, divisionMeta)
  */
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { C, tierMeta } from '@/theme'
+import { C, divisionMeta } from '@/theme'
 import { Badge } from '@/components/shared/Badge'
-import { DEMO_CASES, DEMO_REFUND_CASES, DEMO_DEATH_CASES } from '@/lib/constants'
+import { DEMO_CASES } from '@/lib/constants'
 import { usePendingSubmissions } from '@/hooks/useFormSubmission'
 import { useSubmittedReports } from '@/hooks/useContributionReview'
 import { LIFE_EVENTS } from '@/lib/life-events'
@@ -141,7 +140,7 @@ export function StaffWelcomeScreen() {
 
         {/* ── Retirement Application Section ── */}
         <div>
-          <SectionHeader title="Retirement Application" badge="4 Cases" color={C.accent} />
+          <SectionHeader title="Retirement Application" badge={`${DEMO_CASES.length} Cases`} color={C.accent} />
           {/* Mode selector */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
             <div data-discovery="mode-toggle" style={{
@@ -170,53 +169,15 @@ export function StaffWelcomeScreen() {
           <div style={{
             display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
           }}>
-            {DEMO_CASES.map(c => (
+            {DEMO_CASES.map((c, i) => (
                 <CaseCard
                   key={c.id}
                   name={c.name}
-                  caseNum={c.id === '10004' ? '4' : String(Number(c.id) - 10000)}
+                  caseNum={String(i + 1)}
                   label={c.label}
-                  tier={c.tier}
+                  division={c.division}
                   onClick={() => navigate(`/staff/case/${c.id}${mode === 'guided' ? '/guided' : ''}`)}
                 />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Contribution Refund Section ── */}
-        <div>
-          <SectionHeader title="Contribution Refund" badge="2 Cases" color={C.warm} />
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
-          }}>
-            {DEMO_REFUND_CASES.map(c => (
-              <CaseCard
-                key={c.id}
-                name={c.name}
-                caseNum={String(Number(c.id) - 10000)}
-                label={c.label}
-                tier={c.tier}
-                onClick={() => navigate(`/staff/refund/${c.id}`)}
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* ── Death & Survivor Section ── */}
-        <div>
-          <SectionHeader title="Death & Survivor Benefits" badge="2 Cases" color={C.danger} />
-          <div style={{
-            display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px',
-          }}>
-            {DEMO_DEATH_CASES.map(c => (
-              <CaseCard
-                key={c.id}
-                name={c.name}
-                caseNum={String(Number(c.id) - 10000)}
-                label={c.label}
-                tier={c.tier}
-                onClick={() => navigate(`/staff/death/${c.id}`)}
-              />
             ))}
           </div>
         </div>
@@ -270,10 +231,10 @@ function SectionHeader({ title, badge, color }: { title: string; badge: string; 
 
 // ─── Case Card ─────────────────────────────────────────────────────────
 
-function CaseCard({ name, caseNum, label, tier, onClick }: {
-  name: string; caseNum: string; label: string; tier: number; onClick: () => void
+function CaseCard({ name, caseNum, label, division, onClick }: {
+  name: string; caseNum: string; label: string; division: string; onClick: () => void
 }) {
-  const t = tierMeta[tier]
+  const d = divisionMeta[division] ?? { color: C.accent, muted: C.accentMuted, label: division }
   return (
     <button onClick={onClick} style={{
       padding: '14px', background: C.surface,
@@ -281,12 +242,12 @@ function CaseCard({ name, caseNum, label, tier, onClick }: {
       cursor: 'pointer', textAlign: 'left' as const,
       transition: 'border-color 0.15s',
     }}
-      onMouseEnter={e => (e.currentTarget.style.borderColor = t.color)}
+      onMouseEnter={e => (e.currentTarget.style.borderColor = d.color)}
       onMouseLeave={e => (e.currentTarget.style.borderColor = C.borderSubtle)}
     >
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
         <span style={{ color: C.text, fontWeight: 600, fontSize: '12.5px' }}>{name}</span>
-        <Badge text={`T${tier}`} bg={t.muted} color={t.color} />
+        <Badge text={division} bg={d.muted} color={d.color} />
       </div>
       <div style={{ color: C.textMuted, fontSize: '10px' }}>Case {caseNum}</div>
       <div style={{ color: C.textSecondary, fontSize: '10px', marginTop: '2px' }}>{label}</div>

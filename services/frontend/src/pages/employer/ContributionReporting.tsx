@@ -111,7 +111,7 @@ export function ContributionReporting() {
           Contribution Reports
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          {/* Contribution rates callout — RMC §18-407 */}
+          {/* Contribution rates callout — C.R.S. §24-51-401 */}
           <div style={{ fontSize: 11, color: T.text.muted }}>
             Employee: <strong style={{ color: T.text.primary }}>8.45%</strong>
             <span style={{ margin: '0 8px', color: T.border.base }}>|</span>

@@ -1,6 +1,6 @@
 /**
  * Static fallback composition — used when Claude API is unavailable.
- * Mirrors the logic in frontend composition/rules.ts.
+ * Mirrors the logic in frontend composition/rules.ts for COPERA.
  * Consumed by: compose.ts (on API failure)
  * Depends on: types.ts (WorkspaceSpec)
  */
@@ -8,10 +8,11 @@
 import type { WorkspaceSpec, ComposeRequest } from './types.js'
 
 interface MemberContext {
-  tier: number
-  hire_date: string
+  division: string
+  has_table: number
   has_dros: boolean
   reduction_factor?: number
+  anti_spiking_applied?: boolean
 }
 
 /** Static composition that mirrors the frontend rules.ts logic. */
@@ -27,7 +28,7 @@ export function staticCompose(req: ComposeRequest, member: MemberContext): Works
     order: 1,
     components: ['member-banner', 'alert-bar'],
   })
-  rationale['member-banner'] = 'Always shown — member identification and tier'
+  rationale['member-banner'] = 'Always shown — member identification and division'
   rationale['alert-bar'] = 'Always shown — contextual alerts'
 
   // Stage 2: Employment & Service
@@ -40,24 +41,24 @@ export function staticCompose(req: ComposeRequest, member: MemberContext): Works
   rationale['employment-timeline'] = 'Always shown — employment history context'
   rationale['service-credit-summary'] = 'Always shown — service credit breakdown'
 
-  // Stage 3: Salary & AMS
+  // Stage 3: Salary & HAS
   const salaryComponents = ['salary-table']
-  const leavePayout = member.tier <= 2 && new Date(member.hire_date) < new Date('2010-01-01')
-  conditional['leave-payout'] = leavePayout
-  if (leavePayout) {
-    salaryComponents.push('leave-payout')
-    rationale['leave-payout'] = `Tier ${member.tier} member hired ${member.hire_date} (before 2010) — leave payout eligible per RMC §18-412`
+  const antiSpiking = member.anti_spiking_applied ?? false
+  conditional['anti-spiking-detail'] = antiSpiking
+  if (antiSpiking) {
+    salaryComponents.push('anti-spiking-detail')
+    rationale['anti-spiking-detail'] = 'Anti-spiking triggered — salary capped at 108% of prior year per C.R.S. §24-51-101(25.5)'
   } else {
-    rationale['leave-payout'] = `Excluded — ${member.tier >= 3 ? 'Tier 3 members not eligible' : 'hired on or after 2010-01-01'}`
+    rationale['anti-spiking-detail'] = 'Excluded — no anti-spiking applied'
   }
 
   stages.push({
-    id: 'salary-ams',
-    label: 'Salary & AMS',
+    id: 'salary-has',
+    label: 'Salary & HAS',
     order: 3,
     components: salaryComponents,
   })
-  rationale['salary-table'] = 'Always shown — salary data with AMS calculation'
+  rationale['salary-table'] = 'Always shown — salary data with HAS calculation'
 
   if (req.retirement_date) {
     // Stage 4: Eligibility
@@ -93,7 +94,7 @@ export function staticCompose(req: ComposeRequest, member: MemberContext): Works
     conditional['dro-impact'] = member.has_dros
     if (member.has_dros) {
       paymentComponents.push('dro-impact')
-      rationale['dro-impact'] = 'Active DRO found — division calculation shown per RMC §18-420'
+      rationale['dro-impact'] = 'Active DRO found — division calculation shown'
     } else {
       rationale['dro-impact'] = 'Excluded — no active Domestic Relations Orders'
     }
@@ -104,7 +105,7 @@ export function staticCompose(req: ComposeRequest, member: MemberContext): Works
       order: 6,
       components: paymentComponents,
     })
-    rationale['payment-options'] = 'Retirement date selected — showing payment options'
+    rationale['payment-options'] = `Retirement date selected — showing ${member.division === 'DPS' ? 'DPS Options A/B/P2/P3' : 'PERA Options 1/2/3'}`
 
     // Stage 7: Scenario Comparison
     stages.push({
@@ -115,14 +116,14 @@ export function staticCompose(req: ComposeRequest, member: MemberContext): Works
     })
     rationale['scenario-modeler'] = 'Retirement date selected — enabling scenario comparison'
 
-    // Stage 8: IPR
+    // Stage 8: Annual Increase
     stages.push({
-      id: 'ipr',
-      label: 'Insurance Premium Reimbursement',
+      id: 'annual-increase',
+      label: 'Annual Increase',
       order: 8,
-      components: ['ipr-panel'],
+      components: ['annual-increase'],
     })
-    rationale['ipr-panel'] = 'Retirement date selected — calculating IPR'
+    rationale['annual-increase'] = 'Retirement date selected — showing annual increase projection per C.R.S. §24-51-1001'
 
     // Stage 9: Review
     stages.push({

@@ -1,5 +1,5 @@
 /**
- * Member portal login page — MyDERP branding, dual-mode login (Member ID + DOB or Email + Password).
+ * Member portal login page — MyCOPERA branding, dual-mode login (Member ID + DOB or Email + Password).
  * Standalone page rendered outside MemberLayout chrome.
  * Consumed by: router.tsx (/portal/login route)
  * Depends on: auth-demo-data.ts (simulateMemberLogin, DEMO_MEMBER_USERS, quickMemberLogin), react-router-dom
@@ -58,10 +58,10 @@ export function MemberLoginPage() {
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
             marginBottom: 12,
           }}>
-            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>D</span>
+            <span style={{ fontSize: 22, fontWeight: 800, color: '#fff' }}>C</span>
           </div>
           <div style={{ fontSize: 20, fontWeight: 700, color: '#1a2e2e', fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-            MyDERP
+            MyCOPERA
           </div>
           <div style={{ fontSize: 12, color: '#5a7878', marginTop: 2 }}>Your Retirement Journey</div>
         </div>

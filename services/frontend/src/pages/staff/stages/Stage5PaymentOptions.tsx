@@ -148,7 +148,7 @@ export function Stage5PaymentOptions({
                 }}>
                   {analystInputs.spousalConsentObtained ? '\u2611' : '\u2610'}
                 </span>
-                Spousal consent obtained (RMC {'\u00A7'}18-410(b))
+                Spousal consent obtained (C.R.S. {'\u00A7'}24-51-802)
               </label>
             </div>
           )}
@@ -165,7 +165,7 @@ export function Stage5PaymentOptions({
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           If the member is married and elects the Maximum option (no survivor benefit),
-          spousal consent is required per RMC {'\u00A7'}18-410(b).
+          spousal consent is required per C.R.S. {'\u00A7'}24-51-802.
         </div>
       </div>
 

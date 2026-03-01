@@ -34,7 +34,7 @@ const SECTIONS: Section[] = [
         icon: 'N', iconBg: '#00363a', path: '/staff', loginPath: '/staff/login',
       },
       {
-        id: 'member', name: 'Member Portal', subtitle: 'MyDERP · Your Retirement Journey',
+        id: 'member', name: 'Member Portal', subtitle: 'MyCOPERA · Your Retirement Journey',
         description: 'Start your retirement application, track progress, manage documents.',
         icon: 'D', iconBg: '#00796b', path: '/portal', loginPath: '/portal/login',
       },
@@ -56,7 +56,7 @@ const SECTIONS: Section[] = [
     cards: [
       {
         id: 'knowledge', name: 'Knowledge Assistant', subtitle: 'Plan Provision Search',
-        description: 'Search DERP provisions with statutory citations. Standalone or member-connected modes.',
+        description: 'Search COPERA provisions with statutory citations. Standalone or member-connected modes.',
         icon: '\u00A7', iconBg: '#0369a1', path: '/demos/knowledge-assistant',
       },
       {
@@ -116,7 +116,7 @@ export function PortalSwitcher() {
       <div style={{
         fontSize: 26, fontWeight: 700, color: '#1a2e2e',
         fontFamily: "'Plus Jakarta Sans', sans-serif", marginBottom: 8,
-      }}>Denver Employees Retirement Plan</div>
+      }}>Colorado Public Employees' Retirement Association</div>
       <div style={{
         fontSize: 13, color: '#4a6363', marginBottom: 40, maxWidth: 520, textAlign: 'center' as const,
         lineHeight: 1.6,

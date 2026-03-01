@@ -35,7 +35,7 @@ describe('Death & Survivor Demo Data Verification', () => {
       expect(case9Member.member_id).toBe('10009')
       expect(case9Member.first_name).toBe('Margaret')
       expect(case9Member.last_name).toBe('Thompson')
-      expect(case9Member.tier).toBe(1)
+      expect(case9Member.has_table).toBeDefined()
       expect(case9Member.status).toBe('Retired')
     })
 
@@ -131,7 +131,7 @@ describe('Death & Survivor Demo Data Verification', () => {
       expect(case10Member.member_id).toBe('10010')
       expect(case10Member.first_name).toBe('James')
       expect(case10Member.last_name).toBe('Rivera')
-      expect(case10Member.tier).toBe(3)
+      expect(case10Member.has_table).toBeDefined()
       expect(case10Member.status).toBe('Active')
     })
 

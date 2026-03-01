@@ -1,10 +1,10 @@
 /**
  * Case complete summary — read-only structured review after retirement election save.
- * Sections: case header, eligibility, salary/AMS, benefit, payment option, DRO, IPR, certification.
+ * Sections: case header, eligibility, salary/AMS, benefit, payment option, DRO, annual increase, certification.
  * Consumed by: BenefitWorkspace.tsx, GuidedWorkspace.tsx (when saveStatus === 'saved')
- * Depends on: Member types, theme (C, tierMeta, fmt)
+ * Depends on: Member types, theme (C, divisionMeta, hasTableMeta, fmt)
  */
-import { C, tierMeta, fmt } from '@/theme'
+import { C, divisionMeta, hasTableMeta, fmt } from '@/theme'
 import type { Member, BenefitResult, EligibilityResult, PaymentOptionsResult, DROResult, ServiceCreditSummary } from '@/types/Member'
 
 interface CaseCompleteSummaryProps {
@@ -58,11 +58,12 @@ export function CaseCompleteSummary({
   caseId, member: m, eligibility: elig, benefit: ben, paymentOptions: opts,
   droCalc: dro, serviceCredit: sc, retirementDate, electedOption, leavePayout,
 }: CaseCompleteSummaryProps) {
-  const tc = tierMeta[m.tier] || tierMeta[1]
-  const ruleType = m.tier === 3 ? 'Rule of 85' : 'Rule of 75'
-  const ruleTarget = m.tier === 3 ? 85 : 75
+  const tc = divisionMeta[m.division] || divisionMeta['State']
+  const ht = hasTableMeta[m.has_table] || hasTableMeta[1]
+  const ruleType = elig.rule_of_n_label ?? `Rule of ${ht.ruleOfN}`
+  const ruleTarget = elig.rule_of_n_threshold ?? ht.ruleOfN
   const ruleSum = elig.rule_of_n_value ?? 0
-  const ruleMet = elig.retirement_type === 'rule_of_75' || elig.retirement_type === 'rule_of_85'
+  const ruleMet = elig.retirement_type === 'rule_of_n'
   const reductionPct = Math.round((1 - elig.reduction_factor) * 100)
   const elOpt = opts?.options.find(o => o.option_type === electedOption)
   const timestamp = new Date().toLocaleString('en-US', {
@@ -130,7 +131,7 @@ export function CaseCompleteSummary({
             {ben.formula_display}
           </div>
         </div>
-        <Row label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${tc.label})`} />
+        <Row label="Multiplier" value={`${(ben.multiplier * 100).toFixed(1)}% (${ht.name})`} />
         <Row label="AMS" value={fmt(ben.ams)} />
         <Row label="Service (for benefit)" value={`${ben.service_years_for_benefit}y`} />
         <Row label="Gross Benefit" value={fmt(ben.gross_monthly_benefit)} />
@@ -164,13 +165,10 @@ export function CaseCompleteSummary({
         </Section>
       )}
 
-      {/* IPR & Death Benefit */}
+      {/* Annual Increase & Death Benefit */}
       <Section title="Supplemental">
-        {ben.ipr && (
-          <>
-            <Row label="IPR (pre-Medicare)" value={`${fmt(ben.ipr.monthly_amount)}/mo`} />
-            <Row label="IPR (post-Medicare)" value={`${fmt(ben.ipr.monthly_amount / 2)}/mo`} />
-          </>
+        {ben.annual_increase && (
+          <Row label="Annual Increase" value={`${(ben.annual_increase.rate * 100).toFixed(1)}% compound, starting ${ben.annual_increase.first_eligible_date}`} />
         )}
         {ben.death_benefit && (
           <Row label="Death Benefit" value={fmt(ben.death_benefit.amount)} />

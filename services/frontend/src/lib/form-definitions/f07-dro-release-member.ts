@@ -8,7 +8,7 @@ import type { FormDefinition } from '@/types/FormDefinition'
 export const f07DroReleaseMember: FormDefinition = {
   formId: 'F07',
   formName: 'DRO Release of Information (Member)',
-  formDescription: 'Member authorizes DERP to release benefit information for domestic relations proceedings.',
+  formDescription: 'Member authorizes COPERA to release benefit information for domestic relations proceedings.',
   processType: 'dro',
   estimatedMinutes: 5,
   steps: [
@@ -29,7 +29,7 @@ export const f07DroReleaseMember: FormDefinition = {
       fields: [
         { key: 'release_to', type: 'text', label: 'Release information to', required: true, helpText: 'Name of attorney or former spouse' },
         { key: 'info_scope', type: 'info_block', label: 'Information That May Be Released', infoText: 'Service credit history, estimated benefit amounts, benefit payment options, and any other information necessary for equitable division of retirement benefits.' },
-        { key: 'authorize_release', type: 'checkbox', label: 'I authorize DERP to release my benefit information as described above', required: true },
+        { key: 'authorize_release', type: 'checkbox', label: 'I authorize COPERA to release my benefit information as described above', required: true },
       ],
       canContinue: (state) => !!state.authorize_release,
     },

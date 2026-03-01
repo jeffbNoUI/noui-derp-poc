@@ -2,9 +2,9 @@
  * Member profile rail — narrow left panel showing member summary at a glance.
  * Displayed on wide (1200px+) and ultra (1600px+) layout tiers.
  * Consumed by: GuidedWorkspace (wide/ultra tier layouts)
- * Depends on: Member, ServiceCreditSummary, EligibilityResult, BenefitResult types, theme (C, tierMeta, fmt)
+ * Depends on: Member, ServiceCreditSummary, EligibilityResult, BenefitResult types, theme (C, divisionMeta, hasTableMeta, fmt)
  */
-import { C, tierMeta, fmt } from '@/theme'
+import { C, divisionMeta, hasTableMeta, fmt } from '@/theme'
 import type { Member } from '@/types/Member'
 import type { ServiceCreditSummary, EligibilityResult, BenefitResult } from '@/types/Member'
 
@@ -41,14 +41,16 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
 }
 
 export function MemberProfileRail({ member, serviceCredit, eligibility, benefit, retirementDate }: MemberProfileRailProps) {
-  const tc = tierMeta[member.tier] || tierMeta[1]
+  const tc = divisionMeta[member.division] || divisionMeta['State']
+  const ht = hasTableMeta[member.has_table] || hasTableMeta[1]
   const age = eligibility?.age_at_retirement ?? 0
 
   const retType = eligibility?.retirement_type ?? ''
   const isEarlyRetirement = retType === 'early'
-  const isRuleOfN = retType === 'rule_of_75' || retType === 'rule_of_85'
+  const isRuleOfN = retType === 'rule_of_n'
+  const ruleLabel = eligibility?.rule_of_n_label ?? `Rule of ${ht.ruleOfN}`
   const eligLabel = isRuleOfN
-    ? (member.tier === 3 ? 'Rule of 85' : 'Rule of 75')
+    ? ruleLabel
     : isEarlyRetirement ? 'Early' : retType === 'normal' ? 'Normal' : '\u2014'
   const eligColor = isRuleOfN || retType === 'normal' ? C.success : isEarlyRetirement ? C.warm : C.textMuted
 
@@ -67,7 +69,7 @@ export function MemberProfileRail({ member, serviceCredit, eligibility, benefit,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontWeight: 800, color: tc.color, fontSize: '12px',
           margin: '0 auto 6px',
-        }}>T{member.tier}</div>
+        }}>{ht.name}</div>
         <div style={{ color: C.text, fontWeight: 700, fontSize: '12.5px' }}>
           {member.first_name} {member.last_name}
         </div>
@@ -114,9 +116,9 @@ export function MemberProfileRail({ member, serviceCredit, eligibility, benefit,
       {eligibility && (
         <Section label="Eligibility">
           <Stat
-            label={member.tier === 3 ? 'Rule of 85' : 'Rule of 75'}
+            label={ruleLabel}
             value={eligibility.rule_of_n_value != null
-              ? `${eligibility.rule_of_n_value.toFixed(2)} / ${eligibility.rule_of_n_threshold ?? (member.tier === 3 ? 85 : 75)}`
+              ? `${eligibility.rule_of_n_value.toFixed(2)} / ${eligibility.rule_of_n_threshold ?? ht.ruleOfN}`
               : '\u2014'}
             color={isRuleOfN ? C.success : C.warm}
           />
@@ -136,8 +138,8 @@ export function MemberProfileRail({ member, serviceCredit, eligibility, benefit,
           <Stat label="AMS" value={fmt(benefit.ams)} />
           <Stat label="Gross" value={fmt(benefit.gross_monthly_benefit)} />
           <Stat label="Net" value={fmt(benefit.net_monthly_benefit)} color={C.accent} />
-          {benefit.ipr && (
-            <Stat label="IPR" value={`${fmt(benefit.ipr.monthly_amount)}/mo`} />
+          {benefit.annual_increase && (
+            <Stat label="Annual Increase" value={`${(benefit.annual_increase.rate * 100).toFixed(1)}%`} />
           )}
         </Section>
       )}

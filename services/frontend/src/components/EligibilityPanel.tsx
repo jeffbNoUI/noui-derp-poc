@@ -1,3 +1,8 @@
+/**
+ * Eligibility evaluation panel — displays retirement eligibility status, conditions, audit trail.
+ * Consumed by: BenefitWorkspace, guided Stage3
+ * Depends on: EligibilityResult type, formatPercent/formatDate utils
+ */
 import type { EligibilityResult } from '@/types/Member'
 import { formatPercent, formatDate } from '@/lib/utils'
 import { cn } from '@/lib/utils'
@@ -42,8 +47,12 @@ export function EligibilityPanel({ result }: EligibilityPanelProps) {
           <p className="font-semibold">{result.age_at_retirement}</p>
         </div>
         <div>
-          <span className="text-muted">Tier</span>
-          <p className="font-semibold">Tier {result.tier}</p>
+          <span className="text-muted">Division</span>
+          <p className="font-semibold">{result.division}</p>
+        </div>
+        <div>
+          <span className="text-muted">HAS Table</span>
+          <p className="font-semibold">{result.has_table_name}</p>
         </div>
         <div>
           <span className="text-muted">Reduction Factor</span>
@@ -52,7 +61,7 @@ export function EligibilityPanel({ result }: EligibilityPanelProps) {
         {result.rule_of_n_value !== undefined && (
           <>
             <div>
-              <span className="text-muted">Rule of {result.rule_of_n_threshold}</span>
+              <span className="text-muted">{result.rule_of_n_label ?? `Rule of ${result.rule_of_n_threshold}`}</span>
               <p className="font-semibold font-mono">
                 {result.rule_of_n_value.toFixed(2)}
                 <span className="text-xs text-muted ml-1">

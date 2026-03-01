@@ -83,7 +83,7 @@ export function Stage7DRO({ member: m, dros, droCalc: dro, paymentOptions: opts 
         </div>
         <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
           DRO split is applied before payment option selection. Payment options are calculated
-          on {fmt(dro.member_net_after_dro)}, not {fmt(dro.member_gross_benefit)}. Per RMC {'\u00A7'}18-408.
+          on {fmt(dro.member_net_after_dro)}, not {fmt(dro.member_gross_benefit)}. Per C.R.S. {'\u00A7'}24-51-603.
         </div>
       </div>
     </div>

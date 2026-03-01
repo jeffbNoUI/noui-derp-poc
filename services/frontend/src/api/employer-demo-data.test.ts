@@ -17,7 +17,7 @@ import {
   employerDemoApi,
 } from './employer-demo-data'
 
-// Contribution rates from RMC §18-407
+// Contribution rates from C.R.S. §24-51-401
 const EMPLOYEE_RATE = 0.0845
 const EMPLOYER_RATE = 0.1795
 
@@ -186,7 +186,7 @@ describe('Employer demo API — filter methods', () => {
     expect(stats.pending_retirements).toBe(3)
     expect(stats.monthly_payroll).toBeGreaterThan(0)
     expect(stats.avg_service_years).toBeGreaterThan(0)
-    // Verify rates from RMC §18-407
+    // Verify rates from C.R.S. §24-51-401
     expect(stats.contribution_rate_employee).toBe(0.0845)
     expect(stats.contribution_rate_employer).toBe(0.1795)
   })

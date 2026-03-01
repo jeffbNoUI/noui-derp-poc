@@ -33,7 +33,9 @@ export const case9Member: Member = {
   last_name: 'Thompson',
   date_of_birth: '1958-07-12',
   hire_date: '1990-03-01',
-  tier: 1,
+  division: 'State',
+  has_table: 1,
+  has_table_name: 'PERA 1',
   status: 'Retired',
   department: 'Human Resources',
   position: 'HR Director',
@@ -163,7 +165,7 @@ export const case9ProcessingSummary: DeathProcessingSummary = {
       description: 'Process death notification and suspend benefits',
       inputs: 'member=10009, status=retired, death=2026-03-15',
       result: 'Benefit suspended, certificate required',
-      source_reference: 'DERP Operating Procedures',
+      source_reference: 'COPERA Operating Procedures',
     },
     {
       step: 2,
@@ -172,7 +174,7 @@ export const case9ProcessingSummary: DeathProcessingSummary = {
       description: 'Check for payments deposited after date of death',
       inputs: 'death=2026-03-15, payments=3',
       result: 'Overpayments: 0, total $0.00',
-      source_reference: 'DERP Operating Procedures',
+      source_reference: 'COPERA Operating Procedures',
     },
     {
       step: 3,
@@ -181,7 +183,7 @@ export const case9ProcessingSummary: DeathProcessingSummary = {
       description: 'Calculate 75% J&S survivor benefit for William Thompson',
       inputs: 'benefit=$3,248.00, js=75%',
       result: 'Survivor benefit: $2,436.00/month for lifetime',
-      source_reference: 'RMC §18-410(a)(1)',
+      source_reference: 'C.R.S. §24-51-802',
     },
     {
       step: 4,
@@ -190,7 +192,7 @@ export const case9ProcessingSummary: DeathProcessingSummary = {
       description: 'Calculate remaining death benefit installments',
       inputs: 'lump=$5,000.00, elect=100, retired=2024-01-01, death=2026-03-15',
       result: 'Paid: 27, remaining: 73, total remaining: $3,650.00',
-      source_reference: 'RMC §18-411(d)',
+      source_reference: 'C.R.S. §24-51-801',
     },
     {
       step: 5,
@@ -199,7 +201,7 @@ export const case9ProcessingSummary: DeathProcessingSummary = {
       description: 'Member status: RETIRED -> SUSPENDED -> DECEASED. Survivor record created.',
       inputs: 'status=retired, cert_verified=true, option=75_js',
       result: 'Sequence: [RETIRED, SUSPENDED, DECEASED], survivor created',
-      source_reference: 'DERP Operating Procedures',
+      source_reference: 'COPERA Operating Procedures',
     },
   ],
 }
@@ -212,7 +214,9 @@ export const case10Member: Member = {
   last_name: 'Rivera',
   date_of_birth: '1992-11-03',
   hire_date: '2023-06-15',
-  tier: 3,
+  division: 'State',
+  has_table: 4,
+  has_table_name: 'PERA 4',
   status: 'Active',
   department: 'Information Technology',
   position: 'Systems Analyst',
@@ -299,7 +303,7 @@ export const case10ProcessingSummary: DeathProcessingSummary = {
       description: 'Process death notification for active member',
       inputs: 'member=10010, status=active, death=2026-02-10',
       result: 'Employment suspended, certificate required',
-      source_reference: 'DERP Operating Procedures',
+      source_reference: 'COPERA Operating Procedures',
     },
     {
       step: 2,
@@ -308,7 +312,7 @@ export const case10ProcessingSummary: DeathProcessingSummary = {
       description: 'Determine benefit type: non-vested (2.67 years < 5.00 required)',
       inputs: 'service=2.67, contributions=$13,215.30, interest=$487.20',
       result: 'Contribution refund: $13,702.50 to Maria Rivera',
-      source_reference: 'RMC §18-411',
+      source_reference: 'C.R.S. §24-51-801',
     },
     {
       step: 3,
@@ -317,7 +321,7 @@ export const case10ProcessingSummary: DeathProcessingSummary = {
       description: 'Member status: ACTIVE -> SUSPENDED -> DECEASED. No survivor benefit.',
       inputs: 'status=active, cert_verified=true, option=none',
       result: 'Sequence: [ACTIVE, SUSPENDED, DECEASED], no survivor record',
-      source_reference: 'DERP Operating Procedures',
+      source_reference: 'COPERA Operating Procedures',
     },
   ],
 }

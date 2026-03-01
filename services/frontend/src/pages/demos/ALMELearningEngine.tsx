@@ -9,7 +9,7 @@ import { useState, useEffect, useCallback } from "react";
 
 /* ═══════════════════════════════════════════════════════════════════
    NoUI — Adaptive Learning & Mastery Engine (ALME)
-   Interactive Prototype · DERP POC · February 2026
+   Interactive Prototype · COPERA POC · February 2026
    "Duolingo for Pension Administration"
    ═══════════════════════════════════════════════════════════════════ */
 
@@ -34,11 +34,11 @@ const mono = "'JetBrains Mono', monospace";
 
 // ─── Data: Learning Content ─────────────────────────────────────
 const WARM_UP_QUESTIONS = [
-  { q: "What is the benefit multiplier for Tier 1 members?", options: ["1.5%", "2.0%", "2.5%", "3.0%"], correct: 1, rule: "RULE-CALC-T1", cite: "RMC §18-407(a)" },
-  { q: "How many consecutive months define the AMS window for Tier 3?", options: ["36 months", "48 months", "60 months", "24 months"], correct: 2, rule: "RULE-AMS-WINDOW-T3", cite: "RMC §18-409(a)" },
-  { q: "Does purchased service count toward Rule of 75 eligibility?", options: ["Yes, always", "No, never", "Only for Tier 1", "Only after 10 years"], correct: 1, rule: "RULE-SVC-PURCH-EXCL", cite: "RMC §18-406(c)" },
-  { q: "What is the early retirement reduction rate per year for Tier 3?", options: ["3% per year", "5% per year", "6% per year", "4% per year"], correct: 2, rule: "RULE-EARLY-REDUCE-T3", cite: "RMC §18-409(b)" },
-  { q: "What is the minimum age for Rule of 85 eligibility (Tier 3)?", options: ["55", "58", "60", "62"], correct: 2, rule: "RULE-R85", cite: "RMC §18-409" },
+  { q: "What is the benefit multiplier for Tier 1 members?", options: ["1.5%", "2.0%", "2.5%", "3.0%"], correct: 1, rule: "RULE-CALC-T1", cite: "C.R.S. Title 24 Art. 51" },
+  { q: "How many consecutive months define the AMS window for Tier 3?", options: ["36 months", "48 months", "60 months", "24 months"], correct: 2, rule: "RULE-AMS-WINDOW-T3", cite: "C.R.S. Title 24 Art. 51" },
+  { q: "Does purchased service count toward Rule of 75 eligibility?", options: ["Yes, always", "No, never", "Only for Tier 1", "Only after 10 years"], correct: 1, rule: "RULE-SVC-PURCH-EXCL", cite: "C.R.S. Title 24 Art. 51" },
+  { q: "What is the early retirement reduction rate per year for Tier 3?", options: ["3% per year", "5% per year", "6% per year", "4% per year"], correct: 2, rule: "RULE-EARLY-REDUCE-T3", cite: "C.R.S. Title 24 Art. 51" },
+  { q: "What is the minimum age for Rule of 85 eligibility (Tier 3)?", options: ["55", "58", "60", "62"], correct: 2, rule: "RULE-R85", cite: "C.R.S. Title 24 Art. 51" },
 ];
 
 const SCENARIO = {
@@ -55,9 +55,9 @@ const APPLY_SCENARIO = {
   title: "Member Conversation: Explaining the Benefit",
   context: "Sarah asks: \"My friend Janet retired last year from Tier 1 and gets $3,200/month. I've worked almost as long — why is my estimate only $2,450?\"",
   options: [
-    { text: "\"That's because Tier 2 has a lower multiplier. Your benefit uses 1.5% per year versus Janet's 2.0%. This is set by the City's Revised Municipal Code based on hire date.\"", quality: "excellent", feedback: "Excellent — you accurately identified the multiplier difference, connected it to the governing authority, and explained without jargon." },
+    { text: "\"That's because Tier 2 has a lower multiplier. Your benefit uses 1.5% per year versus Janet's 2.0%. This is set by C.R.S. Title 24 Article 51 based on hire date.\"", quality: "excellent", feedback: "Excellent — you accurately identified the multiplier difference, connected it to the governing authority, and explained without jargon." },
     { text: "\"Every member's benefit is different. I'd recommend you review your annual statement.\"", quality: "poor", feedback: "This is technically true but doesn't address Sarah's actual question. She's asking why the difference exists. Deflecting erodes trust." },
-    { text: "\"Tier 2 members get a lower percentage. Janet was Tier 1 so she gets more.\"", quality: "okay", feedback: "You identified the right reason but didn't explain the specific multipliers or cite the source. Adding the concrete numbers (2.0% vs 1.5%) and mentioning the Municipal Code builds credibility." },
+    { text: "\"Tier 2 members get a lower percentage. Janet was Tier 1 so she gets more.\"", quality: "okay", feedback: "You identified the right reason but didn't explain the specific multipliers or cite the source. Adding the concrete numbers (2.0% vs 1.5%) and mentioning C.R.S. Title 24 Article 51 builds credibility." },
     { text: "\"I'm not sure about Janet's situation — I can only discuss your account. Would you like me to walk through your calculation?\"", quality: "good", feedback: "Good instinct on privacy — you can't discuss Janet's details. But you can explain how tiers work generally. Redirecting to her own calculation is a strong recovery." },
   ]
 };
@@ -772,7 +772,7 @@ export function ALMELearningEngine() {
 
       {/* Footer */}
       <div style={{ textAlign: "center", padding: "16px 24px", borderTop: `1px solid ${T.border}`, background: T.white, fontSize: 11, color: T.textTer }}>
-        NoUI Adaptive Learning & Mastery Engine · DERP POC Prototype · February 2026 · Content generated from Business Rules YAML & Training Documents 01–14
+        NoUI Adaptive Learning & Mastery Engine · COPERA POC Prototype · February 2026 · Content generated from Business Rules YAML & Training Documents 01–14
       </div>
     </div>
   );

@@ -26,7 +26,7 @@ export const LIFE_EVENTS: LifeEventDef[] = [
       },
       {
         id: 'insurance_interest',
-        question: 'Are you interested in DERP health insurance?',
+        question: 'Are you interested in Colorado PERA health insurance?',
         type: 'radio',
         options: [
           { value: 'yes', label: 'Yes, I want to learn about coverage options' },
@@ -86,17 +86,17 @@ export const LIFE_EVENTS: LifeEventDef[] = [
   {
     eventId: 'divorce',
     title: "I'm Going Through a Divorce",
-    description: 'Understand how divorce affects your DERP benefits and complete required forms.',
+    description: 'Understand how divorce affects your Colorado PERA benefits and complete required forms.',
     iconLabel: 'V',
     color: '#7c3aed',
     colorBg: '#f3e8ff',
     triage: [
       {
         id: 'party_role',
-        question: 'Are you the DERP member or the former spouse?',
+        question: 'Are you the COPERA member or the former spouse?',
         type: 'radio',
         options: [
-          { value: 'member', label: 'I am the DERP member' },
+          { value: 'member', label: 'I am the COPERA member' },
           { value: 'former_spouse', label: 'I am the former spouse / alternate payee' },
         ],
       },

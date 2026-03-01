@@ -56,7 +56,7 @@ export function Stage6Supplemental({ benefit: ben }: StageProps) {
                 IPR Note
               </div>
               <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
-                IPR offsets health insurance premiums. Rate changes at Medicare eligibility (age 65). RMC {'\u00A7'}18-414.
+                IPR offsets health insurance premiums. Rate changes at Medicare eligibility (age 65). C.R.S. {'\u00A7'}24-51-1201.
               </div>
             </div>
           </>
@@ -91,7 +91,7 @@ export function Stage6Supplemental({ benefit: ben }: StageProps) {
               return deathEntry ? <WhyPopover entry={deathEntry}>{field}</WhyPopover> : field
             })()}
             <Field label="Retirement Type" value={ben.death_benefit.retirement_type}
-              badge={{ text: `Tier ${ben.death_benefit.tier}`, bg: C.accentMuted, color: C.accent }} />
+              badge={{ text: `Division ${ben.death_benefit.tier}`, bg: C.accentMuted, color: C.accent }} />
             {ben.death_benefit.amount < 5000 && (
               <div style={{
                 marginTop: '6px', padding: '8px 10px', background: C.warmMuted,
@@ -103,8 +103,8 @@ export function Stage6Supplemental({ benefit: ben }: StageProps) {
                 <div style={{ color: C.text, fontSize: '11px', lineHeight: '1.45' }}>
                   Death benefit reduced from $5,000 base for early retirement.
                   {ben.death_benefit.tier === 3
-                    ? ' Tier 3: $500/year under 65.'
-                    : ' Tiers 1-2: $250/year under 65.'}
+                    ? ' Division 3: $500/year under 65.'
+                    : ' Divisions 1-2: $250/year under 65.'}
                 </div>
               </div>
             )}

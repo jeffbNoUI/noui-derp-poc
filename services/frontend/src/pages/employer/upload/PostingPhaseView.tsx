@@ -32,7 +32,7 @@ export function PostingPhaseView({ metadata, summary, certified, onCertify, onPo
           Report ID: <span style={{ fontFamily: 'monospace', fontWeight: 600 }}>{postedReportId}</span>
         </div>
         <div style={{ fontSize: 12, color: T.text.muted }}>
-          The contribution report has been submitted for verification by DERP staff.
+          The contribution report has been submitted for verification by COPERA staff.
         </div>
       </div>
     )

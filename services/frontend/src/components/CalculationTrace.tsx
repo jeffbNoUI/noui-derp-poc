@@ -3,7 +3,7 @@
  * Consumed by: BenefitCalculationPanel, EligibilityPanel, DROImpactPanel
  * Depends on: AuditEntry type from Member.ts, lucide-react icons
  *
- * Shows every rule evaluation: step number, rule name, source reference (RMC §),
+ * Shows every rule evaluation: step number, rule name, source reference (C.R.S. §),
  * description, and result. Collapsible per step. Lists assumptions with IDs.
  * Core value proposition: proves every calculation is traceable to governing documents.
  */
@@ -164,7 +164,7 @@ export function CalculationTrace({
       <div className="px-4 py-2 bg-gray-50 border-t border-border flex items-center gap-2">
         <BookOpen className="w-3.5 h-3.5 text-muted" />
         <span className="text-xs text-muted">
-          Every calculation is traceable to the Revised Municipal Code.
+          Every calculation is traceable to C.R.S. Title 24 Article 51.
           The system shows its work — no calculation is made without human visibility.
         </span>
       </div>

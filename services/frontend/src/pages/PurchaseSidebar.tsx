@@ -4,21 +4,21 @@
  *
  * Consumed by: PurchaseExplorer.tsx
  * Depends on: Member.ts (ServicePurchaseQuote, EligibilityResult, ServiceCreditSummary),
- *   theme.ts (C, tierMeta, fmt)
+ *   theme.ts (C, hasTableMeta, fmt)
  */
 import type { ServicePurchaseQuote, EligibilityResult, ServiceCreditSummary } from '@/types/Member'
-import { C, tierMeta, fmt } from '@/theme'
+import { C, hasTableMeta, fmt } from '@/theme'
 
 interface PurchaseSidebarProps {
   quote: ServicePurchaseQuote
   sc: ServiceCreditSummary | undefined
   elig: EligibilityResult | undefined
-  tier: number
+  hasTable: number
 }
 
-export function PurchaseSidebar({ quote, sc, elig, tier }: PurchaseSidebarProps) {
-  const tc = tierMeta[tier] || tierMeta[1]
-  const ruleLabel = tier === 3 ? 'Rule of 85' : 'Rule of 75'
+export function PurchaseSidebar({ quote, sc, elig, hasTable }: PurchaseSidebarProps) {
+  const ht = hasTableMeta[hasTable] || hasTableMeta[1]
+  const ruleLabel = elig?.rule_of_n_label ?? `Rule of ${ht.ruleOfN}`
 
   return (
     <div style={{
@@ -49,7 +49,7 @@ export function PurchaseSidebar({ quote, sc, elig, tier }: PurchaseSidebarProps)
         {/* Line items */}
         <div style={{ fontSize: '11px' }}>
           {[
-            { l: tc.label, v: tc.sub, c: tc.color },
+            { l: ht.name, v: ht.era, c: C.accent },
             { l: 'Earned Service', v: `${sc?.earned_service_years ?? 0}y`, c: C.text },
             { l: 'Purchasing', v: `${quote.years_requested}y`, c: C.warm },
             { l: 'Cost Factor', v: quote.cost_factor.toFixed(4), c: C.text },

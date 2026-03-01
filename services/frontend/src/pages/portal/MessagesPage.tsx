@@ -18,33 +18,28 @@ interface Message {
 }
 
 const MESSAGES: Record<string, Message[]> = {
-  '10001': [
-    { id: 'm1', from: 'DERP Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear Robert, we have received your retirement application dated March 10, 2026. Your assigned analyst will review your package within 5 business days...', date: '03-10-2026', read: true },
-    { id: 'm2', from: 'DERP Benefits Team', subject: 'Benefit Estimate Available', preview: 'Your estimated monthly benefit under the 75% Joint & Survivor option is $5,857.89. This estimate is based on your current AMS of $11,218.33...', date: '03-12-2026', read: true },
-    { id: 'm3', from: 'DERP Document Center', subject: 'Leave Payout Verification Complete', preview: 'Your leave payout of $52,000 has been verified against HR records and included in your final month compensation for AMS calculation...', date: '03-14-2026', read: false },
-    { id: 'm4', from: 'DERP Benefits Team', subject: 'Action Required: Confirm Payment Election', preview: 'Please review and confirm your 75% Joint & Survivor election before your retirement effective date of April 1, 2026. This election is irrevocable...', date: '03-15-2026', read: false },
+  'COPERA-001': [
+    { id: 'm1', from: 'COPERA Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear Maria, we have received your retirement application dated December 15, 2025. Your assigned analyst will review your package within 5 business days...', date: '12-15-2025', read: true },
+    { id: 'm2', from: 'COPERA Benefits Team', subject: 'Benefit Estimate Available', preview: 'Your estimated monthly benefit under the PERA Option 1 (Maximum) is ready for review. This estimate is based on your Highest Average Salary...', date: '12-18-2025', read: true },
+    { id: 'm3', from: 'COPERA Document Center', subject: 'Service Credit Verification Complete', preview: 'Your service credit has been verified against employer records and confirmed for your benefit calculation...', date: '12-20-2025', read: false },
+    { id: 'm4', from: 'COPERA Benefits Team', subject: 'Action Required: Confirm Payment Election', preview: 'Please review and confirm your payment option election before your retirement effective date of January 1, 2026. This election is irrevocable...', date: '12-22-2025', read: false },
   ],
-  '10002': [
-    { id: 'm1', from: 'DERP Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear Jennifer, we have received your retirement application dated April 8, 2026. Your early retirement package is being reviewed...', date: '04-08-2026', read: true },
-    { id: 'm2', from: 'DERP Benefits Team', subject: 'Early Retirement Reduction Notice', preview: 'As a Tier 2 member retiring at age 55, a permanent reduction of 30% (3% per year for 10 years under age 65) will apply to your benefit...', date: '04-10-2026', read: true },
-    { id: 'm3', from: 'DERP Document Center', subject: 'Purchased Service Credit Confirmed', preview: 'Your 3 years of purchased service credit has been verified and included in your benefit calculation. Note: purchased service is excluded from Rule of 75...', date: '04-11-2026', read: false },
+  'COPERA-002': [
+    { id: 'm1', from: 'COPERA Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear James, we have received your retirement application dated June 15, 2026. Your early retirement package is being reviewed...', date: '06-15-2026', read: true },
+    { id: 'm2', from: 'COPERA Benefits Team', subject: 'Early Retirement Reduction Notice', preview: 'As a PERA 6 member retiring early, a permanent reduction will apply to your benefit based on years under the normal retirement age...', date: '06-17-2026', read: true },
+    { id: 'm3', from: 'COPERA Document Center', subject: 'Anti-Spiking Review Complete', preview: 'Your salary history has been reviewed under the anti-spiking provisions of C.R.S. §24-51-101(24.5). No salary spiking adjustments were necessary...', date: '06-19-2026', read: false },
   ],
-  '10003': [
-    { id: 'm1', from: 'DERP Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear David, we have received your retirement application dated March 12, 2026. As a Tier 3 member, your 60-month AMS window is being calculated...', date: '03-12-2026', read: true },
-    { id: 'm2', from: 'DERP Benefits Team', subject: 'Spousal Consent Form Required', preview: 'Your election of the 50% Joint & Survivor option requires spousal consent documentation. Please submit the notarized DERP Spousal Consent form...', date: '03-14-2026', read: false },
-    { id: 'm3', from: 'DERP Benefits Team', subject: 'Benefit Calculation Complete', preview: 'Your Tier 3 early retirement benefit has been calculated. Unreduced: $1,784.06/month. After 12% reduction (6% x 2 years): $1,569.97/month...', date: '03-16-2026', read: false },
-  ],
-  '10004': [
-    { id: 'm1', from: 'DERP Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear Robert, we have received your retirement application. Please note that an active Domestic Relations Order is on file for your account...', date: '03-10-2026', read: true },
-    { id: 'm2', from: 'DERP Legal Services', subject: 'DRO Division Calculation', preview: 'The marital share calculation for DRO case #DRO-2017-0891 has been completed. Marital fraction: 63.48%. Alternate payee benefit: $1,487.27/month...', date: '03-13-2026', read: true },
-    { id: 'm3', from: 'DERP Benefits Team', subject: 'DRO Net Benefit Summary', preview: 'After DRO division, your net monthly benefit under the 75% J&S option is $4,370.62. A separate notification has been sent to the alternate payee...', date: '03-15-2026', read: false },
+  'COPERA-003': [
+    { id: 'm1', from: 'COPERA Benefits Team', subject: 'Your Retirement Application Has Been Received', preview: 'Dear Sarah, we have received your retirement application dated May 15, 2026. As a DPS Division member, your benefit will be calculated using DPS-specific provisions...', date: '05-15-2026', read: true },
+    { id: 'm2', from: 'COPERA Benefits Team', subject: 'DPS Division Benefit Calculation', preview: 'Your DPS Division retirement benefit has been calculated under the DPS 1 benefit structure. Please review the enclosed calculation worksheet...', date: '05-18-2026', read: false },
+    { id: 'm3', from: 'COPERA Benefits Team', subject: 'Payment Option Election Required', preview: 'Please select your payment option: Option A (Maximum), Option B (Modified), or one of the DPS survivor options (P2 or P3)...', date: '05-20-2026', read: false },
   ],
 }
 
 export function MessagesPage() {
   const T = useTheme()
   const { memberId } = usePortalAuth()
-  const baseMessages = MESSAGES[memberId] ?? MESSAGES['10001']
+  const baseMessages = MESSAGES[memberId] ?? MESSAGES['COPERA-001']
   const [readIds, setReadIds] = useState<Set<string>>(() =>
     new Set(baseMessages.filter(m => m.read).map(m => m.id))
   )

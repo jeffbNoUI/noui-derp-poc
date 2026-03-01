@@ -131,10 +131,10 @@ export function ApplicationStatus() {
           <div style={{ fontSize: 12, color: T.text.secondary, lineHeight: 1.6 }}>
             1. Print your retirement application<br />
             2. Sign it before a notary public<br />
-            3. Submit the notarized copy to DERP via email, fax, or mail<br /><br />
-            <strong>DERP Office:</strong> 777 Pearl Street, Denver, CO 80203<br />
-            <strong>Fax:</strong> (303) 839-7432<br />
-            <strong>Email:</strong> derp@denvergov.org
+            3. Submit the notarized copy to COPERA via email, fax, or mail<br /><br />
+            <strong>COPERA Office:</strong> 1301 Pennsylvania Street, Denver, CO 80203<br />
+            <strong>Fax:</strong> (303) 863-3710<br />
+            <strong>Email:</strong> memberservices@copera.org
           </div>
         </div>
       )}

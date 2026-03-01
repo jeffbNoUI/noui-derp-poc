@@ -13,7 +13,7 @@ import { useMember, useServiceCredit } from '@/hooks/useMember'
 import { useEligibility } from '@/hooks/useCalculations'
 import type { ServicePurchaseQuote } from '@/types/Member'
 import { api } from '@/api/client'
-import { C, tierMeta } from '@/theme'
+import { C, divisionMeta, hasTableMeta } from '@/theme'
 import { PurchaseCostSection } from './PurchaseCostSection'
 import { PurchaseImpactSection } from './PurchaseImpactSection'
 import { PurchaseSidebar } from './PurchaseSidebar'
@@ -98,7 +98,8 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
     )
   }
 
-  const tc = tierMeta[m.tier] || tierMeta[1]
+  const tc = divisionMeta[m.division] || divisionMeta['State']
+  const ht = hasTableMeta[m.has_table] || hasTableMeta[1]
 
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' as const, overflow: 'hidden' }}>
@@ -113,7 +114,7 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
             width: '32px', height: '32px', borderRadius: '7px', background: tc.muted,
             border: `2px solid ${tc.color}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontWeight: 700, color: tc.color, fontSize: '10px',
-          }}>T{m.tier}</div>
+          }}>{ht.name}</div>
           <div>
             <div style={{ color: C.text, fontWeight: 700, fontSize: '13.5px' }}>{m.first_name} {m.last_name}</div>
             <div style={{ color: C.textSecondary, fontSize: '10px' }}>
@@ -137,10 +138,10 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
             badge={{ text: 'Active', bg: C.successMuted, color: C.success }} />
           <Field label="Vested" value={`Yes — ${sc?.earned_service_years ?? 0}y earned`}
             badge={{ text: 'Met', bg: C.successMuted, color: C.success }}
-            sub="5+ years required — RMC §18-403" />
+            sub="5+ years required — C.R.S. §24-51-602" />
           <Field label="Service Type" value={quote.service_type}
             badge={{ text: 'Valid', bg: C.successMuted, color: C.success }}
-            sub="RMC §18-415(b)(1)" />
+            sub="C.R.S. §24-51-505" />
           <Field label="Years Requested" value={`${quote.years_requested.toFixed(1)} of 5.0 max`} />
           <Field label="Purchase Eligible" value="Yes" highlight
             badge={{ text: 'Eligible', bg: C.successMuted, color: C.success }} />
@@ -164,7 +165,7 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
             sub="90-day validity window"
             badge={{ text: 'Valid', bg: C.successMuted, color: C.success }} />
           <Field label="Irrevocable" value="Yes, once fully paid"
-            sub="Cancellation during installments; payments non-refundable — RMC §18-415(e)" />
+            sub="Cancellation during installments; payments non-refundable — C.R.S. §24-51-505(5)" />
 
           <SectionHeader title="Audit Trail" icon="&#128196;" />
           <div style={{ borderRadius: '6px', overflow: 'hidden', border: `1px solid ${C.borderSubtle}` }}>
@@ -184,7 +185,7 @@ export function PurchaseExplorer({ memberId }: { memberId: string }) {
         </div>
 
         {/* SIDEBAR */}
-        <PurchaseSidebar quote={quote} sc={sc} elig={elig} tier={m.tier} />
+        <PurchaseSidebar quote={quote} sc={sc} elig={elig} hasTable={m.has_table} />
       </div>
     </div>
   )

@@ -1,37 +1,81 @@
-/** Light theme color system — matches member portal palette */
+/**
+ * Colorado PERA brand color system — blue/gold theme from copera.org
+ * Consumed by: staff workspace components, shared components
+ * Depends on: nothing (leaf constants)
+ */
 export const C = {
-  bg: '#f6f9f9',
+  bg: '#f5f7fa',
   surface: '#ffffff',
-  elevated: '#f0f6f6',
-  border: '#d4e0e0',
-  borderSubtle: '#cddada',
-  accent: '#00796b',
-  accentMuted: 'rgba(0,121,107,0.08)',
-  accentGlow: 'rgba(0,121,107,0.15)',
-  accentSolid: 'rgba(0,121,107,0.20)',
-  warm: '#e65100',
-  warmMuted: 'rgba(230,81,0,0.08)',
-  warmBorder: 'rgba(230,81,0,0.20)',
+  elevated: '#eef2f7',
+  border: '#d1d9e6',
+  borderSubtle: '#dce3ed',
+  accent: '#003366',         // COPERA navy blue
+  accentMuted: 'rgba(0,51,102,0.08)',
+  accentGlow: 'rgba(0,51,102,0.15)',
+  accentSolid: 'rgba(0,51,102,0.20)',
+  warm: '#c08b00',           // COPERA gold
+  warmMuted: 'rgba(192,139,0,0.08)',
+  warmBorder: 'rgba(192,139,0,0.20)',
   danger: '#c62828',
   dangerMuted: 'rgba(198,40,40,0.08)',
   dangerBorder: 'rgba(198,40,40,0.20)',
   success: '#2e7d32',
   successMuted: 'rgba(46,125,50,0.08)',
   successBorder: 'rgba(46,125,50,0.20)',
-  text: '#1a2e2e',
-  textSecondary: '#4a6363',
-  textMuted: '#5a7878',
-  textDim: '#9bb0b0',
-  tier1: '#1565c0',
-  tier1Muted: 'rgba(21,101,192,0.08)',
-  tier2: '#e65100',
-  tier2Muted: 'rgba(230,81,0,0.08)',
-  tier3: '#2e7d32',
-  tier3Muted: 'rgba(46,125,50,0.08)',
+  text: '#1a2233',
+  textSecondary: '#4a5568',
+  textMuted: '#5a6b7f',
+  textDim: '#9ba8b8',
+  // Division colors (replacing tier colors)
+  state: '#003366',         // Navy
+  stateMuted: 'rgba(0,51,102,0.08)',
+  school: '#0066a1',        // Medium blue
+  schoolMuted: 'rgba(0,102,161,0.08)',
+  localGov: '#2e7d32',      // Green
+  localGovMuted: 'rgba(46,125,50,0.08)',
+  judicial: '#6a1b9a',      // Purple
+  judicialMuted: 'rgba(106,27,154,0.08)',
+  dps: '#c08b00',           // Gold
+  dpsMuted: 'rgba(192,139,0,0.08)',
 }
 
-export const tierMeta: Record<number, { color: string; muted: string; label: string; sub: string }> = {
-  1: { color: C.tier1, muted: C.tier1Muted, label: 'Tier 1', sub: 'Pre-2004' },
-  2: { color: C.tier2, muted: C.tier2Muted, label: 'Tier 2', sub: '2004-2011' },
-  3: { color: C.tier3, muted: C.tier3Muted, label: 'Tier 3', sub: 'Post-2011' },
+// Division metadata (replaces tierMeta)
+export const divisionMeta: Record<string, { color: string; muted: string; label: string; sub: string }> = {
+  State: { color: C.state, muted: C.stateMuted, label: 'State Division', sub: 'PERA DB' },
+  School: { color: C.school, muted: C.schoolMuted, label: 'School Division', sub: 'PERA DB' },
+  LocalGov: { color: C.localGov, muted: C.localGovMuted, label: 'Local Government', sub: 'PERA DB' },
+  Judicial: { color: C.judicial, muted: C.judicialMuted, label: 'Judicial Division', sub: 'PERA DB' },
+  DPS: { color: C.dps, muted: C.dpsMuted, label: 'DPS Division', sub: 'Denver Public Safety' },
+}
+
+// HAS table metadata for display
+export const hasTableMeta: Record<number, { name: string; era: string; ruleOfN: number }> = {
+  1: { name: 'PERA 1', era: 'Pre-2007', ruleOfN: 80 },
+  2: { name: 'PERA 2', era: '2007–2010', ruleOfN: 80 },
+  3: { name: 'PERA 3', era: '2007–2010', ruleOfN: 80 },
+  4: { name: 'PERA 4', era: '2011–2019 (vested)', ruleOfN: 85 },
+  5: { name: 'PERA 5', era: '2011–2019 (vested)', ruleOfN: 85 },
+  6: { name: 'PERA 6', era: '2011–2019 (vested)', ruleOfN: 85 },
+  7: { name: 'PERA 7', era: 'Post-2020', ruleOfN: 90 },
+  8: { name: 'PERA 8', era: 'Post-2020', ruleOfN: 90 },
+  9: { name: 'PERA 9', era: 'Post-2020', ruleOfN: 90 },
+  10: { name: 'DPS 1', era: 'Pre-2005', ruleOfN: 80 },
+  11: { name: 'DPS 2', era: '2005–2019 (vested)', ruleOfN: 85 },
+  12: { name: 'DPS 3', era: '2005–2019 (vested)', ruleOfN: 85 },
+  13: { name: 'DPS 4', era: 'Post-2020', ruleOfN: 90 },
+}
+
+// Backward compatibility — tierMeta mapped from division
+export const tierMeta = divisionMeta
+
+// Format helpers
+export const fmt = {
+  currency: (n: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n),
+  pct: (n: number, digits = 1) => `${(n * 100).toFixed(digits)}%`,
+  date: (s: string) => {
+    if (!s) return '—'
+    const d = new Date(s + 'T00:00:00')
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  },
+  years: (n: number) => `${n.toFixed(2)} years`,
 }
