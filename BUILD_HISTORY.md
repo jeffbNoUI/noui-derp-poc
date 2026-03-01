@@ -2662,5 +2662,60 @@ Three MCP servers wrapping Go services as MCP tools for future Agent SDK integra
 | Intelligence Go (excl. refund) | 150+ | All pass |
 | Intelligence refund | 2 | Pre-existing precision issue (not caused by rearchitecture) |
 
+### Phase 7: Composition Transaction Logging Infrastructure (Complete)
+
+Implements the pattern-learning feedback loop per Governing Principle 1 ("AI learns task patterns from transactions to orchestrate work") and Principle 4 ("AI learns operational patterns from transactions to inform orchestration, not rules").
+
+**Architecture:** Async fire-and-forget logging → COMPOSITION_LOG table → pattern extraction → system prompt injection. DB connection is optional — service works identically without DB_HOST set.
+
+#### New Files
+
+| File | Purpose |
+|------|---------|
+| database/schema/007_composition_log.sql | COMPOSITION_LOG table with denormalized member attributes, 6 indexes (B-tree on created_at/member_id/tier/process_type/composed_by, GIN on conditionals JSONB) |
+| services/composition/src/db.ts | Optional pg.Pool — initPool/getPool/closePool. Returns null when DB_HOST unset (logging silently disabled) |
+| services/composition/src/logger.ts | Async logger — logComposition() fire-and-forget, extractMemberProfile() denormalizes context, extractComponents() flattens stages |
+| services/composition/scripts/simulate.ts | CLI simulation runner — queries MEMBER_MASTER, generates plausible retirement dates, POSTs to /api/v1/compose with configurable concurrency. Supports --demo, --count, --tier, --concurrency flags |
+| services/composition/scripts/extract-patterns.ts | CLI pattern extractor — queries COMPOSITION_LOG for component frequency by tier, conditional decisions, alert frequency, performance stats. Outputs patterns.json with prompt_supplement field |
+| services/composition/patterns.json | Extracted patterns from 20K compositions across all 10K members |
+
+#### Modified Files
+
+| File | Change |
+|------|--------|
+| services/composition/src/compose.ts | Logs on all 3 paths (agent OK, API fallback, no-key fallback). Uses buildSystemPrompt() instead of raw SYSTEM_PROMPT |
+| services/composition/src/system-prompt.ts | Added buildSystemPrompt() — reads patterns.json and appends prompt_supplement to base prompt. Cached per path |
+| services/composition/src/index.ts | Calls initPool() on startup, closePool() on SIGTERM. Logs patterns file config |
+| services/composition/src/config.ts | Added patternsFile env var (PATTERNS_FILE) |
+| services/composition/package.json | Added pg dependency, @types/pg devDependency |
+| database/setup_local_db.sh | Loads additional schema files 003-007 in a loop |
+
+#### Simulation Results (20K compositions)
+
+| Metric | Value |
+|--------|-------|
+| Total compositions | 20,000 |
+| Unique members | ~9,800 |
+| Errors | 0 |
+| Avg latency | 72ms |
+| P95 latency | 94ms |
+
+#### Learned Patterns (from 20K compositions)
+
+| Tier | leave-payout | dro-impact | early-reduction |
+|------|-------------|------------|-----------------|
+| 1 | 100% (6,893/6,893) | 0% | 0% |
+| 2 | 78% (4,754/6,121) | 0% | 0% |
+| 3 | 0% (0/6,986) | 0% | 0% |
+
+Tier 2 leave-payout at 78% reflects that ~22% of Tier 2 members were hired after Jan 1, 2010 (the leave payout cutoff), consistent with the Sep 2004–Jun 2011 hire window. DRO/early-reduction at 0% expected — static fallback path lacks intelligence service reduction factor data.
+
+#### Decisions
+
+- **DECISION: DB logging is optional.** Composition service operates identically without DB_HOST — no degradation, no errors. Logging is purely additive.
+- **DECISION: patterns.json committed to repo.** The extracted patterns are a checked-in artifact so the service can start with learned patterns without requiring a live DB extraction step.
+- **DECISION: Fire-and-forget logging.** Logger never blocks the HTTP response. Pool errors logged to console and swallowed. Follows same pattern as connector's AuditWriter.
+
 ### Backtrack Points
+- **BT-022:** Composition logging infrastructure complete. 20K compositions logged, patterns extracted and injected into system prompt.
 - **BT-021:** Rearchitecture complete. All Phase 1-5 delivered. Phase 6 (MCP) in progress.
