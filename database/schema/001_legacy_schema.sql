@@ -302,6 +302,314 @@ CREATE TABLE SERVICE_PURCHASE (
     CONSTRAINT PK_SVC_PURCHASE PRIMARY KEY (PURCHASE_ID)
 );
 
+-- ── ENTITY — Centralized Entity Reference ───────────────────────────────
+-- Partial rollout of entity-based identification. Not all members have an
+-- ENTITY_ID — some legacy records still rely on SSN as primary lookup.
+-- Source: Data Assessment Level #1 (Demographics)
+CREATE TABLE ENTITY (
+    ENTITY_ID       VARCHAR(12)     NOT NULL,
+    SSN             VARCHAR(11),
+    FIRST_NM        VARCHAR(30),
+    LAST_NM         VARCHAR(40),
+    MIDDLE_NM       VARCHAR(30),
+    SUFFIX          VARCHAR(10),
+    DOB             DATE,
+    GENDER_CD       CHAR(1),
+    ENTITY_TYPE     CHAR(1),                        -- M=Member, B=Beneficiary, A=Alternate Payee
+    CREATE_DT       TIMESTAMP,
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_ENTITY PRIMARY KEY (ENTITY_ID)
+);
+
+-- ── MDPMBDT0 — PERA Department Master ───────────────────────────────────
+-- Employment detail by department for PERA (non-DPS) members.
+-- Tracks employer assignments, job classifications, FTE status.
+-- Source: Data Assessment Level #2 (Employment History)
+CREATE TABLE MDPMBDT0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    EMPLOYER_CD     VARCHAR(8)      NOT NULL,
+    DEPT_SEQ        SMALLINT        NOT NULL DEFAULT 1,
+    JOB_CLASS       VARCHAR(20),
+    JOB_TITLE       VARCHAR(60),
+    FTE_PCT         NUMERIC(5,3)    DEFAULT 1.000,
+    START_DT        DATE,
+    END_DT          DATE,
+    STATUS_CD       CHAR(1),                        -- A=Active, T=Terminated, R=Retired
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBDT0 PRIMARY KEY (MBR_ID, EMPLOYER_CD, DEPT_SEQ)
+);
+
+-- ── DPPMBDT0 — DPS Department Master ────────────────────────────────────
+-- Same as MDPMBDT0 but for DPS members. Includes RANK_CD for sworn officers.
+-- Source: Data Assessment Level #2 (Employment History)
+CREATE TABLE DPPMBDT0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    EMPLOYER_CD     VARCHAR(8)      NOT NULL,
+    DEPT_SEQ        SMALLINT        NOT NULL DEFAULT 1,
+    JOB_CLASS       VARCHAR(20),
+    JOB_TITLE       VARCHAR(60),
+    RANK_CD         VARCHAR(10),                    -- DPS-specific: sworn officer rank
+    FTE_PCT         NUMERIC(5,3)    DEFAULT 1.000,
+    START_DT        DATE,
+    END_DT          DATE,
+    STATUS_CD       CHAR(1),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_DPPMBDT0 PRIMARY KEY (MBR_ID, EMPLOYER_CD, DEPT_SEQ)
+);
+
+-- ── ACPDPMA0 — Agency/Department Directory ──────────────────────────────
+-- Reference table mapping agencies to departments within employers.
+-- Source: Data Assessment Level #2 (Employment History)
+CREATE TABLE ACPDPMA0 (
+    AGENCY_CD       VARCHAR(8)      NOT NULL,
+    DEPT_CD         VARCHAR(8)      NOT NULL,
+    AGENCY_NM       VARCHAR(80),
+    DEPT_NM         VARCHAR(80),
+    DIVISION_CD     VARCHAR(10),
+    ACTIVE_FLG      CHAR(1)         DEFAULT 'Y',
+    EFF_DT          DATE,
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_ACPDPMA0 PRIMARY KEY (AGENCY_CD, DEPT_CD)
+);
+
+-- ── DCPSTMC0 — Choice Group File ────────────────────────────────────────
+-- Tracks plan election choices for DC/hybrid participants.
+-- Known gap: some members have DCPSTMR0 record but no DCPSTMC0 entry.
+-- Source: Data Assessment Level #2 (Employment History)
+CREATE TABLE DCPSTMC0 (
+    ENTITY_ID       VARCHAR(12)     NOT NULL,
+    CHOICE_CD       VARCHAR(4)      NOT NULL,       -- DB=Defined Benefit, DC=Defined Contribution, HY=Hybrid
+    ELECTION_DT     DATE,
+    EFF_DT          DATE,
+    EMPLOYER_CD     VARCHAR(8),
+    STATUS_CD       CHAR(1),                        -- A=Active, C=Cancelled, P=Pending
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_DCPSTMC0 PRIMARY KEY (ENTITY_ID, CHOICE_CD)
+);
+
+-- ── MDPMBTM0 — Terminated Member Master ─────────────────────────────────
+-- Members deleted from MDPMBMR0 upon refund processing are moved here.
+-- Preserves history for members who fully separated and took a refund.
+-- Source: Data Assessment Level #1 (Demographics)
+CREATE TABLE MDPMBTM0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    SSN             VARCHAR(11),
+    FIRST_NM        VARCHAR(30),
+    LAST_NM         VARCHAR(40),
+    DOB             DATE,
+    GENDER_CD       CHAR(1),
+    MEMBERSHIP_DT   DATE,
+    DIVISION_CD     VARCHAR(10),
+    TERM_DT         DATE,
+    REFUND_DT       DATE,
+    REFUND_AMT      NUMERIC(12,2),
+    SVC_CREDIT_YRS  NUMERIC(8,4),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBTM0 PRIMARY KEY (MBR_ID)
+);
+
+-- ── MDTMBDP0 — PERA Member Deposits ────────────────────────────────────
+-- Contribution detail by pay period for PERA members.
+-- Source: Data Assessment Level #3 (Contribution / Deposit History)
+CREATE TABLE MDTMBDP0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    DEPOSIT_DT      DATE            NOT NULL,
+    PAY_PRD_END     DATE,
+    EE_AMT          NUMERIC(12,2),                  -- Employee contribution
+    ER_AMT          NUMERIC(12,2),                  -- Employer contribution
+    SALARY_AMT      NUMERIC(12,2),                  -- Pensionable salary for period
+    EE_RATE         NUMERIC(6,4),
+    ER_RATE         NUMERIC(6,4),
+    EMPLOYER_CD     VARCHAR(8),
+    BATCH_NBR       VARCHAR(12),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDTMBDP0 PRIMARY KEY (MBR_ID, DEPOSIT_DT)
+);
+
+-- ── DPTMBDP0 — DPS Member Deposits ─────────────────────────────────────
+-- Same as MDTMBDP0 but for DPS members (different contribution rates).
+-- Source: Data Assessment Level #3 (Contribution / Deposit History)
+CREATE TABLE DPTMBDP0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    DEPOSIT_DT      DATE            NOT NULL,
+    PAY_PRD_END     DATE,
+    EE_AMT          NUMERIC(12,2),
+    ER_AMT          NUMERIC(12,2),
+    SALARY_AMT      NUMERIC(12,2),
+    EE_RATE         NUMERIC(6,4),
+    ER_RATE         NUMERIC(6,4),
+    EMPLOYER_CD     VARCHAR(8),
+    BATCH_NBR       VARCHAR(12),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_DPTMBDP0 PRIMARY KEY (MBR_ID, DEPOSIT_DT)
+);
+
+-- ── MDPMBPC0 — Service Purchase Credit Master ──────────────────────────
+-- Tracks approved service purchase contracts (military, prior govt, leave).
+-- Source: Data Assessment Level #5 (Service Credit History)
+CREATE TABLE MDPMBPC0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    SPC_SEQ         SMALLINT        NOT NULL,
+    PURCHASE_TYPE   VARCHAR(20),                    -- MILITARY, PRIOR_GOVT, LOA, REDEPOSIT
+    SVC_YEARS       NUMERIC(8,4),
+    COST_AMT        NUMERIC(12,2),
+    PAID_AMT        NUMERIC(12,2),
+    BALANCE_AMT     NUMERIC(12,2),
+    STATUS_CD       CHAR(1),                        -- P=Pending, A=Approved, C=Complete, D=Denied
+    APPROVED_DT     DATE,
+    COMPLETE_DT     DATE,
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBPC0 PRIMARY KEY (MBR_ID, SPC_SEQ)
+);
+
+-- ── MDPMBPP0 — SPC Payment History ─────────────────────────────────────
+-- Payment detail for service purchase credit installments.
+-- Source: Data Assessment Level #5 (Service Credit History)
+CREATE TABLE MDPMBPP0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    SPC_SEQ         SMALLINT        NOT NULL,
+    PMT_SEQ         SMALLINT        NOT NULL,
+    PMT_DT          DATE,
+    PMT_AMT         NUMERIC(12,2),
+    PMT_METHOD      VARCHAR(10),                    -- CHECK, ACH, ROLLOVER
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBPP0 PRIMARY KEY (MBR_ID, SPC_SEQ, PMT_SEQ)
+);
+
+-- ── ANPBBMR0 — Master Control History ──────────────────────────────────
+-- Benefit finalization audit trail. Records each step of benefit
+-- calculation review and approval before ANPMBMR0 record creation.
+-- Source: Data Assessment Level #6 (Member Benefit History)
+CREATE TABLE ANPBBMR0 (
+    CONTROL_ID      SERIAL          NOT NULL,
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    ANNUITY_NBR     VARCHAR(12),
+    ACTION_CD       VARCHAR(10),                    -- CALC, REVIEW, APPROVE, FINALIZE, REJECT
+    ACTION_DT       TIMESTAMP,
+    ACTION_USER     VARCHAR(20),
+    CALC_HAS_AMT    NUMERIC(12,2),
+    CALC_BENEFIT    NUMERIC(12,2),
+    CALC_SVC_YRS    NUMERIC(8,4),
+    NOTES           VARCHAR(200),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_ANPBBMR0 PRIMARY KEY (CONTROL_ID)
+);
+
+-- ── MDPMBRP0 — Pending Refund ──────────────────────────────────────────
+-- Tracks refund requests in progress (before completion).
+-- Source: Data Assessment Level #6 (Member Benefit History)
+CREATE TABLE MDPMBRP0 (
+    REFUND_ID       SERIAL          NOT NULL,
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    REQUEST_DT      DATE,
+    EE_BALANCE      NUMERIC(12,2),                  -- Employee contribution balance
+    INTEREST_AMT    NUMERIC(12,2),
+    TOTAL_AMT       NUMERIC(12,2),
+    STATUS_CD       CHAR(1),                        -- P=Pending, A=Approved, D=Denied, C=Complete
+    APPROVED_DT     DATE,
+    PAID_DT         DATE,
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBRP0 PRIMARY KEY (REFUND_ID)
+);
+
+-- ── MDPMBRR0 — Refund Master (Completed) ───────────────────────────────
+-- Archive of completed refunds. Member removed from MDPMBMR0 → MDPMBTM0.
+-- Source: Data Assessment Level #6 (Member Benefit History)
+CREATE TABLE MDPMBRR0 (
+    REFUND_ID       SERIAL          NOT NULL,
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    REFUND_DT       DATE,
+    EE_AMT          NUMERIC(12,2),
+    INTEREST_AMT    NUMERIC(12,2),
+    TOTAL_AMT       NUMERIC(12,2),
+    CHECK_NBR       VARCHAR(20),
+    ROLLOVER_FLG    CHAR(1)         DEFAULT 'N',
+    ROLLOVER_DEST   VARCHAR(60),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_MDPMBRR0 PRIMARY KEY (REFUND_ID)
+);
+
+-- ── ANPPYTR0 — Payment Transactions ────────────────────────────────────
+-- Monthly benefit disbursement records for active annuitants.
+-- Source: Data Assessment Level #6 (Member Benefit History)
+CREATE TABLE ANPPYTR0 (
+    ANNUITY_NBR     VARCHAR(12)     NOT NULL,
+    PAY_DT          DATE            NOT NULL,
+    GROSS_AMT       NUMERIC(12,2),
+    FED_TAX         NUMERIC(12,2),
+    STATE_TAX       NUMERIC(12,2),
+    HEALTH_DED      NUMERIC(12,2),                  -- PERACare deduction
+    OTHER_DED       NUMERIC(12,2),
+    NET_AMT         NUMERIC(12,2),
+    CHECK_NBR       VARCHAR(20),
+    PAY_METHOD      VARCHAR(10),                    -- ACH, CHECK
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_ANPPYTR0 PRIMARY KEY (ANNUITY_NBR, PAY_DT)
+);
+
+-- ── PCPMSTR0 — PERACare Master ─────────────────────────────────────────
+-- Health insurance enrollment for PERA retirees (PERACare program).
+-- Source: Data Assessment Level #8 (PERACare)
+CREATE TABLE PCPMSTR0 (
+    ANNUITY_NBR     VARCHAR(12)     NOT NULL,
+    PLAN_CD         VARCHAR(10)     NOT NULL,       -- UHC_ADVG, KAISER_HMO, DELTA_DENTAL, etc.
+    COVERAGE_CD     CHAR(1),                        -- S=Single, F=Family, C=Couple
+    EFF_DT          DATE,
+    TERM_DT         DATE,
+    PREMIUM_AMT     NUMERIC(10,2),                  -- Monthly premium
+    SUBSIDY_AMT     NUMERIC(10,2),                  -- PERA subsidy amount
+    MEMBER_AMT      NUMERIC(10,2),                  -- Member-paid amount (deducted from benefit)
+    STATUS_CD       CHAR(1),                        -- A=Active, T=Terminated, P=Pending
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_PCPMSTR0 PRIMARY KEY (ANNUITY_NBR, PLAN_CD)
+);
+
+-- ── PCPPHST0 — PERACare Payment History ────────────────────────────────
+-- Monthly premium payment records for PERACare enrollees.
+-- Source: Data Assessment Level #8 (PERACare)
+CREATE TABLE PCPPHST0 (
+    ANNUITY_NBR     VARCHAR(12)     NOT NULL,
+    PAY_DT          DATE            NOT NULL,
+    PLAN_CD         VARCHAR(10),
+    PREMIUM_AMT     NUMERIC(10,2),
+    SUBSIDY_AMT     NUMERIC(10,2),
+    MEMBER_AMT      NUMERIC(10,2),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_PCPPHST0 PRIMARY KEY (ANNUITY_NBR, PAY_DT)
+);
+
+-- ── DPPBNMR0 — DPS Beneficiary ─────────────────────────────────────────
+-- Beneficiary designations for DPS members (parallel to MDPBNMR0).
+-- Source: Data Assessment Level #1 (Demographics)
+CREATE TABLE DPPBNMR0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    BENEF_SEQ       SMALLINT        NOT NULL,
+    BENEF_NM        VARCHAR(60),
+    BENEF_SSN       VARCHAR(11),
+    BENEF_DOB       DATE,
+    BENEF_REL       VARCHAR(20),                    -- Spouse, Child, Parent, Other
+    BENEF_PCT       NUMERIC(5,2),
+    PRIMARY_FLG     CHAR(1)         DEFAULT 'Y',
+    EFF_DT          DATE,
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_DPPBNMR0 PRIMARY KEY (MBR_ID, BENEF_SEQ)
+);
+
+-- ── DPPMGMR0 — DPS Merger Master ───────────────────────────────────────
+-- Tracks DPS members affected by the 2010 DPS-PERA merger.
+-- Records the merger date and any benefit/service credit adjustments.
+-- Source: Data Assessment Level #2 (Employment History)
+CREATE TABLE DPPMGMR0 (
+    MBR_ID          VARCHAR(12)     NOT NULL,
+    MERGER_DT       DATE            NOT NULL DEFAULT '2010-01-01',
+    PRE_MERGER_SVC  NUMERIC(8,4),                   -- Service credit before merger
+    POST_MERGER_SVC NUMERIC(8,4),                   -- Service credit after merger
+    ADJUSTMENT_CD   VARCHAR(10),                    -- NONE, SVC_ADJ, RATE_ADJ
+    NOTES           VARCHAR(200),
+    LAST_UPD_DT     TIMESTAMP,
+    CONSTRAINT PK_DPPMGMR0 PRIMARY KEY (MBR_ID)
+);
+
 -- ============================================================================
 -- INDEXES for common query patterns
 -- ============================================================================
@@ -314,3 +622,21 @@ CREATE INDEX IDX_SALARY_ANNUAL_MBR ON SALARY_ANNUAL(MBR_ID);
 CREATE INDEX IDX_MDPHASC0_MBR ON MDPHASC0(MBR_ID);
 CREATE INDEX IDX_ANPMBMR0_MBR ON ANPMBMR0(MBR_ID);
 CREATE INDEX IDX_CONTRIB_MBR ON CONTRIBUTION_HIST(MBR_ID);
+CREATE INDEX IDX_ENTITY_SSN ON ENTITY(SSN);
+CREATE INDEX IDX_MDPMBDT0_MBR ON MDPMBDT0(MBR_ID);
+CREATE INDEX IDX_DPPMBDT0_MBR ON DPPMBDT0(MBR_ID);
+CREATE INDEX IDX_ACPDPMA0_DIV ON ACPDPMA0(DIVISION_CD);
+CREATE INDEX IDX_DCPSTMC0_ENTITY ON DCPSTMC0(ENTITY_ID);
+CREATE INDEX IDX_MDPMBTM0_SSN ON MDPMBTM0(SSN);
+CREATE INDEX IDX_MDTMBDP0_MBR ON MDTMBDP0(MBR_ID);
+CREATE INDEX IDX_DPTMBDP0_MBR ON DPTMBDP0(MBR_ID);
+CREATE INDEX IDX_MDPMBPC0_MBR ON MDPMBPC0(MBR_ID);
+CREATE INDEX IDX_MDPMBPP0_MBR ON MDPMBPP0(MBR_ID);
+CREATE INDEX IDX_ANPBBMR0_MBR ON ANPBBMR0(MBR_ID);
+CREATE INDEX IDX_MDPMBRP0_MBR ON MDPMBRP0(MBR_ID);
+CREATE INDEX IDX_MDPMBRR0_MBR ON MDPMBRR0(MBR_ID);
+CREATE INDEX IDX_ANPPYTR0_ANNUITY ON ANPPYTR0(ANNUITY_NBR);
+CREATE INDEX IDX_PCPMSTR0_ANNUITY ON PCPMSTR0(ANNUITY_NBR);
+CREATE INDEX IDX_PCPPHST0_ANNUITY ON PCPPHST0(ANNUITY_NBR);
+CREATE INDEX IDX_DPPBNMR0_MBR ON DPPBNMR0(MBR_ID);
+CREATE INDEX IDX_DPPMGMR0_MBR ON DPPMGMR0(MBR_ID);
