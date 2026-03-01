@@ -1,0 +1,317 @@
+{
+  "generated_at": "2026-03-01T05:49:51.134Z",
+  "total_compositions": 20000,
+  "min_count_threshold": 5,
+  "component_frequency": [
+    {
+      "tier": 1,
+      "component": "benefit-calculation",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "eligibility-panel",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "employment-timeline",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "ipr-panel",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "leave-payout",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "alert-bar",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "member-banner",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "payment-options",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "salary-table",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "scenario-modeler",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 1,
+      "component": "service-credit-summary",
+      "count": 6893,
+      "total": 6893,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "scenario-modeler",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "alert-bar",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "benefit-calculation",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "eligibility-panel",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "employment-timeline",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "ipr-panel",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "member-banner",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "payment-options",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "salary-table",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "service-credit-summary",
+      "count": 6121,
+      "total": 6121,
+      "pct": 100
+    },
+    {
+      "tier": 2,
+      "component": "leave-payout",
+      "count": 4754,
+      "total": 6121,
+      "pct": 78
+    },
+    {
+      "tier": 3,
+      "component": "alert-bar",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "benefit-calculation",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "eligibility-panel",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "employment-timeline",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "ipr-panel",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "member-banner",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "payment-options",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "salary-table",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "scenario-modeler",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    },
+    {
+      "tier": 3,
+      "component": "service-credit-summary",
+      "count": 6986,
+      "total": 6986,
+      "pct": 100
+    }
+  ],
+  "conditional_decisions": [
+    {
+      "component": "dro-impact",
+      "tier": 1,
+      "shown_count": 0,
+      "hidden_count": 6893,
+      "total": 6893,
+      "shown_pct": 0
+    },
+    {
+      "component": "dro-impact",
+      "tier": 2,
+      "shown_count": 0,
+      "hidden_count": 6121,
+      "total": 6121,
+      "shown_pct": 0
+    },
+    {
+      "component": "dro-impact",
+      "tier": 3,
+      "shown_count": 0,
+      "hidden_count": 6986,
+      "total": 6986,
+      "shown_pct": 0
+    },
+    {
+      "component": "early-retirement-reduction",
+      "tier": 1,
+      "shown_count": 0,
+      "hidden_count": 6893,
+      "total": 6893,
+      "shown_pct": 0
+    },
+    {
+      "component": "early-retirement-reduction",
+      "tier": 2,
+      "shown_count": 0,
+      "hidden_count": 6121,
+      "total": 6121,
+      "shown_pct": 0
+    },
+    {
+      "component": "early-retirement-reduction",
+      "tier": 3,
+      "shown_count": 0,
+      "hidden_count": 6986,
+      "total": 6986,
+      "shown_pct": 0
+    },
+    {
+      "component": "leave-payout",
+      "tier": 1,
+      "shown_count": 6893,
+      "hidden_count": 0,
+      "total": 6893,
+      "shown_pct": 100
+    },
+    {
+      "component": "leave-payout",
+      "tier": 2,
+      "shown_count": 4754,
+      "hidden_count": 1367,
+      "total": 6121,
+      "shown_pct": 78
+    },
+    {
+      "component": "leave-payout",
+      "tier": 3,
+      "shown_count": 0,
+      "hidden_count": 6986,
+      "total": 6986,
+      "shown_pct": 0
+    }
+  ],
+  "alert_frequency": [],
+  "performance_stats": [
+    {
+      "composed_by": "static-fallback",
+      "count": 20000,
+      "avg_ms": 72,
+      "p95_ms": 94,
+      "min_ms": 12,
+      "max_ms": 3162
+    }
+  ],
+  "prompt_supplement": "## Learned Patterns (from 20000 compositions)\n\n### Conditional Component Decisions\n- Tier 1: dro-impact shown 0% of the time (0/6893)\n- Tier 2: dro-impact shown 0% of the time (0/6121)\n- Tier 3: dro-impact shown 0% of the time (0/6986)\n- Tier 1: early-retirement-reduction shown 0% of the time (0/6893)\n- Tier 2: early-retirement-reduction shown 0% of the time (0/6121)\n- Tier 3: early-retirement-reduction shown 0% of the time (0/6986)\n- Tier 1: leave-payout shown 100% of the time (6893/6893)\n- Tier 2: leave-payout shown 78% of the time (4754/6121)\n- Tier 3: leave-payout shown 0% of the time (0/6986)\n\n### Notable Component Frequencies\n- Tier 1: leave-payout appears in 100% of compositions\n- Tier 2: leave-payout appears in 78% of compositions\n\n### Performance Baselines\n- static-fallback: avg 72ms, p95 94ms (n=20000)"
+}
