@@ -9,7 +9,8 @@ import { useEmployerAuth } from '@/employer/auth/EmployerAuthContext'
 import { employerDemoApi } from '@/api/employer-demo-data'
 import { employerTheme as T } from '@/theme'
 import { fmt } from '@/lib/constants'
-import type { ContributionReport } from '@/types/Employer'
+import type { ContributionReport, ContributionFileRow } from '@/types/Employer'
+import { DataTable, type Column } from '@/components/shared/DataTable'
 
 const STATUS_STYLES: Record<string, { color: string; bg: string }> = {
   draft: { color: T.text.muted, bg: T.surface.cardAlt },
@@ -28,6 +29,8 @@ export function ContributionReporting() {
   const [copySource, setCopySource] = useState<string | null>(null)
   const [newPeriod, setNewPeriod] = useState('')
   const [submittingId, setSubmittingId] = useState<string | null>(null)
+  const [memberListReportId, setMemberListReportId] = useState<string | null>(null)
+  const [memberRows, setMemberRows] = useState<ContributionFileRow[]>([])
 
   const loadReports = useCallback(() => {
     employerDemoApi.getContributionReports(deptId).then(setReports)
@@ -47,6 +50,59 @@ export function ContributionReporting() {
     ))
     setSubmittingId(null)
   }
+
+  // Toggle member-level row list for a report
+  const handleToggleMembers = async (reportId: string) => {
+    if (memberListReportId === reportId) {
+      setMemberListReportId(null)
+      setMemberRows([])
+      return
+    }
+    const detail = await employerDemoApi.getContributionReportDetail(reportId)
+    if (detail) {
+      setMemberRows(detail.rows)
+      setMemberListReportId(reportId)
+    }
+  }
+
+  // Close member list when collapsing a report
+  const handleToggleExpand = (reportId: string) => {
+    const next = expandedId === reportId ? null : reportId
+    setExpandedId(next)
+    if (!next) {
+      setMemberListReportId(null)
+      setMemberRows([])
+    }
+  }
+
+  const memberColumns: Column<ContributionFileRow>[] = [
+    { key: 'member_id', label: 'ID', sortable: true, width: '70px' },
+    { key: 'name', label: 'Name', sortable: true },
+    { key: 'ssn_last4', label: 'SSN Last 4', width: '80px' },
+    { key: 'job_classification', label: 'Job Class', sortable: true },
+    { key: 'gross_earnings', label: 'Gross ($)', sortable: true, render: r => fmt(r.gross_earnings) },
+    { key: 'pensionable_earnings', label: 'Pensionable ($)', sortable: true, render: r => fmt(r.pensionable_earnings) },
+    { key: 'employee_contribution', label: 'EE Contrib ($)', sortable: true, render: r => fmt(r.employee_contribution) },
+    { key: 'employer_contribution', label: 'ER Contrib ($)', sortable: true, render: r => fmt(r.employer_contribution) },
+    {
+      key: 'tier', label: 'Tier', sortable: true, width: '50px',
+      render: r => (
+        <span style={{
+          padding: '2px 6px', borderRadius: 8, fontSize: 10, fontWeight: 600,
+          background: T.surface.cardAlt, color: T.text.secondary,
+        }}>T{r.tier}</span>
+      ),
+    },
+    {
+      key: 'employment_status', label: 'Status', sortable: true, width: '70px',
+      render: r => (
+        <span style={{
+          fontSize: 10, textTransform: 'uppercase' as const, fontWeight: 600,
+          color: r.employment_status === 'active' ? T.status.success : T.text.muted,
+        }}>{r.employment_status}</span>
+      ),
+    },
+  ]
 
   return (
     <div style={{ maxWidth: 960 }}>
@@ -141,7 +197,7 @@ export function ContributionReporting() {
             >
               {/* Report header row */}
               <div
-                onClick={() => setExpandedId(isExpanded ? null : report.report_id)}
+                onClick={() => handleToggleExpand(report.report_id)}
                 style={{
                   display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 1fr 70px 90px 90px',
                   alignItems: 'center', gap: 10, padding: '14px 16px', cursor: 'pointer',
@@ -189,7 +245,7 @@ export function ContributionReporting() {
                       <div style={{ fontSize: 10, color: T.text.muted, textTransform: 'uppercase' as const, marginBottom: 4 }}>Report ID</div>
                       <div style={{ fontSize: 12, color: T.text.primary, fontFamily: 'monospace' }}>{report.report_id}</div>
                     </div>
-                    <div>
+                    <div style={{ display: 'flex', gap: 8 }}>
                       {report.status === 'draft' && (
                         <button
                           onClick={() => handleVerifySubmit(report.report_id)}
@@ -205,8 +261,60 @@ export function ContributionReporting() {
                           {submittingId === report.report_id ? 'Submitting...' : 'Verify & Submit'}
                         </button>
                       )}
+                      <button
+                        onClick={() => handleToggleMembers(report.report_id)}
+                        style={{
+                          padding: '8px 16px',
+                          background: memberListReportId === report.report_id ? T.surface.cardAlt : 'transparent',
+                          color: T.accent.primary, border: `1px solid ${T.accent.primary}`,
+                          borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                        }}
+                      >
+                        {memberListReportId === report.report_id ? 'Hide Members' : 'View Members'}
+                      </button>
                     </div>
                   </div>
+
+                  {/* Member-level rows */}
+                  {memberListReportId === report.report_id && memberRows.length > 0 && (
+                    <div style={{ marginTop: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: T.text.primary, marginBottom: 8 }}>
+                        Members ({memberRows.length})
+                      </div>
+                      <DataTable<ContributionFileRow>
+                        columns={memberColumns}
+                        data={memberRows}
+                        colors={{
+                          bg: T.surface.bg, card: T.surface.card, border: T.border.subtle,
+                          text: T.text.primary, accent: T.accent.primary, hoverBg: T.surface.cardAlt,
+                        }}
+                      />
+                      {/* Summary totals for cross-check */}
+                      <div style={{
+                        display: 'flex', gap: 24, padding: '10px 12px', marginTop: 8,
+                        background: T.surface.cardAlt, borderRadius: 6, fontSize: 11,
+                      }}>
+                        <div>
+                          <span style={{ color: T.text.muted }}>Total Gross: </span>
+                          <span style={{ fontWeight: 600, color: T.text.primary }}>
+                            {fmt(memberRows.reduce((s, r) => s + r.gross_earnings, 0))}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ color: T.text.muted }}>Total EE: </span>
+                          <span style={{ fontWeight: 600, color: T.text.primary }}>
+                            {fmt(memberRows.reduce((s, r) => s + r.employee_contribution, 0))}
+                          </span>
+                        </div>
+                        <div>
+                          <span style={{ color: T.text.muted }}>Total ER: </span>
+                          <span style={{ fontWeight: 600, color: T.text.primary }}>
+                            {fmt(memberRows.reduce((s, r) => s + r.employer_contribution, 0))}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Discrepancy details */}
                   {hasDiscrepancies && (
