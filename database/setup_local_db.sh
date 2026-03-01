@@ -40,6 +40,14 @@ SQL
 echo "Loading schema..."
 PGPASSWORD=${DB_PASS} psql -h localhost -U ${DB_USER} -d ${DB_NAME} -f database/schema/001_legacy_schema.sql
 
+# Load additional schema files (idempotent — uses IF NOT EXISTS)
+for schema_file in database/schema/003_*.sql database/schema/004_*.sql database/schema/005_*.sql database/schema/006_*.sql database/schema/007_*.sql; do
+    if [ -f "$schema_file" ]; then
+        echo "Loading $schema_file..."
+        PGPASSWORD=${DB_PASS} psql -h localhost -U ${DB_USER} -d ${DB_NAME} -f "$schema_file"
+    fi
+done
+
 # Generate seed data if not already generated
 if [ ! -f database/seed/output/002_seed_data.sql ]; then
     echo "Generating seed data (this takes ~2 minutes)..."

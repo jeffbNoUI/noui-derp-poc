@@ -5,10 +5,13 @@
  */
 
 import Anthropic from '@anthropic-ai/sdk'
+import { randomUUID } from 'node:crypto'
 import { config } from './config.js'
-import { SYSTEM_PROMPT } from './system-prompt.js'
+import { buildSystemPrompt } from './system-prompt.js'
 import { workspaceSpecSchema } from './schema.js'
 import { staticCompose } from './fallback.js'
+import { getPool } from './db.js'
+import { logComposition, extractMemberProfile } from './logger.js'
 import type { ComposeRequest, WorkspaceSpec } from './types.js'
 
 /** Fetch JSON from a service, returning parsed data. */
@@ -74,6 +77,7 @@ async function fetchCalculations(memberId: string, retirementDate: string) {
 /** Compose a workspace using Claude Messages API with structured outputs. */
 export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
   const startTime = Date.now()
+  const requestId = randomUUID()
 
   // Step 1: Fetch member data from connector (map frontend short IDs to backend format)
   const backendId = toBackendId(req.member_id)
@@ -104,16 +108,33 @@ export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
   // Step 4: Call Claude Messages API with structured output
   if (!config.anthropicApiKey) {
     console.warn('ANTHROPIC_API_KEY not set — using static fallback composition')
-    return staticFallback(req, context)
+    const fallbackSpec = staticFallback(req, context)
+    const elapsed = Date.now() - startTime
+    const profile = extractMemberProfile(backendId, context)
+    logComposition(getPool(), {
+      requestId,
+      memberId: backendId,
+      processType: req.process_type,
+      retirementDate: req.retirement_date ?? null,
+      profile,
+      composedBy: 'static-fallback',
+      spec: fallbackSpec,
+      durationMs: elapsed,
+      model: null,
+      status: 'FALLBACK',
+      errorMessage: 'ANTHROPIC_API_KEY not set',
+    })
+    return fallbackSpec
   }
 
   try {
     const client = new Anthropic({ apiKey: config.anthropicApiKey })
+    const systemPrompt = buildSystemPrompt()
 
     const response = await client.messages.create({
       model: config.model,
       max_tokens: config.maxTokens,
-      system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+      system: [{ type: 'text', text: systemPrompt, cache_control: { type: 'ephemeral' } }],
       messages: [{ role: 'user', content: userMessage }],
       // @ts-expect-error — structured output support may not be in current SDK types
       output_config: {
@@ -146,10 +167,47 @@ export async function compose(req: ComposeRequest): Promise<WorkspaceSpec> {
     const elapsed = Date.now() - startTime
     console.log(`Composition completed in ${elapsed}ms (agent) for ${req.member_id}`)
 
+    // Fire-and-forget composition log
+    const profile = extractMemberProfile(backendId, context)
+    logComposition(getPool(), {
+      requestId,
+      memberId: backendId,
+      processType: req.process_type,
+      retirementDate: req.retirement_date ?? null,
+      profile,
+      composedBy: 'agent',
+      spec,
+      durationMs: elapsed,
+      model: config.model,
+      status: 'OK',
+      errorMessage: null,
+    })
+
     return spec
   } catch (err) {
+    const elapsed = Date.now() - startTime
+    const errorMsg = err instanceof Error ? err.message : String(err)
     console.error('Claude API call failed, falling back to static composition:', err)
-    return staticFallback(req, context)
+
+    const fallbackSpec = staticFallback(req, context)
+
+    // Log the fallback
+    const profile = extractMemberProfile(backendId, context)
+    logComposition(getPool(), {
+      requestId,
+      memberId: backendId,
+      processType: req.process_type,
+      retirementDate: req.retirement_date ?? null,
+      profile,
+      composedBy: 'static-fallback',
+      spec: fallbackSpec,
+      durationMs: elapsed,
+      model: config.model,
+      status: 'FALLBACK',
+      errorMessage: errorMsg,
+    })
+
+    return fallbackSpec
   }
 }
 

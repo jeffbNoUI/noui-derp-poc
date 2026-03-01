@@ -11,10 +11,14 @@ import express from 'express'
 import { config } from './config.js'
 import { compose } from './compose.js'
 import { healthHandler } from './health.js'
+import { initPool, closePool } from './db.js'
 import type { ComposeRequest } from './types.js'
 
 const app = express()
 app.use(express.json({ limit: '1mb' }))
+
+// Initialize optional DB logging pool
+initPool()
 
 // Health check
 app.get('/healthz', healthHandler)
@@ -43,12 +47,21 @@ app.post('/api/v1/compose', async (req, res) => {
   }
 })
 
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
   console.log(`Composition service listening on port ${config.port}`)
   console.log(`Connector URL: ${config.connectorUrl}`)
   console.log(`Intelligence URL: ${config.intelligenceUrl}`)
   console.log(`API key configured: ${config.anthropicApiKey ? 'yes' : 'NO (static fallback mode)'}`)
   console.log(`Model: ${config.model}`)
+  console.log(`Patterns file: ${config.patternsFile || '(none)'}`)
+})
+
+// Graceful shutdown — close DB pool before exit
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received — shutting down')
+  server.close(() => {
+    closePool().then(() => process.exit(0))
+  })
 })
 
 export default app
