@@ -45,12 +45,14 @@ function formatCurrency(amount: number): string {
 }
 
 function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
+  const normalized = dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00';
+  const d = new Date(normalized);
   return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 }
 
 function yearsOfService(hireDate: string): number {
-  const hire = new Date(hireDate + 'T00:00:00');
+  const normalized = hireDate.includes('T') ? hireDate : hireDate + 'T00:00:00';
+  const hire = new Date(normalized);
   const now = new Date();
   const diff = now.getTime() - hire.getTime();
   return Math.round((diff / (365.25 * 24 * 60 * 60 * 1000)) * 10) / 10;
@@ -65,7 +67,8 @@ function isVested(hireDate: string): boolean {
 }
 
 function vestingYear(hireDate: string): string {
-  const hire = new Date(hireDate + 'T00:00:00');
+  const normalized = hireDate.includes('T') ? hireDate : hireDate + 'T00:00:00';
+  const hire = new Date(normalized);
   hire.setFullYear(hire.getFullYear() + 5);
   return hire.getFullYear().toString();
 }
@@ -130,8 +133,10 @@ interface Milestone {
 }
 
 function buildMilestones(member: { hire_date: string; tier_code: number; dob: string }): Milestone[] {
-  const hireYear = new Date(member.hire_date + 'T00:00:00').getFullYear();
-  const birthYear = new Date(member.dob + 'T00:00:00').getFullYear();
+  const hireNorm = member.hire_date.includes('T') ? member.hire_date : member.hire_date + 'T00:00:00';
+  const dobNorm = member.dob.includes('T') ? member.dob : member.dob + 'T00:00:00';
+  const hireYear = new Date(hireNorm).getFullYear();
+  const birthYear = new Date(dobNorm).getFullYear();
   const svcYears = yearsOfService(member.hire_date);
   const currentYear = new Date().getFullYear();
   const age = currentYear - birthYear;

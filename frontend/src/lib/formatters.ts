@@ -12,7 +12,8 @@ export function formatPercent(value: number, decimals = 1): string {
 }
 
 export function formatDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
+  const normalized = dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00';
+  const date = new Date(normalized);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -21,7 +22,8 @@ export function formatDate(dateStr: string): string {
 }
 
 export function formatDateShort(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
+  const normalized = dateStr.includes('T') ? dateStr : dateStr + 'T00:00:00';
+  const date = new Date(normalized);
   return date.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
