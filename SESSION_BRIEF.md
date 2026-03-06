@@ -1,6 +1,6 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-06 | Status: Session 3 Complete_
+_Updated: 2026-03-06 | Status: Session 4 Complete_
 
 ---
 
@@ -78,6 +78,37 @@ ERPNext v16.8.1 running (port 8083, DB on port 3307). Database seeded with 32,15
 | Go version | 1.26.1 |
 | Dashboard API | http://localhost:8090 |
 
+## Session 4 Summary (Complete)
+
+**Goal:** Scheduled monitoring + PostgreSQL adapter
+
+### Deliverables
+
+1. **Scheduled monitoring** (`connector/monitor/scheduler.go`)
+   - `--schedule` flag for periodic runs (e.g. `5m`, `1h`)
+   - `--history-dir` for timestamped report accumulation
+   - Graceful shutdown on SIGINT/SIGTERM
+   - Each run writes latest report + timestamped history file
+   - 3 unit tests passing
+
+2. **PostgreSQL adapter** (`connector/introspect/`)
+   - Refactored into `SchemaAdapter` interface with `NewAdapter()` factory
+   - `mysql.go` — MySQL/MariaDB adapter (extracted from monolith)
+   - `postgres.go` — PostgreSQL adapter (pg_stat_user_tables, constraint_column_usage)
+   - `adapter.go` — Interface definition
+   - `--driver postgres` support with `$N` placeholders
+   - Added `github.com/lib/pq` dependency
+   - 3 unit tests passing
+
+### Session 4 Exit Criteria
+- [x] Scheduled monitoring implemented with history accumulation
+- [x] PostgreSQL adapter built for introspect tool
+- [x] Swappable adapter pattern per CLAUDE.md requirement
+- [x] All unit tests passing (tagger: 11, monitor: 27, dashboard: 18, introspect: 3 = 59 total)
+- [x] Full pipeline validated end-to-end against live ERPNext
+- [x] BUILD_HISTORY.md updated
+- [x] All changes committed
+
 ## Full Pipeline Commands
 
 ```bash
@@ -96,9 +127,15 @@ go run ./tagger/ \
   --output ../targets/erpnext/schema-manifest/manifest-tagged.json \
   --report ../targets/erpnext/schema-manifest/tags-report.json
 
-# 4. Run monitoring checks
+# 4. Run monitoring checks (single run)
 go run ./monitor/ \
   --output ../targets/erpnext/schema-manifest/monitor-report.json
+
+# 4b. Run monitoring checks (scheduled, every 5 minutes)
+go run ./monitor/ \
+  --output ../targets/erpnext/schema-manifest/monitor-report.json \
+  --schedule 5m \
+  --history-dir ../targets/erpnext/schema-manifest/monitor-history/
 
 # 5. Start dashboard API
 go run ./dashboard/ \
@@ -106,9 +143,9 @@ go run ./dashboard/ \
   --port 8090
 ```
 
-## Pending (Session 4)
+## Pending (Session 5)
 
 - [ ] Integrate monitoring dashboard with NoUI workspace UI
-- [ ] Add scheduled/periodic monitoring runs
 - [ ] Expand concept tagger with additional HR concepts
-- [ ] Test connector against second target system (PostgreSQL)
+- [ ] Test PostgreSQL adapter against a live PostgreSQL target
+- [ ] Add PostgreSQL adapter to monitor (target-specific check queries)

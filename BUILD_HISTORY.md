@@ -160,9 +160,63 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 
 ---
 
-## Pending (Session 4)
+## Scheduled Monitoring
+
+**Date:** 2026-03-06
+**Session:** Session 4
+**Decision:** Added `--schedule` and `--history-dir` flags to `connector/monitor/`
+**Rationale:** The monitor previously only ran once and exited. For production monitoring, periodic runs with history accumulation are essential. The scheduler runs checks on a configurable interval (e.g. `--schedule 5m`), writes each report to both a `latest.json` (for the dashboard API) and a timestamped file in the history directory (for trend analysis). Graceful shutdown on SIGINT/SIGTERM.
+**Status:** Complete — 3 new tests pass
+
+**New files:**
+- `connector/monitor/scheduler.go` — `RunScheduled()` loop + `writeReport()` with history
+- `connector/monitor/scheduler_test.go` — Tests for report writing and history accumulation
+
+**Usage:**
+```bash
+go run ./monitor/ \
+  --dsn "root:admin@tcp(127.0.0.1:3307)/_0919b4e09c48d335" \
+  --output monitor-report.json \
+  --schedule 5m \
+  --history-dir ./monitor-history/
+```
+
+---
+
+## PostgreSQL Adapter for Schema Introspection
+
+**Date:** 2026-03-06
+**Session:** Session 4
+**Decision:** Refactored `connector/introspect/` into swappable `SchemaAdapter` interface with MySQL and PostgreSQL implementations
+**Rationale:** Per CLAUDE.md: "Connector DB adapter must be swappable per target — no MariaDB-specific code in core connector logic." The introspect tool now supports `--driver postgres` alongside `--driver mysql`. PostgreSQL adapter handles differences in information_schema (no COLUMN_KEY, different FK discovery via constraint_column_usage, row counts via pg_stat_user_tables).
+**Status:** Complete — 3 new tests pass, MySQL adapter verified against live ERPNext
+
+**Architecture:**
+- `adapter.go` — `SchemaAdapter` interface + `NewAdapter()` factory
+- `mysql.go` — MySQL/MariaDB adapter (extracted from original monolithic main.go)
+- `postgres.go` — PostgreSQL adapter (uses `$N` placeholders, pg_stat_user_tables, constraint_column_usage)
+- `main.go` — Refactored to use adapter pattern
+
+**Design decisions:**
+- Interface has 3 methods: `GetTables`, `GetColumns`, `GetForeignKeys`
+- PostgreSQL maps `--db` to schema name (defaults to "public")
+- Key type detection in PostgreSQL uses correlated subquery against table_constraints
+- Added `github.com/lib/pq` driver dependency
+
+**PostgreSQL usage:**
+```bash
+go run ./introspect/ \
+  --driver postgres \
+  --dsn "postgres://user:pass@localhost:5432/mydb?sslmode=disable" \
+  --db public \
+  --output manifest.json
+```
+
+---
+
+## Pending (Session 5)
 
 - [ ] Integrate monitoring dashboard with NoUI workspace UI
-- [ ] Add scheduled/periodic monitoring runs
 - [ ] Expand concept tagger with additional HR concepts
-- [ ] Test connector against second target system (PostgreSQL)
+- [ ] Test PostgreSQL adapter against a live PostgreSQL target
+- [ ] Add PostgreSQL adapter to monitor (target-specific check queries)

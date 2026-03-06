@@ -19,6 +19,8 @@
 //	--output         Output JSON report path (default: monitor-report.json)
 //	--baseline-only  Only compute baselines, skip checks
 //	--checks-only    Only run checks, skip baseline computation
+//	--schedule       Run interval for periodic monitoring (e.g. 5m, 1h). Runs once if omitted.
+//	--history-dir    Directory for timestamped report history (used with --schedule)
 
 package main
 
@@ -29,6 +31,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	_ "github.com/go-sql-driver/mysql"
 )
@@ -40,6 +43,8 @@ func main() {
 	output := flag.String("output", "monitor-report.json", "Output JSON report path")
 	baselineOnly := flag.Bool("baseline-only", false, "Only compute baselines, skip checks")
 	checksOnly := flag.Bool("checks-only", false, "Only run checks, skip baseline computation")
+	schedule := flag.String("schedule", "", "Run interval for periodic monitoring (e.g. 5m, 1h)")
+	historyDir := flag.String("history-dir", "", "Directory for timestamped report history")
 	flag.Parse()
 
 	// Extract database name from DSN if not specified
@@ -60,6 +65,17 @@ func main() {
 	}
 	log.Println("Connected.")
 
+	// Scheduled mode: run in a loop until interrupted
+	if *schedule != "" {
+		interval, err := time.ParseDuration(*schedule)
+		if err != nil {
+			log.Fatalf("Invalid schedule interval %q: %v", *schedule, err)
+		}
+		RunScheduled(db, *driver, database, *output, *historyDir, interval, *baselineOnly, *checksOnly)
+		return
+	}
+
+	// Single-run mode
 	report, err := RunMonitor(db, *driver, database, *baselineOnly, *checksOnly)
 	if err != nil {
 		log.Fatalf("Monitor run failed: %v", err)
