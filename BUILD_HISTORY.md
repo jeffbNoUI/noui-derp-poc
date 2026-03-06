@@ -81,9 +81,88 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 
 ---
 
-## Pending (Session 3)
+## Seed Data Generation
 
-- [ ] Seed data generation (employees, salary structures, payroll entries, leave records, DQ issues)
-- [ ] Statistical baseline establishment from seeded data
-- [ ] Monitoring checks implementation (`connector/monitor/`)
-- [ ] Monitoring dashboard via NoUI workspace API
+**Date:** 2026-03-06
+**Session:** Session 3
+**Decision:** Built `targets/erpnext/seed/seed.py` — Python script that populates ERPNext via direct SQL
+**Rationale:** ERPNext has no company/department/employee data out of the box. Direct SQL insertion is the fastest path to a populated database with controlled DQ issues for monitoring validation. The seed is idempotent (cleans before inserting) and reproducible (random seed=42).
+**Status:** Complete
+
+**Data seeded:**
+- 1 company (NoUI Labs), 6 departments, 10 designations
+- 200 employees (170 active, 30 terminated)
+- 3 salary structures, 200 salary structure assignments
+- 6,399 salary slips (monthly, 3 years)
+- 33 payroll entries (monthly company-wide)
+- 1,662 leave allocations (annual per employee per leave type)
+- 2,235 leave applications (random leaves taken)
+- 21,384 attendance records (daily, last 6 months)
+- 25 employee separations (5 intentionally missing)
+- **Total: 32,158 records across 12 tables**
+
+**Embedded DQ issues (6 categories):**
+| Category | Seeded | Detected | Signal |
+|----------|--------|----------|--------|
+| Salary history gaps | 12 employees | 237 gap-months | Missing salary slips in date sequence |
+| Negative leave balances | 15 employees | 13 allocations | total_leaves_allocated < 0 |
+| Missing termination records | 5 employees | 5 | status=Left, no separation doc |
+| Missing payroll runs | 3 months | 3 | Salary slips exist, no payroll entry |
+| Invalid hire dates | 8 employees | 8 | date_of_joining in 2027 |
+| Contribution imbalance | 10 employees | 89 slip-months | gross_pay ≠ salary structure base (>10%) |
+
+---
+
+## Monitoring Checks Engine
+
+**Date:** 2026-03-06
+**Session:** Session 3
+**Decision:** Built `connector/monitor/` — statistical baseline computation + 6 anomaly detection checks
+**Rationale:** The monitor connects to the live database, computes baselines from actual data, then runs targeted checks that detect each DQ issue category. Each check is auditable — results include the specific evidence (employee IDs, amounts, dates) that triggered the finding.
+**Status:** Complete — all 6 checks detect seeded DQ issues, 24 unit tests pass
+
+**Architecture:**
+- `types.go` — CheckResult, Baseline, MonitorReport, ReportSummary
+- `baseline.go` — Computes 5 statistical baselines (monthly employee count, gross totals, avg gross, leave allocation avg, payroll run frequency)
+- `checks.go` — 6 checks: salary_gap, negative_leave_balance, missing_termination, missing_payroll_run, invalid_hire_date, contribution_imbalance
+- `monitor.go` — Orchestrator: runs baselines + checks, builds report
+- `main.go` — CLI: `--driver`, `--dsn`, `--output`, `--baseline-only`, `--checks-only`
+
+**Baselines computed:**
+| Metric | Mean | StdDev | Range |
+|--------|------|--------|-------|
+| monthly_employee_count | 177.75 | 11.86 | 159–192 |
+| monthly_gross_total | $1,235,222 | $93,075 | $1.09M–$1.35M |
+| monthly_avg_gross | $6,945 | $67 | $6,816–$7,023 |
+| avg_leave_allocation | 12.21 days | 2.48 | -5–15 |
+| monthly_payroll_runs | 1.00 | 0.00 | 1–1 |
+
+---
+
+## Monitoring Dashboard API
+
+**Date:** 2026-03-06
+**Session:** Session 3
+**Decision:** Built `connector/dashboard/` — lightweight HTTP server serving monitoring results as JSON API
+**Rationale:** The NoUI workspace needs a programmatic interface to display monitoring findings. A standalone HTTP server that reads the monitor report JSON and exposes filtered endpoints enables workspace integration without coupling to any specific frontend.
+**Status:** Complete — 7 endpoints, 18 unit tests pass
+
+**Endpoints:**
+| Endpoint | Description |
+|----------|-------------|
+| GET /api/v1/health | Server health + uptime |
+| GET /api/v1/monitor/report | Full monitor report (cacheable, `?refresh=true`) |
+| GET /api/v1/monitor/summary | Summary counts + baselines |
+| GET /api/v1/monitor/checks | All checks (`?status=fail`, `?category=completeness`) |
+| GET /api/v1/monitor/checks/{name} | Single check by name |
+| GET /api/v1/monitor/baselines | All baseline metrics |
+| GET /api/v1/monitor/history | Run history |
+
+---
+
+## Pending (Session 4)
+
+- [ ] Integrate monitoring dashboard with NoUI workspace UI
+- [ ] Add scheduled/periodic monitoring runs
+- [ ] Expand concept tagger with additional HR concepts
+- [ ] Test connector against second target system (PostgreSQL)
