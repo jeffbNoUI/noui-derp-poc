@@ -13,23 +13,26 @@ Develop and validate the NoUI Data Connector's core capabilities before connecti
 3. **Anomaly detection** — detect operational data quality issues against a statistical baseline
 4. **Monitoring overlay** — surface findings without modifying the source system
 
-## Current Target: OrangeHRM
+## Current Target: ERPNext
 
-OrangeHRM (open-source HR system, MariaDB) serves as the first lab target — a realistic proxy for legacy pension administration systems like DERP's Neospin.
+ERPNext (open-source ERP, MariaDB) serves as the first lab target — a realistic proxy for legacy pension administration systems like DERP's Neospin. ERPNext has full HR, payroll, leave management, and employee lifecycle modules.
 
-See [`targets/orangehrm/`](targets/orangehrm/) and [`docs/orangehrm-lab-guide.docx`](docs/orangehrm-lab-guide.docx).
+See [`targets/erpnext/`](targets/erpnext/).
 
 ## Getting Started
 
 ```bash
-# Start OrangeHRM
-docker compose -f targets/orangehrm/docker-compose.yml up -d
-
-# Seed test data
-cd targets/orangehrm/seed && python3 seed.py --employees 200 --years 3 --dq-issues
+# Start ERPNext (first run takes ~5 minutes)
+docker compose -f targets/erpnext/docker-compose.yml up -d
+docker compose -f targets/erpnext/docker-compose.yml logs -f create-site
 
 # Run introspection
-go run ./connector/introspect/cmd --target orangehrm --output targets/orangehrm/schema-manifest/
+cd connector
+go mod tidy
+go run ./introspect/ \
+  --dsn "root:admin@tcp(127.0.0.1:3307)/frontend" \
+  --db frontend \
+  --output ../targets/erpnext/schema-manifest/manifest.json
 ```
 
 ## Repository Structure
@@ -44,14 +47,12 @@ noui-connector-lab/
 │   ├── tagger/                  # Concept tagging logic (Go)
 │   └── monitor/                 # Anomaly detection checks (Go)
 ├── targets/
-│   └── orangehrm/
-│       ├── docker-compose.yml   # OrangeHRM + MariaDB stack
-│       ├── seed/                # Data generation scripts (Python)
+│   └── erpnext/
+│       ├── docker-compose.yml   # ERPNext + MariaDB stack
+│       ├── seed/                # Data generation scripts
 │       ├── schema-manifest/     # Introspection output (generated, not committed)
-│       ├── monitoring-checks/   # OrangeHRM-specific check configs (YAML)
+│       ├── monitoring-checks/   # Target-specific check configs
 │       └── docs/                # Target-specific notes
-├── docs/
-│   └── orangehrm-lab-guide.docx
 └── tools/                       # Shared utilities
 ```
 
@@ -60,7 +61,7 @@ noui-connector-lab/
 | | noui-connector-lab | noui-derp-poc |
 |--|--|--|
 | **Purpose** | Generic connector development | DERP-specific demo system |
-| **Database** | OrangeHRM / MariaDB (lab) | Synthetic DERP / PostgreSQL |
+| **Database** | ERPNext / MariaDB (lab) | Synthetic DERP / PostgreSQL |
 | **Audience** | Engineering validation | DERP leadership demo |
 | **Logic flow** | Develop here → promote to DERP | Consumes promoted connector logic |
 
@@ -68,6 +69,6 @@ noui-connector-lab/
 
 | Target | System | DB | Status |
 |--|--|--|--|
-| OrangeHRM | Open-source HR | MariaDB 10.11 | 🔄 In progress |
+| ERPNext | Open-source ERP | MariaDB 10.6 | 🔄 In progress |
 | DERP Neospin | Pension admin | TBD (PostgreSQL/MSSQL) | ⏳ Pending access |
 | COPERA | Pension admin | TBD | ⏳ Future |

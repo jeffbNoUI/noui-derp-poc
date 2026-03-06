@@ -1,46 +1,39 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-05 | Status: Ready for Session 1_
+_Updated: 2026-03-05 | Status: Session 1 In Progress_
 
 ---
 
 ## Current State
 
-Repository initialized. No Go code written yet. No seed data generated yet. OrangeHRM not yet running.
+Repository initialized. Go introspection code written but untested. ERPNext docker-compose created. No seed data generated yet. ERPNext not yet running.
 
 ## Session 1 Scope
 
-**Goal:** Working OrangeHRM environment + schema introspection producing a validated manifest
+**Goal:** Working ERPNext environment + schema introspection producing a validated manifest
 
 ### Phase 1: Environment Setup
-1. Start OrangeHRM via `targets/orangehrm/docker-compose.yml`
-2. Complete OrangeHRM browser-based installer (see lab guide Section 3.3)
-3. Verify direct DB access: `mysql -h 127.0.0.1 -P 3306 -u orangehrm -porangehrm orangehrm`
-4. Confirm table count ≥ 90
+1. Start ERPNext via `targets/erpnext/docker-compose.yml`
+2. Wait for site creation to complete (~5 minutes)
+3. Verify direct DB access: `mysql -h 127.0.0.1 -P 3307 -u root -padmin`
+4. Confirm table count (ERPNext creates hundreds of DocType tables)
 
-### Phase 2: Seed Data
-1. Write `targets/orangehrm/seed/seed.py`
-2. Run: `python3 seed.py --employees 200 --years 3 --dq-issues`
-3. Verify:
-   - Employee count: ~200 (170 active, 30 terminated)
-   - Salary records: ~7,200
-   - Payroll run records: 36 months × 4 runs = 144 runs
-   - DQ issues embedded: salary gaps (12), negative leave balances (15), missing termination records (5), missing payroll runs (3 months)
-
-### Phase 3: Schema Introspection
-1. `cd connector && go mod tidy` (go.mod already initialized)
-2. Scaffold `connector/introspect/` with:
-   - MariaDB adapter (connection, information_schema queries)
-   - Schema manifest builder (tables, columns, data types, foreign keys, row counts)
-   - JSON output to `targets/orangehrm/schema-manifest/manifest.json`
-3. Run introspection
+### Phase 2: Schema Introspection
+1. `cd connector && go mod tidy`
+2. Build and run `connector/introspect/` against ERPNext MariaDB
+3. JSON output to `targets/erpnext/schema-manifest/manifest.json`
 4. Verify manifest contains all tables with correct row counts
 
+### Phase 3: Seed Data (if time permits)
+1. Investigate ERPNext API or bench commands for data seeding
+2. Create employees, salary structures, payroll entries, leave records
+3. Embed DQ issues for anomaly detection validation
+
 ### Session 1 Exit Criteria
-- [ ] OrangeHRM running and accessible at localhost:8080
-- [ ] Seed data verified (row counts match targets above)
-- [ ] `targets/orangehrm/schema-manifest/manifest.json` generated
-- [ ] Manifest contains ≥ 90 tables
+- [ ] ERPNext running and accessible at localhost:8080
+- [ ] DB accessible at localhost:3307
+- [ ] `targets/erpnext/schema-manifest/manifest.json` generated
+- [ ] Manifest contains all ERPNext tables
 - [ ] Row counts in manifest match live DB counts
 - [ ] BUILD_HISTORY.md updated
 - [ ] All changes committed
@@ -49,33 +42,18 @@ Repository initialized. No Go code written yet. No seed data generated yet. Oran
 
 | Item | Value |
 |------|-------|
-| OrangeHRM URL | http://localhost:8080 |
-| OrangeHRM admin | admin / Admin@1234 |
-| MariaDB host | localhost:3306 |
-| MariaDB DB | orangehrm |
-| MariaDB user | orangehrm / orangehrm |
-| MariaDB root | root / noui_root |
-| Go version | 1.21+ |
-| Python version | 3.10+ |
+| ERPNext URL | http://localhost:8080 |
+| ERPNext admin | Administrator / admin |
+| MariaDB host | localhost:3307 |
+| MariaDB user | root / admin |
+| ERPNext version | v16.8.1 |
+| Go version | 1.26.1 |
 
 ## Key Reference Files
 
-- `docs/orangehrm-lab-guide.docx` — Full lab guide (Sections 3-5 most relevant for Session 1)
 - `CLAUDE.md` — Governing instructions
 - `BUILD_HISTORY.md` — Prior decisions
 
 ## Concept Tags (Phase B — Session 2)
 
 Session 1 does NOT implement concept tagging. That is Session 2 scope.
-The 7 target concept tags are documented in the lab guide (Section 5.3).
-
-## DQ Issues Reference (for seed script)
-
-| Category | Count | Detection Signal |
-|----------|-------|-----------------|
-| Salary history gaps | 12 employees | Missing records in date range |
-| Negative leave balances | 15 employees | balance < 0 |
-| Missing termination records | 5 employees | status=inactive, no termination row |
-| Missing payroll runs | 3 months | expected run count not met |
-| Invalid hire dates | 8 employees | joined_date in future |
-| Contribution imbalance | 10 employees | calculated vs stored mismatch |
