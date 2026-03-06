@@ -2,6 +2,7 @@ package rules
 
 import (
 	"fmt"
+	"math"
 	"time"
 
 	"github.com/noui/derp-poc/intelligence/models"
@@ -170,7 +171,7 @@ func EvaluateEligibility(member models.MemberData, svcCredit models.ServiceCredi
 		// ASSUMPTION: [Q-CALC-03] Using integer age only (no monthly proration)
 		factor := lookupReductionFactor(tier, age.CompletedYears)
 		result.ReductionFactor = factor
-		result.ReductionPct = (1.0 - factor) * 100.0
+		result.ReductionPct = math.Round((1.0-factor)*10000) / 100 // Round to 2 decimal places to avoid IEEE 754 drift
 
 		reduceRuleID := "RULE-EARLY-REDUCE-T12"
 		if tier == 3 {

@@ -188,22 +188,23 @@ CURATED_EXAMPLES: list[dict] = [
                 "crm_interactions", "crm_outreach",
             ],
         },
-        "note": "has_member=false because contact_type=external AND has_legacy_member_id=false. "
-                "Member panels (banner, calc, etc.) hidden. But employment_timeline IS shown because "
-                "has_employment_history=true and employment_event_count=2 — this panel is independent "
-                "of has_member. ai_summary shown because both case_journal and employment_timeline visible. "
-                "Only CRM alerts fire (member alerts require has_member).",
+        "note": "CRITICAL has_member GATE: has_member=false because contact_type=external AND "
+                "has_legacy_member_id=false. Even though medicare_flag='Y' and marital_status='M' and "
+                "reduction_applies=true and best_eligible_type='EARLY', NONE of the 9 member alerts fire. "
+                "The has_member gate blocks ALL member alerts regardless of field values. "
+                "Only CRM alerts fire: security_flag_warning (fraud_alert is not null), "
+                "overdue_commitments (1 > 0), sla_breach (true), urgent_note_flag (true).",
     },
     {
-        "description": "Beneficiary without legacy ID, zero open conversations — CRM view still shows case_journal",
+        "description": "Beneficiary without legacy ID — TEMPTING field values but NO member alerts",
         "input": {
             "member_profile": {
-                "tier": 1, "status": "active", "vested": True,
-                "earned_service_years": 15.0, "has_dro": False,
-                "has_employment_history": True, "employment_event_count": 4,
-                "marital_status": "D", "has_purchased_service": False,
-                "leave_payout_eligible": False, "leave_payout_amount": 0,
-                "medicare_flag": "N",
+                "tier": 2, "status": "active", "vested": True,
+                "earned_service_years": 18.0, "has_dro": True,
+                "has_employment_history": True, "employment_event_count": 3,
+                "marital_status": "M", "has_purchased_service": True,
+                "leave_payout_eligible": True, "leave_payout_amount": 25000,
+                "medicare_flag": "Y",
             },
             "crm_context": {
                 "contact_type": "beneficiary", "has_legacy_member_id": False,
@@ -212,9 +213,9 @@ CURATED_EXAMPLES: list[dict] = [
                 "sla_breached": False, "has_urgent_notes": False,
             },
             "eligibility_snapshot": {
-                "best_eligible_type": "NORMAL", "rule_of_n_met": False,
-                "reduction_applies": False, "vested": True,
-                "leave_payout_ams_impact": 0, "rule_of_n_near": False,
+                "best_eligible_type": "EARLY", "rule_of_n_met": False,
+                "reduction_applies": True, "vested": True,
+                "leave_payout_ams_impact": 800.00, "rule_of_n_near": True,
             },
         },
         "output": {
@@ -234,11 +235,12 @@ CURATED_EXAMPLES: list[dict] = [
                 "crm_interactions", "crm_outreach",
             ],
         },
-        "note": "CRITICAL: view_mode=crm because contact_type=beneficiary. case_journal is shown "
-                "because view_mode is crm — even though open_conversations=0. The OR condition means "
-                "CRM view mode alone is sufficient. ai_summary shown because BOTH case_journal and "
-                "employment_timeline are visible. has_member=false (no legacy ID), so no member panels "
-                "or member alerts.",
+        "note": "TRAP SCENARIO: This profile has EVERY member alert condition met — marital_status='M', "
+                "medicare_flag='Y', has_purchased_service=true, has_dro=true, leave_payout with AMS impact, "
+                "reduction_applies=true, best_eligible_type='EARLY' with rule_of_n_met=false, rule_of_n_near=true. "
+                "But has_member=false (contact_type=beneficiary, has_legacy_member_id=false), so NONE of the "
+                "9 member alerts fire. Zero alerts. The has_member gate MUST be checked FIRST before evaluating "
+                "any member alert conditions. CRM alerts also zero because all CRM fields are clean.",
     },
     {
         "description": "Terminated vested member — member alerts still fire (spousal, medicare)",
@@ -281,6 +283,106 @@ CURATED_EXAMPLES: list[dict] = [
         "note": "Terminated but vested — has_calculation=false (status=terminated), so no calc panels. "
                 "But has_member=true so member alerts still fire: spousal_consent (marital_status=M) and "
                 "medicare_ipr_highlight (medicare_flag=Y). NOT not_vested because vested=true.",
+    },
+    {
+        "description": "Active vested member — NO spousal or medicare alerts (check field values!)",
+        "input": {
+            "member_profile": {
+                "tier": 2, "status": "active", "vested": True,
+                "earned_service_years": 22.0, "has_dro": False,
+                "has_employment_history": True, "employment_event_count": 3,
+                "marital_status": "S", "has_purchased_service": False,
+                "leave_payout_eligible": False, "leave_payout_amount": 0,
+                "medicare_flag": "N",
+            },
+            "crm_context": {
+                "contact_type": "member", "has_legacy_member_id": True,
+                "open_conversations": 0, "identity_verified": True,
+                "security_flag": None, "overdue_commitments": 0,
+                "sla_breached": False, "has_urgent_notes": False,
+            },
+            "eligibility_snapshot": {
+                "best_eligible_type": "NORMAL", "rule_of_n_met": True,
+                "reduction_applies": False, "vested": True,
+                "leave_payout_ams_impact": 0, "rule_of_n_near": False,
+            },
+        },
+        "output": {
+            "view_mode": "workspace",
+            "panels_shown": [
+                "member_banner", "service_credit_summary", "benefit_calculation",
+                "payment_options", "death_benefit", "ipr_calculator",
+                "employment_timeline",
+            ],
+            "panels_hidden": [
+                "dro_impact", "scenario_modeler",
+                "case_journal", "ai_summary", "crm_note_form",
+            ],
+            "alerts": [],
+            "data_fetches": [
+                "member_data", "service_credit", "benefit_calculation",
+                "payment_options", "employment_history",
+            ],
+        },
+        "note": "CRITICAL: has_member=true but ZERO alerts fire. Check each condition: "
+                "marital_status='S' (not 'M') → no spousal_consent. "
+                "medicare_flag='N' (not 'Y') → no medicare_ipr. "
+                "reduction_applies=false → no early_retirement_reduction. "
+                "has_purchased_service=false → no purchased_service_warning. "
+                "has_dro=false → no dro_deduction. "
+                "vested=true → no not_vested. "
+                "best_eligible_type='NORMAL' → no waiting_increases_benefit. "
+                "rule_of_n_near=false → no rule_of_n_near. "
+                "All CRM fields are clean → no CRM alerts. "
+                "An empty alerts list is a valid and common outcome.",
+    },
+    {
+        "description": "EARLY retiree with rule_of_n_met=true — waiting_increases_benefit does NOT fire",
+        "input": {
+            "member_profile": {
+                "tier": 1, "status": "active", "vested": True,
+                "earned_service_years": 28.0, "has_dro": False,
+                "has_employment_history": True, "employment_event_count": 4,
+                "marital_status": "M", "has_purchased_service": False,
+                "leave_payout_eligible": True, "leave_payout_amount": 35000,
+                "medicare_flag": "N",
+            },
+            "crm_context": {
+                "contact_type": "member", "has_legacy_member_id": True,
+                "open_conversations": 1, "identity_verified": True,
+                "security_flag": None, "overdue_commitments": 0,
+                "sla_breached": False, "has_urgent_notes": False,
+            },
+            "eligibility_snapshot": {
+                "best_eligible_type": "EARLY", "rule_of_n_met": True,
+                "reduction_applies": False, "vested": True,
+                "leave_payout_ams_impact": 950.00, "rule_of_n_near": False,
+            },
+        },
+        "output": {
+            "view_mode": "workspace",
+            "panels_shown": [
+                "member_banner", "service_credit_summary", "benefit_calculation",
+                "payment_options", "scenario_modeler", "death_benefit",
+                "ipr_calculator", "employment_timeline",
+                "case_journal", "ai_summary", "crm_note_form",
+            ],
+            "panels_hidden": ["dro_impact"],
+            "alerts": [
+                "spousal_consent_required", "leave_payout_ams_boost",
+            ],
+            "data_fetches": [
+                "member_data", "service_credit", "benefit_calculation",
+                "payment_options", "scenario_projection", "employment_history",
+                "crm_contact", "crm_conversations", "crm_commitments",
+                "crm_interactions", "crm_outreach",
+            ],
+        },
+        "note": "CRITICAL: best_eligible_type=EARLY but rule_of_n_met=true → waiting_increases_benefit "
+                "does NOT fire. Both conditions must be met. Also: reduction_applies=false so no "
+                "early_retirement_reduction. medicare_flag='N' so no medicare_ipr. "
+                "case_journal shown because open_conversations=1. ai_summary shown because BOTH "
+                "case_journal and employment_timeline are visible.",
     },
 ]
 

@@ -84,6 +84,11 @@ Each panel has specific show/hide conditions:
 ALERT_CATALOG = """\
 ## Alert Catalog (14 alerts)
 
+CRITICAL INSTRUCTION: For every alert, you MUST read the actual field value from the scenario data \
+and verify the condition is met BEFORE including it. Most scenarios will only trigger 1-3 alerts. \
+If a field value does not match the trigger condition, do NOT include that alert. \
+Err on the side of NOT firing an alert rather than including one you're unsure about.
+
 ### Member-related alerts (ONLY fire when has_member = true — skip ALL of these if has_member is false):
 IMPORTANT: First derive has_member. has_member is ONLY true when contact_type == "member" OR
 has_legacy_member_id == true. If contact_type is "external", "beneficiary", or "alternate_payee"
@@ -94,26 +99,30 @@ has has_member=true, so alerts like spousal_consent, medicare_ipr, etc. still ap
 1. **spousal_consent_required** — ONLY if marital_status is exactly "M" (married). The letter "M"
    means married. Do NOT fire for "S" (single), "D" (divorced), or "W" (widowed).
    "D" = divorced = NOT married = do NOT fire. "S" = single = NOT married = do NOT fire.
-2. **early_retirement_reduction** — reduction_applies == true.
-3. **leave_payout_ams_boost** — leave_payout_eligible AND leave_payout_ams_impact > 0.
-4. **purchased_service_warning** — has_purchased_service == true.
-5. **dro_deduction_active** — has_dro == true.
-6. **not_vested** — ONLY if vested == false. Do NOT fire if vested is true.
-7. **medicare_ipr_highlight** — medicare_flag == "Y". Fires for ANY member with medicare_flag "Y",
-   regardless of status (active, retired, deferred, OR terminated).
-8. **waiting_increases_benefit** — best_eligible_type == "EARLY" AND rule_of_n_met == false.
-   This fires for any EARLY retiree who has NOT met the Rule of N. Check both fields explicitly.
-9. **rule_of_n_near_threshold** — rule_of_n_near == true. Member is within 2 points of Rule of N target.
+2. **early_retirement_reduction** — reduction_applies == true. If reduction_applies is false, do NOT fire.
+3. **leave_payout_ams_boost** — BOTH leave_payout_eligible == true AND leave_payout_ams_impact > 0 must be true.
+4. **purchased_service_warning** — has_purchased_service == true. If false, do NOT fire.
+5. **dro_deduction_active** — has_dro == true. If false, do NOT fire.
+6. **not_vested** — ONLY if vested == false. If vested is true, do NOT fire. \
+   Most members ARE vested, so this alert is rare.
+7. **medicare_ipr_highlight** — medicare_flag == "Y". If medicare_flag is "N", do NOT fire. \
+   Fires for ANY member with medicare_flag "Y", regardless of status.
+8. **waiting_increases_benefit** — Requires BOTH conditions: best_eligible_type == "EARLY" AND \
+   rule_of_n_met == false. If rule_of_n_met is true, do NOT fire even if type is EARLY. \
+   If best_eligible_type is NORMAL or NOT_ELIGIBLE, do NOT fire.
+9. **rule_of_n_near_threshold** — rule_of_n_near == true. If false, do NOT fire.
 
 ### CRM alerts (apply regardless of has_member — but you MUST check each field's actual value):
-CRITICAL: Read each field value from the scenario data carefully. Do NOT assume a CRM alert should
-fire just because it exists in the catalog. Only fire when the specific condition is met.
+CRITICAL: These alerts have HIGH false-positive rates. For each one, locate the exact field value \
+in the input data and verify the condition. Do NOT fire based on assumptions.
 
-10. **security_flag_warning** — ONLY if security_flag is not null (has an actual value like "fraud_alert"). If security_flag is null, do NOT fire.
+10. **security_flag_warning** — ONLY if security_flag is not null (has an actual value like "fraud_alert"). \
+    If security_flag is null or "None", do NOT fire.
 11. **overdue_commitments** — ONLY if overdue_commitments > 0. If overdue_commitments is 0, do NOT fire.
-12. **sla_breach** — ONLY if sla_breached == true. If sla_breached is false, do NOT fire.
-13. **identity_not_verified** — ONLY if identity_verified == false. If identity_verified is true, do NOT fire.
-14. **urgent_note_flag** — ONLY if has_urgent_notes == true. If has_urgent_notes is false, do NOT fire.\
+12. **sla_breach** — ONLY if sla_breached == true. If sla_breached is false or False, do NOT fire.
+13. **identity_not_verified** — ONLY if identity_verified == false. If identity_verified is true or True, \
+    do NOT fire. Most contacts ARE verified, so this alert is uncommon.
+14. **urgent_note_flag** — ONLY if has_urgent_notes == true. If false, do NOT fire.\
 """
 
 DATA_FETCH_CATALOG = """\
@@ -167,14 +176,25 @@ Only the contact_type field determines view mode.\
 CLOSING_INSTRUCTIONS = """\
 ## Instructions
 
-Analyze the provided scenario carefully. Derive has_member, has_calculation, \
-journal_visible, and has_timeline from the input data, then apply the panel, \
-alert, and data fetch rules above.
+Follow this exact process:
 
-Every panel from the catalog must appear in either panels_shown or panels_hidden. \
-Include a brief rationale for each panel decision.
+1. **Derive intermediate values** from the input data:
+   - has_member = (contact_type == "member") OR (has_legacy_member_id == true)
+   - has_calculation = has_member AND vested AND status in (active, retired, deferred)
+   - journal_visible = (view_mode == "crm") OR (open_conversations > 0)
+   - has_timeline = has_employment_history AND employment_event_count > 0
 
-Call the compose_workspace tool with your complete composition decision.\
+2. **Determine panels**: Apply each panel's show/hide condition using the derived values.
+   Every panel must appear in either panels_shown or panels_hidden.
+
+3. **Determine alerts**: For EACH alert, find the specific field value in the input and verify \
+   the trigger condition is met. Do NOT include any alert unless you have confirmed the field \
+   value matches. When in doubt, do NOT fire the alert.
+
+4. **Determine data fetches**: Match fetches to shown panels.
+
+Call the compose_workspace tool with your complete composition decision. \
+Include a brief rationale for each panel decision.\
 """
 
 
