@@ -5,10 +5,11 @@
 // row counts, and foreign key relationships.
 //
 // Usage:
-//   go run ./introspect/cmd \
+//   go run ./introspect/ \
 //     --driver mysql \
-//     --dsn "orangehrm:orangehrm@tcp(127.0.0.1:3306)/orangehrm" \
-//     --output ../../targets/orangehrm/schema-manifest/manifest.json
+//     --dsn "root:admin@tcp(127.0.0.1:3307)/" \
+//     --db frontend \
+//     --output ../targets/erpnext/schema-manifest/manifest.json
 //
 // The manifest is the input to the concept tagger (connector/tagger).
 // It is a generated artifact — do not commit to version control.
@@ -64,8 +65,8 @@ type ForeignKey struct {
 
 func main() {
 	driver := flag.String("driver", "mysql", "Database driver: mysql | postgres")
-	dsn := flag.String("dsn", "orangehrm:orangehrm@tcp(127.0.0.1:3306)/orangehrm", "Data source name")
-	dbName := flag.String("db", "orangehrm", "Database/schema name to introspect")
+	dsn := flag.String("dsn", "root:admin@tcp(127.0.0.1:3307)/", "Data source name")
+	dbName := flag.String("db", "", "Database/schema name to introspect (auto-detected if empty)")
 	output := flag.String("output", "manifest.json", "Output file path")
 	flag.Parse()
 
