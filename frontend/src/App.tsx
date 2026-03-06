@@ -13,8 +13,10 @@ import EmploymentTimeline from '@/components/EmploymentTimeline';
 import MemberPortal from '@/components/portal/MemberPortal';
 import CRMWorkspace from '@/components/CRMWorkspace';
 import EmployerPortal from '@/components/portal/EmployerPortal';
+import StaffPortal from '@/components/StaffPortal';
+import RetirementApplication from '@/components/RetirementApplication';
 
-type ViewMode = 'portal' | 'workspace' | 'crm' | 'employer';
+type ViewMode = 'staff' | 'portal' | 'workspace' | 'crm' | 'employer' | 'retirement-app';
 
 // Demo case members with their retirement dates
 const DEMO_CASES = [
@@ -34,6 +36,7 @@ function TopNav({
   onChangeView: (mode: ViewMode) => void;
 }) {
   const tabs: { key: ViewMode; label: string; description: string }[] = [
+    { key: 'staff', label: 'Staff Portal', description: 'Work queue and case management' },
     { key: 'portal', label: 'Member Portal', description: 'Self-service member view' },
     { key: 'workspace', label: 'Agent Workspace', description: 'Benefit calculations' },
     { key: 'crm', label: 'CRM', description: 'Contact management' },
@@ -87,10 +90,51 @@ function TopNav({
 // ── Main App ─────────────────────────────────────────────────────────────────
 
 export default function App() {
-  const [viewMode, setViewMode] = useState<ViewMode>('portal');
+  const [viewMode, setViewMode] = useState<ViewMode>('staff');
   const [memberID, setMemberID] = useState(10001);
   const [retirementDate, setRetirementDate] = useState('2026-04-01');
   const [memberIDInput, setMemberIDInput] = useState('10001');
+
+  // Retirement application state
+  const [activeCaseId, setActiveCaseId] = useState('');
+  const [caseMemberId, setCaseMemberId] = useState(10001);
+  const [caseRetDate, setCaseRetDate] = useState('2026-04-01');
+
+  const handleOpenCase = (caseId: string, memberId: number, retDate: string) => {
+    setActiveCaseId(caseId);
+    setCaseMemberId(memberId);
+    setCaseRetDate(retDate);
+    setViewMode('retirement-app');
+  };
+
+  const handleChangeView = (mode: string) => {
+    setViewMode(mode as ViewMode);
+  };
+
+  // ── Staff Portal (default landing) ──────────────────────────────────────
+
+  if (viewMode === 'staff') {
+    return (
+      <StaffPortal
+        onOpenCase={handleOpenCase}
+        onChangeView={handleChangeView}
+      />
+    );
+  }
+
+  // ── Retirement Application (from Staff Portal case click) ───────────────
+
+  if (viewMode === 'retirement-app') {
+    return (
+      <RetirementApplication
+        caseId={activeCaseId}
+        memberId={caseMemberId}
+        retirementDate={caseRetDate}
+        onBack={() => setViewMode('staff')}
+        onChangeView={handleChangeView}
+      />
+    );
+  }
 
   // ── Member Portal view ──────────────────────────────────────────────────
 
@@ -101,7 +145,7 @@ export default function App() {
         retirementDate={retirementDate}
         onSwitchToWorkspace={() => setViewMode('workspace')}
         onSwitchToCRM={() => setViewMode('crm')}
-        onChangeView={setViewMode}
+        onChangeView={handleChangeView}
       />
     );
   }
@@ -111,7 +155,7 @@ export default function App() {
   if (viewMode === 'crm') {
     return (
       <>
-        <TopNav viewMode={viewMode} onChangeView={setViewMode} />
+        <TopNav viewMode={viewMode} onChangeView={handleChangeView} />
         <CRMWorkspace />
       </>
     );
@@ -120,7 +164,7 @@ export default function App() {
   // ── Employer Portal view ──────────────────────────────────────────────
 
   if (viewMode === 'employer') {
-    return <EmployerPortal onChangeView={setViewMode} />;
+    return <EmployerPortal onChangeView={handleChangeView} />;
   }
 
   // ── Agent Workspace view (calculations) ───────────────────────────────
@@ -133,7 +177,7 @@ export default function App() {
     memberIDInput={memberIDInput}
     setMemberIDInput={setMemberIDInput}
     viewMode={viewMode}
-    setViewMode={setViewMode}
+    setViewMode={handleChangeView}
   />;
 }
 
@@ -156,7 +200,7 @@ function AgentWorkspace({
   memberIDInput: string;
   setMemberIDInput: (v: string) => void;
   viewMode: ViewMode;
-  setViewMode: (m: ViewMode) => void;
+  setViewMode: (m: string) => void;
 }) {
   const { data: member, isLoading: memberLoading, error: memberError } = useMember(memberID);
   const { data: employment } = useEmployment(memberID);
@@ -181,7 +225,7 @@ function AgentWorkspace({
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <TopNav viewMode={viewMode} onChangeView={setViewMode} />
+      <TopNav viewMode={viewMode} onChangeView={(mode) => setViewMode(mode)} />
 
       {/* Workspace controls */}
       <div className="border-b border-gray-100 bg-white">

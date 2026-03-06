@@ -13,6 +13,8 @@ services:
       - pgdata:/var/lib/postgresql/data
       - ./database/schema/001_legacy_schema.sql:/docker-entrypoint-initdb.d/001_legacy_schema.sql
       - ./database/schema/002_crm_schema.sql:/docker-entrypoint-initdb.d/002_crm_schema.sql
+      - ./database/seed/002_legacy_seed.sql:/docker-entrypoint-initdb.d/003_legacy_seed.sql
+      - ./database/seed/003_crm_seed.sql:/docker-entrypoint-initdb.d/004_crm_seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U derp"]
       interval: 5s
@@ -56,7 +58,7 @@ services:
       context: ./services/crm
       dockerfile: Dockerfile
     ports:
-      - "8083:8083"
+      - "8084:8083"
     environment:
       PORT: "8083"
       DB_HOST: postgres

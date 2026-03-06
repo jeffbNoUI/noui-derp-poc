@@ -1,0 +1,232 @@
+{
+  "case_id": "case1-robert-martinez",
+  "case_name": "Robert Martinez — Tier 1, Rule of 75, Leave Payout",
+  "description": "Tier 1 member qualifying for Rule of 75 with leave payout boosting AMS",
+  
+  "inputs": {
+    "member": {
+      "member_id": "M-100001",
+      "first_name": "Robert",
+      "last_name": "Martinez",
+      "date_of_birth": "1963-03-08",
+      "hire_date": "1997-06-15",
+      "termination_date": null,
+      "status": "A",
+      "tier": 1,
+      "department": "Public Works",
+      "position": "Senior Engineer"
+    },
+    "retirement_request": {
+      "retirement_date": "2026-04-01",
+      "last_day_worked": "2026-03-31",
+      "leave_payout_amount": 52000.00,
+      "leave_payout_type": "sick_vacation"
+    },
+    "application_timeline": {
+      "notification_of_intent": "2026-02-12",
+      "application_received": "2026-03-10",
+      "notarized": true,
+      "complete_package_received": "2026-03-10",
+      "processing_cutoff": "2026-03-15",
+      "package_before_cutoff": true,
+      "first_payment_date": "2026-04-01"
+    },
+    "beneficiary": {
+      "name": "Elena Martinez",
+      "relationship": "spouse",
+      "date_of_birth": "1966-09-15",
+      "allocation_percentage": 100
+    },
+    "payment_option_election": "75_js",
+    "service_credit": {
+      "employment_years": 28.75,
+      "purchased_years": 0,
+      "military_years": 0,
+      "total_for_benefit": 28.75,
+      "total_for_rule_of_75": 28.75
+    },
+    "dro": null
+  },
+  
+  "expected_outputs": {
+    "timing_validation": {
+      "application_deadline": {
+        "rule": "RULE-APPLICATION-DEADLINE",
+        "last_day_worked": "2026-03-31",
+        "application_received": "2026-03-10",
+        "days_before_last_day": 21,
+        "max_days_after": 30,
+        "passes": true
+      },
+      "notarization": {
+        "rule": "RULE-NOTARIZATION-REQUIRED",
+        "notarized": true,
+        "passes": true
+      },
+      "payment_cutoff": {
+        "rule": "RULE-PAYMENT-PROCESSING-CUTOFF",
+        "complete_package_date": "2026-03-10",
+        "cutoff_date": "2026-03-15",
+        "before_cutoff": true,
+        "first_payment": "2026-04-01",
+        "combined_payment": false,
+        "passes": true
+      }
+    },
+    "eligibility": {
+      "tier": 1,
+      "age_at_retirement": 63.00,
+      "total_service_years": 28.75,
+      "earned_service_years": 28.75,
+      "vested": true,
+      "rule_of_75_sum": 91.75,
+      "rule_of_75_qualifies": true,
+      "early_retirement_reduction_percent": 0
+    },
+    "leave_payout": {
+      "eligible": true,
+      "amount": 52000.00,
+      "reason": "Hired before 2010-01-01 with sick/vacation leave"
+    },
+    "ams_calculation": {
+      "window_months": 36,
+      "window_start": "2023-04-01",
+      "window_end": "2026-03-31",
+      "base_compensation": 331020.24,
+      "leave_payout_added": 52000.00,
+      "total_compensation": 383020.24,
+      "ams": 10639.45
+    },
+    "benefit_calculation": {
+      "ams": 10639.45,
+      "multiplier": 0.02,
+      "service_years": 28.75,
+      "formula": "AMS × multiplier × service = 10639.45 × 0.02 × 28.75",
+      "maximum_monthly_benefit": 6117.68
+    },
+    "payment_options": {
+      "_note": "ILLUSTRATIVE — ACTUAL FACTORS FROM DERP ACTUARIAL TABLES",
+      "_factors_assumptions": "Member age 63, beneficiary age 59, standard mortality tables",
+      "maximum": 6117.68,
+      "joint_survivor_100": {
+        "factor": 0.8850,
+        "monthly_benefit": 5414.15
+      },
+      "joint_survivor_75": {
+        "factor": 0.9150,
+        "monthly_benefit": 5597.68
+      },
+      "joint_survivor_50": {
+        "factor": 0.9450,
+        "monthly_benefit": 5781.21
+      }
+    },
+    "elected_benefit": {
+      "option": "joint_survivor_75",
+      "factor": 0.9150,
+      "monthly_benefit": 5597.68,
+      "survivor_benefit": 4198.26
+    },
+    "ipr": {
+      "service_years_for_ipr": 28.75,
+      "pre_medicare_rate": 12.50,
+      "post_medicare_rate": 6.25,
+      "pre_medicare_monthly": 359.38,
+      "post_medicare_monthly": 179.69
+    },
+    "death_benefit": {
+      "retirement_type": "rule_of_75",
+      "tier": 1,
+      "lump_sum_amount": 5000.00,
+      "reduction_note": "No reduction — qualifies for Rule of 75 (normal retirement equivalent)",
+      "installment_options": {
+        "50_installments": 100.00,
+        "100_installments": 50.00
+      },
+      "election_note": "Irrevocable — member chooses installment count and beneficiary at retirement"
+    },
+    "ss_makeup": {
+      "status": "out_of_scope",
+      "eligible": true,
+      "eligibility_note": "Tier 1 member, age 63, born after 1938 — would qualify. Not calculated in POC.",
+      "rule": "RULE-SS-MAKEUP",
+      "rule_status": "placeholder"
+    }
+  },
+  
+  "rounding_strategy": {
+    "description": "Calculation rounding rules per BUILD_HISTORY Session 5, Decision 21",
+    "intermediate_calculations": "Full precision (no rounding)",
+    "ams": "Full precision",
+    "js_factors": "4 decimal places",
+    "final_monthly_benefit": "Round to cents (2 decimal places) as last step",
+    "method": "Banker's rounding (round half to even)"
+  },
+  
+  "test_points": [
+    {
+      "id": "RM-001",
+      "description": "Tier correctly identified as 1 from hire date",
+      "test": "hire_date < 2004-09-01"
+    },
+    {
+      "id": "RM-002",
+      "description": "Rule of 75 correctly evaluated",
+      "calculation": "63 + 28.75 = 91.75 >= 75"
+    },
+    {
+      "id": "RM-003",
+      "description": "Leave payout eligible (hired before 2010)",
+      "test": "hire_date < 2010-01-01 AND leave_type = sick_vacation"
+    },
+    {
+      "id": "RM-004",
+      "description": "Leave payout added to final month in AMS window",
+      "test": "March 2026 salary includes $52,000 payout"
+    },
+    {
+      "id": "RM-005",
+      "description": "AMS uses 36-month window for Tier 1",
+      "expected": 36
+    },
+    {
+      "id": "RM-006",
+      "description": "Benefit multiplier is 2.0% for Tier 1",
+      "expected": 0.02
+    },
+    {
+      "id": "RM-007",
+      "description": "No early retirement reduction (Rule of 75 met)",
+      "expected_reduction": 0
+    },
+    {
+      "id": "RM-008",
+      "description": "J&S factors use standardized placeholder table",
+      "factors": {
+        "100_js": 0.8850,
+        "75_js": 0.9150,
+        "50_js": 0.9450
+      }
+    },
+    {
+      "id": "RM-009",
+      "description": "Application within 30-day deadline",
+      "test": "application_received 2026-03-10 is before last_day_worked 2026-03-31"
+    },
+    {
+      "id": "RM-010",
+      "description": "Application notarized",
+      "test": "notarized = true"
+    },
+    {
+      "id": "RM-011",
+      "description": "Complete package before 15th cutoff",
+      "test": "complete_package_received 2026-03-10 < 2026-03-15"
+    },
+    {
+      "id": "RM-012",
+      "description": "Lump-sum death benefit is $5,000 for Rule of 75 retirement",
+      "expected": 5000.00
+    }
+  ]
+}

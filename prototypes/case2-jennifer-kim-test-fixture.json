@@ -1,0 +1,296 @@
+{
+  "case_id": "case2-jennifer-kim",
+  "case_name": "Jennifer Kim — Tier 2, Purchased Service, Early Retirement",
+  "description": "Tier 2 member with purchased service that does NOT count for Rule of 75, resulting in 30% early retirement reduction (3% per year for Tiers 1/2)",
+  
+  "inputs": {
+    "member": {
+      "member_id": "M-100002",
+      "first_name": "Jennifer",
+      "last_name": "Kim",
+      "date_of_birth": "1970-06-22",
+      "hire_date": "2008-03-01",
+      "termination_date": null,
+      "status": "A",
+      "tier": 2,
+      "department": "Finance",
+      "position": "Budget Analyst III"
+    },
+    "retirement_request": {
+      "retirement_date": "2026-05-01",
+      "last_day_worked": "2026-04-30",
+      "leave_payout_amount": 0,
+      "leave_payout_type": null
+    },
+    "application_timeline": {
+      "notification_of_intent": "2026-03-16",
+      "application_received": "2026-04-08",
+      "notarized": true,
+      "complete_package_received": "2026-04-08",
+      "processing_cutoff": "2026-04-15",
+      "package_before_cutoff": true,
+      "first_payment_date": "2026-05-01"
+    },
+    "beneficiary": {
+      "name": "Estate",
+      "relationship": "estate",
+      "date_of_birth": null,
+      "allocation_percentage": 100
+    },
+    "payment_option_election": "maximum",
+    "service_credit": {
+      "employment_years": 18.17,
+      "purchased_years": 3.00,
+      "military_years": 0,
+      "total_for_benefit": 21.17,
+      "total_for_rule_of_75": 18.17,
+      "purchased_service_exclusion_note": "Purchased service counts for benefit calculation but NOT for Rule of 75 or IPR"
+    },
+    "dro": null
+  },
+  
+  "expected_outputs": {
+    "timing_validation": {
+      "application_deadline": {
+        "rule": "RULE-APPLICATION-DEADLINE",
+        "last_day_worked": "2026-04-30",
+        "application_received": "2026-04-08",
+        "days_before_last_day": 22,
+        "max_days_after": 30,
+        "passes": true
+      },
+      "notarization": {
+        "rule": "RULE-NOTARIZATION-REQUIRED",
+        "notarized": true,
+        "passes": true
+      },
+      "payment_cutoff": {
+        "rule": "RULE-PAYMENT-PROCESSING-CUTOFF",
+        "complete_package_date": "2026-04-08",
+        "cutoff_date": "2026-04-15",
+        "before_cutoff": true,
+        "first_payment": "2026-05-01",
+        "combined_payment": false,
+        "passes": true
+      }
+    },
+    "eligibility": {
+      "tier": 2,
+      "age_at_retirement": 55.00,
+      "total_service_years": 21.17,
+      "earned_service_years": 18.17,
+      "purchased_service_years": 3.00,
+      "vested": true,
+      "rule_of_75_sum": 73.17,
+      "rule_of_75_sum_note": "Uses EARNED service only: 55 + 18.17 = 73.17",
+      "rule_of_75_qualifies": false,
+      "early_retirement_reduction_rate": 0.03,
+      "early_retirement_reduction_rate_note": "3% per year for Tiers 1 and 2 (verified: DERP Handbook p.17, website, FAQ)",
+      "early_retirement_reduction_percent": 30,
+      "years_under_65": 10,
+      "reduction_method_note": "Uses completed years under 65, not monthly proration"
+    },
+    "leave_payout": {
+      "eligible": true,
+      "amount": 0,
+      "note": "Eligible by hire date (before 2010) but no leave payout claimed in this scenario"
+    },
+    "ams_calculation": {
+      "window_months": 36,
+      "window_start": "2023-05-01",
+      "window_end": "2026-04-30",
+      "total_compensation": 264514.32,
+      "ams": 7347.62
+    },
+    "benefit_calculation": {
+      "ams": 7347.62,
+      "multiplier": 0.015,
+      "service_years": 21.17,
+      "service_years_note": "Uses TOTAL service (earned + purchased) for benefit formula",
+      "formula": "AMS × multiplier × service = 7347.62 × 0.015 × 21.17",
+      "unreduced_monthly_benefit": 2332.96,
+      "reduction_rate_per_year": 0.03,
+      "reduction_percent": 30,
+      "reduction_factor": 0.70,
+      "reduced_monthly_benefit": 1633.07
+    },
+    "payment_options": {
+      "_note": "ILLUSTRATIVE — ACTUAL FACTORS FROM DERP ACTUARIAL TABLES",
+      "maximum": 1633.07,
+      "joint_survivor_100": null,
+      "joint_survivor_75": null,
+      "joint_survivor_50": null,
+      "options_note": "J&S options not applicable — member is unmarried with estate as beneficiary"
+    },
+    "elected_benefit": {
+      "option": "maximum",
+      "monthly_benefit": 1633.07,
+      "survivor_benefit": 0
+    },
+    "ipr": {
+      "service_years_for_ipr": 18.17,
+      "service_years_note": "Uses EARNED service only — purchased excluded",
+      "pre_medicare_rate": 12.50,
+      "post_medicare_rate": 6.25,
+      "pre_medicare_monthly": 227.13,
+      "post_medicare_monthly": 113.56
+    },
+    "death_benefit": {
+      "retirement_type": "early",
+      "tier": 2,
+      "base_amount": 5000.00,
+      "reduction_per_year": 250,
+      "years_under_65": 10,
+      "total_reduction": 2500.00,
+      "lump_sum_amount": 2500.00,
+      "installment_options": {
+        "50_installments": 50.00,
+        "100_installments": 25.00
+      },
+      "election_note": "Irrevocable — member chooses installment count and beneficiary at retirement"
+    }
+  },
+  
+  "scenario_comparison": {
+    "wait_1_year_rule_of_75": {
+      "retirement_date": "2027-05-01",
+      "age": 56,
+      "earned_service": 19.17,
+      "purchased_service": 3.00,
+      "total_service": 22.17,
+      "rule_of_75_sum": 75.17,
+      "rule_of_75_qualifies": true,
+      "reduction_percent": 0,
+      "estimated_ams": 7570.00,
+      "estimated_benefit": 2518.00,
+      "comparison_to_early": {
+        "early_benefit": 1633.07,
+        "deferred_benefit": 2518.00,
+        "monthly_difference": 884.93,
+        "percent_increase": 54,
+        "breakeven_months": 22,
+        "note": "Waiting 1 year increases monthly benefit by 54% — Rule of 75 threshold proximity"
+      }
+    },
+    "wait_2_years": {
+      "retirement_date": "2028-05-01",
+      "age": 57,
+      "earned_service": 20.17,
+      "purchased_service": 3.00,
+      "total_service": 23.17,
+      "rule_of_75_sum": 77.17,
+      "rule_of_75_qualifies": true,
+      "reduction_percent": 0,
+      "estimated_ams": 7800.00,
+      "estimated_benefit": 2711.00,
+      "note": "Additional year beyond threshold adds service credit and salary growth"
+    }
+  },
+  
+  "purchased_service_demonstration": {
+    "critical_rule": "Purchased service counts for benefit calculation but NOT for Rule of 75 or IPR",
+    "if_purchased_counted_for_rule_75": {
+      "sum": 76.17,
+      "would_qualify": true,
+      "reduction_would_be": 0
+    },
+    "actual_rule_75_calculation": {
+      "sum": 73.17,
+      "qualifies": false,
+      "reduction": 30
+    },
+    "benefit_impact": {
+      "without_purchased": "7347.62 × 0.015 × 18.17 × 0.70 = $1,399.78",
+      "with_purchased": "7347.62 × 0.015 × 21.17 × 0.70 = $1,633.07",
+      "difference": 233.29,
+      "note": "Purchased service increases benefit by $233.29/month even though it doesn't help meet Rule of 75"
+    }
+  },
+  
+  "rounding_strategy": {
+    "description": "Calculation rounding rules per BUILD_HISTORY Session 5, Decision 21",
+    "intermediate_calculations": "Full precision (no rounding)",
+    "ams": "Full precision",
+    "js_factors": "4 decimal places",
+    "final_monthly_benefit": "Round to cents (2 decimal places) as last step",
+    "method": "Banker's rounding (round half to even)"
+  },
+  
+  "test_points": [
+    {
+      "id": "JK-001",
+      "description": "Tier correctly identified as 2 from hire date",
+      "test": "2004-09-01 <= hire_date < 2011-07-01"
+    },
+    {
+      "id": "JK-002",
+      "description": "Purchased service excluded from Rule of 75",
+      "calculation": "55 + 18.17 = 73.17 (NOT 55 + 21.17 = 76.17)"
+    },
+    {
+      "id": "JK-003",
+      "description": "Purchased service included in benefit formula",
+      "test": "service_years = 21.17 (not 18.17)"
+    },
+    {
+      "id": "JK-004",
+      "description": "Early retirement reduction uses 3% rate for Tier 2",
+      "calculation": "65 - 55 = 10 years × 3% = 30% (NOT 6% = 60%)"
+    },
+    {
+      "id": "JK-005",
+      "description": "IPR uses earned service only",
+      "test": "ipr_service = 18.17 (not 21.17)"
+    },
+    {
+      "id": "JK-006",
+      "description": "Leave payout eligible by hire date",
+      "test": "hire_date 2008-03-01 < 2010-01-01"
+    },
+    {
+      "id": "JK-007",
+      "description": "AMS uses 36-month window for Tier 2",
+      "expected": 36
+    },
+    {
+      "id": "JK-008",
+      "description": "Benefit multiplier is 1.5% for Tier 2",
+      "expected": 0.015
+    },
+    {
+      "id": "JK-009",
+      "description": "Application within 30-day deadline",
+      "test": "application_received 2026-04-08 is before last_day_worked 2026-04-30"
+    },
+    {
+      "id": "JK-010",
+      "description": "Application notarized",
+      "test": "notarized = true"
+    },
+    {
+      "id": "JK-011",
+      "description": "Complete package before 15th cutoff",
+      "test": "complete_package_received 2026-04-08 < 2026-04-15"
+    },
+    {
+      "id": "JK-012",
+      "description": "Lump-sum death benefit correctly calculated for early Tier 2",
+      "calculation": "$5,000 - ($250 × 10) = $2,500"
+    }
+  ],
+  
+  "change_history": [
+    {
+      "date": "2026-02-21",
+      "changes": [
+        "Corrected early retirement reduction from 6%/yr (60%) to 3%/yr (30%) per CRITICAL-001",
+        "Updated reduced_monthly_benefit from $933.18 to $1,633.07",
+        "Added application_timeline inputs and timing_validation outputs",
+        "Added death_benefit section",
+        "Revised scenario_comparison with 1-year wait option",
+        "Updated purchased_service_demonstration with corrected factor",
+        "Added test points JK-009 through JK-012"
+      ]
+    }
+  ]
+}
