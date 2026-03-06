@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-06 | Status: Session 7 Complete_
+_Updated: 2026-03-06 | Status: Session 8 Complete_
 
 ---
 
 ## Current State
 
-Two live targets running: ERPNext (MariaDB, port 3307) and PostgreSQL HR (port 5433). Both seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against both MySQL and PostgreSQL with identical detection results. Dashboard now has embedded HTML UI. Tagger expanded to 12 concepts. MSSQL adapter ready for future Neospin. 72 unit tests passing.
+Three live targets running: ERPNext (MariaDB, port 3307), PostgreSQL HR (port 5433), and MSSQL HR (Azure SQL Edge, port 1434). All seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against all 3 databases with identical detection results (8 checks, 5 baselines). Dashboard supports workspace embedding via iframe with postMessage API. Tagger expanded to 12 concepts, all validated against live ERPNext (39 tables tagged). 78 unit tests passing.
 
 ## Session 1 Summary (Complete)
 
@@ -290,16 +290,105 @@ go run ./dashboard/ \
 - [x] BUILD_HISTORY.md updated
 - [x] All changes committed
 
+## Session 8 Summary (Complete)
+
+**Goal:** MSSQL live target, tagger validation, timeliness checks, workspace embedding
+
+### Deliverables
+
+1. **MSSQL live target** (`targets/mssql-hr/`)
+   - Azure SQL Edge Docker container on port 1434 (ARM64-compatible)
+   - Seed script with 32,158 records (same schema, data, DQ issues as MySQL/PG)
+   - Full E2E pipeline validated: 12 tables introspected, 8 tagged, 8 checks, 5 baselines
+   - Three-database parity confirmed: identical results across MySQL, PostgreSQL, MSSQL
+   - Fixed go-mssqldb driver name mapping (mssql → sqlserver for URL-style DSNs)
+
+2. **Expanded tagger live validation**
+   - Ran 12-concept tagger against live ERPNext (876 tables)
+   - 39 tables tagged across all 12 concepts
+   - All 5 new concepts (training, expense, performance, shift, loan) successfully detecting ERPNext tables
+
+3. **Timeliness checks** (`connector/monitor/checks.go`)
+   - 2 new checks: stale_payroll (months behind), stale_attendance (days stale)
+   - New adapter methods: QueryLatestSalarySlipDate, QueryLatestAttendanceDate
+   - Implemented in all 3 adapters (MySQL, PostgreSQL, MSSQL)
+   - Total checks: 8 (up from 6)
+   - 2 new monitor tests (34 total)
+
+4. **Dashboard workspace embedding** (`connector/dashboard/`)
+   - `?embed=true` mode: hides header, compact layout for iframe embedding
+   - postMessage API: parent can send refresh/setFilter commands, dashboard notifies on refresh
+   - `/api/v1/embed/config` endpoint: returns capabilities, feature flags, endpoint map
+   - Fixed category filter: accuracy → timeliness
+   - 2 new tests (22 total dashboard tests)
+
+### Session 8 Exit Criteria
+- [x] MSSQL target running, seeded, and validated E2E
+- [x] Three-database parity confirmed (all 8 checks, 5 baselines identical)
+- [x] Expanded tagger validated against live ERPNext (39 tables, 12 concepts)
+- [x] 2 timeliness checks added to monitoring engine
+- [x] Dashboard workspace embedding implemented (embed mode, postMessage, config endpoint)
+- [x] All unit tests passing (dashboard: 22, introspect: 4, tagger: 16, monitor: 34 = 78 total)
+- [x] BUILD_HISTORY.md updated
+- [x] SESSION_BRIEF.md updated
+
+## MSSQL Target Environment
+
+| Item | Value |
+|------|-------|
+| MSSQL host | localhost:1434 |
+| MSSQL DB | hrlab |
+| MSSQL user | sa / NoUI_Lab2026! |
+| Image | Azure SQL Edge (ARM64) |
+| Tables | 12 (ERPNext-compatible naming) |
+
+## Full Pipeline Commands (MSSQL)
+
+```bash
+# 1. Start MSSQL
+docker compose -f targets/mssql-hr/docker-compose.yml up -d
+
+# 2. Seed data
+cd targets/mssql-hr/seed && pip install -r requirements.txt && python seed.py
+
+# 3. Introspect schema
+cd connector && go run ./introspect/ \
+  --driver mssql \
+  --dsn "sqlserver://sa:NoUI_Lab2026!@127.0.0.1:1434?database=hrlab&encrypt=disable" \
+  --db dbo \
+  --output ../targets/mssql-hr/schema-manifest/manifest.json
+
+# 4. Tag concepts
+go run ./tagger/ \
+  --input ../targets/mssql-hr/schema-manifest/manifest.json \
+  --output ../targets/mssql-hr/schema-manifest/manifest-tagged.json \
+  --report ../targets/mssql-hr/schema-manifest/tags-report.json
+
+# 5. Run monitoring checks
+go run ./monitor/ \
+  --driver mssql \
+  --dsn "sqlserver://sa:NoUI_Lab2026!@127.0.0.1:1434?database=hrlab&encrypt=disable" \
+  --output ../targets/mssql-hr/schema-manifest/monitor-report.json
+
+# 6. Start dashboard (with embedding)
+go run ./dashboard/ \
+  --report-file ../targets/mssql-hr/schema-manifest/monitor-report.json \
+  --port 8092
+# Access: http://localhost:8092/?embed=true
+```
+
 ## What's Built So Far
 
 | Component | Location | Status | Tests |
 |-----------|----------|--------|-------|
 | Shared types library | `connector/schema/` | Complete | — |
-| Schema introspect (MySQL + PostgreSQL + **MSSQL**) | `connector/introspect/` | Complete | 4 |
-| Concept tagger (**12 concepts**) | `connector/tagger/` | Complete | 16 |
-| Monitor engine (6 checks + scheduler + PG + **MSSQL** adapter) | `connector/monitor/` | Complete | 32 |
-| Dashboard API (7 endpoints + **HTML UI**) | `connector/dashboard/` | Complete | 20 |
+| Schema introspect (MySQL + PostgreSQL + MSSQL) | `connector/introspect/` | Complete | 4 |
+| Concept tagger (12 concepts) | `connector/tagger/` | Complete | 16 |
+| Monitor engine (8 checks + scheduler + 3 adapters) | `connector/monitor/` | Complete | 34 |
+| Dashboard API (8 endpoints + HTML UI + embed) | `connector/dashboard/` | Complete | 22 |
 | ERPNext seed (200 employees, 3yr) | `targets/erpnext/seed/seed.py` | Complete | — |
 | ERPNext Docker stack | `targets/erpnext/docker-compose.yml` | Running | — |
 | PostgreSQL HR seed (200 employees, 3yr) | `targets/postgres-hr/seed/seed.py` | Complete | — |
 | PostgreSQL Docker stack | `targets/postgres-hr/docker-compose.yml` | Running | — |
+| MSSQL HR seed (200 employees, 3yr) | `targets/mssql-hr/seed/seed.py` | Complete | — |
+| MSSQL Docker stack | `targets/mssql-hr/docker-compose.yml` | Running | — |

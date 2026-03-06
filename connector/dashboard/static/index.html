@@ -62,6 +62,13 @@
 
     .empty { text-align: center; padding: 2rem; color: var(--text-muted); }
 
+    body.embed-mode .container { padding: 0.75rem; }
+    body.embed-mode header { display: none; }
+    body.embed-mode .cards { gap: 0.5rem; margin-bottom: 1rem; }
+    body.embed-mode .card { padding: 0.75rem; }
+    body.embed-mode .card .count { font-size: 1.5rem; }
+    body.embed-mode section { padding: 1rem; margin-bottom: 1rem; }
+
     @media (max-width: 768px) {
       .cards { grid-template-columns: repeat(2, 1fr); }
       .check-msg { display: none; }
@@ -104,7 +111,7 @@
           <option value="completeness">Completeness</option>
           <option value="validity">Validity</option>
           <option value="consistency">Consistency</option>
-          <option value="accuracy">Accuracy</option>
+          <option value="timeliness">Timeliness</option>
         </select>
       </div>
       <div id="checks-list"></div>
@@ -235,6 +242,43 @@
 
     document.getElementById('status-filter').addEventListener('change', applyFilters);
     document.getElementById('category-filter').addEventListener('change', applyFilters);
+
+    // --- Embed mode support ---
+    var params = new URLSearchParams(window.location.search);
+    var isEmbedded = params.get('embed') === 'true';
+
+    if (isEmbedded) {
+      document.body.classList.add('embed-mode');
+    }
+
+    function notifyParent(type, data) {
+      if (window.parent !== window) {
+        window.parent.postMessage({ source: 'noui-dashboard', type: type, data: data }, '*');
+      }
+    }
+
+    window.addEventListener('message', function(event) {
+      if (!event.data || event.data.target !== 'noui-dashboard') return;
+      var cmd = event.data;
+      if (cmd.action === 'refresh') {
+        refresh();
+      } else if (cmd.action === 'setFilter') {
+        if (cmd.status !== undefined) {
+          document.getElementById('status-filter').value = cmd.status;
+        }
+        if (cmd.category !== undefined) {
+          document.getElementById('category-filter').value = cmd.category;
+        }
+        applyFilters();
+      }
+    });
+
+    // Enhanced refresh to notify parent after loading data.
+    var _origRefresh = refresh;
+    refresh = async function() {
+      await _origRefresh();
+      notifyParent('refreshed', { timestamp: new Date().toISOString() });
+    };
 
     refresh();
     setInterval(refresh, REFRESH_INTERVAL);
