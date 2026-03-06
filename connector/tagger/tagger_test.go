@@ -187,6 +187,99 @@ func TestBenefitDeductionTag(t *testing.T) {
 	}
 }
 
+func TestTrainingRecordTag(t *testing.T) {
+	table := makeTable("Employee Training Events", []schema.ColumnInfo{
+		pk("id"),
+		col("employee", "varchar"),
+		col("training_date", "date"),
+		col("event_name", "varchar"),
+		col("trainer", "varchar"),
+		col("result", "varchar"),
+		col("hours", "decimal"),
+	}, nil)
+
+	concepts := DefaultConcepts()
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
+
+	if !hasTag(tags, ConceptTrainingRecord) {
+		t.Errorf("expected training-record tag, got tags=%v scores=%v", tags, scores)
+	}
+}
+
+func TestExpenseClaimTag(t *testing.T) {
+	table := makeTable("Staff Expense Claims", []schema.ColumnInfo{
+		pk("id"),
+		col("employee", "varchar"),
+		col("expense_date", "date"),
+		col("claim_amount", "decimal"),
+		col("sanctioned_amount", "decimal"),
+		col("expense_type", "varchar"),
+		col("approval_status", "varchar"),
+	}, nil)
+
+	concepts := DefaultConcepts()
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
+
+	if !hasTag(tags, ConceptExpenseClaim) {
+		t.Errorf("expected expense-claim tag, got tags=%v scores=%v", tags, scores)
+	}
+}
+
+func TestPerformanceReviewTag(t *testing.T) {
+	table := makeTable("Staff Appraisal Record", []schema.ColumnInfo{
+		pk("id"),
+		col("employee", "varchar"),
+		col("score", "decimal"),
+		col("rating", "varchar"),
+		col("goal", "varchar"),
+		col("appraisal_cycle", "varchar"),
+	}, nil)
+
+	concepts := DefaultConcepts()
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
+
+	if !hasTag(tags, ConceptPerformanceReview) {
+		t.Errorf("expected performance-review tag, got tags=%v scores=%v", tags, scores)
+	}
+}
+
+func TestShiftScheduleTag(t *testing.T) {
+	table := makeTable("Shift Assignment Record", []schema.ColumnInfo{
+		pk("id"),
+		col("employee", "varchar"),
+		col("shift_type", "varchar"),
+		col("start_date", "date"),
+		col("end_date", "date"),
+		col("status", "varchar"),
+	}, nil)
+
+	concepts := DefaultConcepts()
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
+
+	if !hasTag(tags, ConceptShiftSchedule) {
+		t.Errorf("expected shift-schedule tag, got tags=%v scores=%v", tags, scores)
+	}
+}
+
+func TestLoanAdvanceTag(t *testing.T) {
+	table := makeTable("Employee Loan Record", []schema.ColumnInfo{
+		pk("id"),
+		col("employee", "varchar"),
+		col("loan_amount", "decimal"),
+		col("repayment_amount", "decimal"),
+		col("disbursement_date", "date"),
+		col("rate_of_interest", "decimal"),
+		col("status", "varchar"),
+	}, nil)
+
+	concepts := DefaultConcepts()
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
+
+	if !hasTag(tags, ConceptLoanAdvance) {
+		t.Errorf("expected loan-advance tag, got tags=%v scores=%v", tags, scores)
+	}
+}
+
 func TestNoTagForGenericTable(t *testing.T) {
 	table := makeTable("System Settings", []schema.ColumnInfo{
 		pk("name"),
@@ -246,6 +339,11 @@ func TestMinimalFixture(t *testing.T) {
 		"payroll_batch_runs":     ConceptPayrollRun,
 		"leave_entitlements":     ConceptLeaveBalance,
 		"daily_attendance":       ConceptAttendance,
+		"training_events":        ConceptTrainingRecord,
+		"expense_claims":         ConceptExpenseClaim,
+		"staff_appraisals":       ConceptPerformanceReview,
+		"shift_assignments":      ConceptShiftSchedule,
+		"employee_loans":         ConceptLoanAdvance,
 	}
 
 	for tableName, expectedTag := range expectedTags {
@@ -283,11 +381,11 @@ func TestMinimalFixture(t *testing.T) {
 	}
 
 	// Summary checks
-	if report.Summary.TotalTables != 6 {
-		t.Errorf("expected 6 total tables, got %d", report.Summary.TotalTables)
+	if report.Summary.TotalTables != 11 {
+		t.Errorf("expected 11 total tables, got %d", report.Summary.TotalTables)
 	}
-	if report.Summary.TaggedTables < 4 {
-		t.Errorf("expected at least 4 tagged tables, got %d", report.Summary.TaggedTables)
+	if report.Summary.TaggedTables < 9 {
+		t.Errorf("expected at least 9 tagged tables, got %d", report.Summary.TaggedTables)
 	}
 
 	t.Logf("Summary: %d/%d tables tagged", report.Summary.TaggedTables, report.Summary.TotalTables)

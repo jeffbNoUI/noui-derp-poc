@@ -20,6 +20,8 @@ func NewAdapter(driver string) SchemaAdapter {
 	switch driver {
 	case "postgres":
 		return &PostgresAdapter{}
+	case "mssql":
+		return &MSSQLAdapter{}
 	default:
 		return &MySQLAdapter{}
 	}

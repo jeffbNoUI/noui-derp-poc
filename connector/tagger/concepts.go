@@ -6,7 +6,7 @@ import (
 	"github.com/noui/connector-lab/schema"
 )
 
-// DefaultConcepts returns the 7 core concept definitions with their signal configurations.
+// DefaultConcepts returns the 12 concept definitions with their signal configurations.
 func DefaultConcepts() []ConceptDef {
 	return []ConceptDef{
 		employeeMasterConcept(),
@@ -16,6 +16,11 @@ func DefaultConcepts() []ConceptDef {
 		employmentTimelineConcept(),
 		attendanceConcept(),
 		benefitDeductionConcept(),
+		trainingRecordConcept(),
+		expenseClaimConcept(),
+		performanceReviewConcept(),
+		shiftScheduleConcept(),
+		loanAdvanceConcept(),
 	}
 }
 
@@ -479,6 +484,317 @@ func benefitDeductionConcept() ConceptDef {
 						return true, fmt.Sprintf("%.0f%% of columns are decimal/numeric", ratio*100)
 					}
 					return false, ""
+				},
+			},
+		},
+	}
+}
+
+func trainingRecordConcept() ConceptDef {
+	return ConceptDef{
+		Tag:       ConceptTrainingRecord,
+		Threshold: 3.0,
+		Signals: []SignalDef{
+			{
+				Name:        "table_name:training",
+				Description: "Table name contains training/certification/skill terms",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return tableNameContains(t, []string{
+						"training", "certification", "skill_map", "skill map",
+					})
+				},
+			},
+			{
+				Name:        "columns:training_detail",
+				Description: "Has training-specific columns (trainer, event, course)",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					matches := columnsMatching(t, []string{
+						"trainer", "training_date", "course", "event_name",
+						"certification", "skill", "proficiency",
+					})
+					if len(matches) >= 2 {
+						return true, fmt.Sprintf("training columns: %v", matches)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "columns:completion_status",
+				Description: "Has completion/result columns",
+				Weight:      1.0,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return hasColumnMatching(t, []string{
+						"result", "grade", "completed", "hours",
+					})
+				},
+			},
+			{
+				Name:        "link:employee",
+				Description: "Has link to employee-like entity",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					if found, ev := fkReferencesTableLike(t, []string{"employee"}); found {
+						return true, ev
+					}
+					return hasColumnLinkToTableLike(t, []string{"employee"})
+				},
+			},
+		},
+	}
+}
+
+func expenseClaimConcept() ConceptDef {
+	return ConceptDef{
+		Tag:       ConceptExpenseClaim,
+		Threshold: 3.0,
+		Signals: []SignalDef{
+			{
+				Name:        "table_name:expense",
+				Description: "Table name contains expense/reimbursement/claim terms",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return tableNameContains(t, []string{
+						"expense", "reimbursement",
+					})
+				},
+			},
+			{
+				Name:        "columns:expense_detail",
+				Description: "Has expense-specific columns (claim_amount, sanctioned, expense_type)",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					matches := columnsMatching(t, []string{
+						"claim_amount", "sanctioned_amount", "expense_type",
+						"total_claimed_amount", "total_sanctioned_amount",
+						"expense_date",
+					})
+					if len(matches) >= 2 {
+						return true, fmt.Sprintf("expense columns: %v", matches)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "columns:approval",
+				Description: "Has approval workflow columns",
+				Weight:      1.0,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return hasColumnMatching(t, []string{
+						"approval_status", "approver", "sanctioned",
+					})
+				},
+			},
+			{
+				Name:        "type_ratio:decimal",
+				Description: "High ratio of decimal columns (monetary claims)",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					ratio := decimalColumnRatio(t)
+					if ratio > 0.15 {
+						return true, fmt.Sprintf("%.0f%% of columns are decimal/numeric", ratio*100)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "link:employee",
+				Description: "Has link to employee-like entity",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					if found, ev := fkReferencesTableLike(t, []string{"employee"}); found {
+						return true, ev
+					}
+					return hasColumnLinkToTableLike(t, []string{"employee"})
+				},
+			},
+		},
+	}
+}
+
+func performanceReviewConcept() ConceptDef {
+	return ConceptDef{
+		Tag:       ConceptPerformanceReview,
+		Threshold: 2.5,
+		Signals: []SignalDef{
+			{
+				Name:        "table_name:performance",
+				Description: "Table name contains appraisal/performance/review/kpi terms",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return tableNameContains(t, []string{
+						"appraisal", "performance", "review", "kpi",
+					})
+				},
+			},
+			{
+				Name:        "columns:appraisal_detail",
+				Description: "Has appraisal-specific columns (score, rating, goal)",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					matches := columnsMatching(t, []string{
+						"score", "rating", "goal", "kpi", "target",
+						"appraisal_template", "self_score", "avg_score",
+					})
+					if len(matches) >= 2 {
+						return true, fmt.Sprintf("appraisal columns: %v", matches)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "columns:review_period",
+				Description: "Has review period or cycle columns",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return hasColumnMatching(t, []string{
+						"appraisal_cycle", "review_date", "cycle",
+					})
+				},
+			},
+			{
+				Name:        "link:employee",
+				Description: "Has link to employee-like entity",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					if found, ev := fkReferencesTableLike(t, []string{"employee"}); found {
+						return true, ev
+					}
+					return hasColumnLinkToTableLike(t, []string{"employee"})
+				},
+			},
+		},
+	}
+}
+
+func shiftScheduleConcept() ConceptDef {
+	return ConceptDef{
+		Tag:       ConceptShiftSchedule,
+		Threshold: 3.0,
+		Signals: []SignalDef{
+			{
+				Name:        "table_name:shift",
+				Description: "Table name contains shift/roster/schedule terms",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return tableNameContains(t, []string{
+						"shift", "roster",
+					})
+				},
+			},
+			{
+				Name:        "columns:shift_detail",
+				Description: "Has shift-specific columns (shift_type, start_time, end_time)",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					matches := columnsMatching(t, []string{
+						"shift_type", "start_time", "end_time",
+						"shift_request", "start_datetime", "end_datetime",
+					})
+					if len(matches) >= 2 {
+						return true, fmt.Sprintf("shift columns: %v", matches)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "pattern:date_range",
+				Description: "Has date range columns (shift period)",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return hasDateRangePattern(t)
+				},
+			},
+			{
+				Name:        "columns:assignment_status",
+				Description: "Has status column in shift context",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					hasName, _ := tableNameContains(t, []string{"shift"})
+					hasStatus, _ := hasStatusColumn(t)
+					if hasName && hasStatus {
+						return true, "status column in shift-named table"
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "link:employee",
+				Description: "Has link to employee-like entity",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					if found, ev := fkReferencesTableLike(t, []string{"employee"}); found {
+						return true, ev
+					}
+					return hasColumnLinkToTableLike(t, []string{"employee"})
+				},
+			},
+		},
+	}
+}
+
+func loanAdvanceConcept() ConceptDef {
+	return ConceptDef{
+		Tag:       ConceptLoanAdvance,
+		Threshold: 3.0,
+		Signals: []SignalDef{
+			{
+				Name:        "table_name:loan_advance",
+				Description: "Table name contains loan/advance terms",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return tableNameContains(t, []string{"loan", "advance"})
+				},
+			},
+			{
+				Name:        "columns:loan_detail",
+				Description: "Has loan-specific columns (loan_amount, repayment, disbursement)",
+				Weight:      1.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					matches := columnsMatching(t, []string{
+						"loan_amount", "repayment_amount", "disbursement_date",
+						"total_amount_paid", "disbursed_amount", "repayment_method",
+						"advance_amount", "paid_amount", "return_amount",
+					})
+					if len(matches) >= 2 {
+						return true, fmt.Sprintf("loan columns: %v", matches)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "columns:interest_tenure",
+				Description: "Has interest rate or tenure columns",
+				Weight:      1.0,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					return hasColumnMatching(t, []string{
+						"rate_of_interest", "repayment_periods", "tenure",
+						"monthly_repayment_amount",
+					})
+				},
+			},
+			{
+				Name:        "type_ratio:decimal",
+				Description: "High ratio of decimal columns (financial data)",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					ratio := decimalColumnRatio(t)
+					if ratio > 0.20 {
+						return true, fmt.Sprintf("%.0f%% of columns are decimal/numeric", ratio*100)
+					}
+					return false, ""
+				},
+			},
+			{
+				Name:        "link:employee",
+				Description: "Has link to employee-like entity",
+				Weight:      0.5,
+				Detect: func(t schema.TableInfo, _ []schema.TableInfo) (bool, string) {
+					if found, ev := fkReferencesTableLike(t, []string{"employee"}); found {
+						return true, ev
+					}
+					return hasColumnLinkToTableLike(t, []string{"employee"})
 				},
 			},
 		},

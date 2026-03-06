@@ -16,6 +16,13 @@ func TestNewMonitorAdapterPostgres(t *testing.T) {
 	}
 }
 
+func TestNewMonitorAdapterMSSQL(t *testing.T) {
+	adapter := NewMonitorAdapter("mssql")
+	if _, ok := adapter.(*MSSQLMonitorAdapter); !ok {
+		t.Errorf("expected *MSSQLMonitorAdapter, got %T", adapter)
+	}
+}
+
 func TestNewMonitorAdapterDefault(t *testing.T) {
 	adapter := NewMonitorAdapter("unknown")
 	if _, ok := adapter.(*MySQLMonitorAdapter); !ok {

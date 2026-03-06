@@ -2,8 +2,10 @@ package main
 
 import (
 	"context"
+	"embed"
 	"encoding/json"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +15,9 @@ import (
 
 	"github.com/noui/connector-lab/schema"
 )
+
+//go:embed static
+var staticFS embed.FS
 
 // Server is the monitoring dashboard HTTP server.
 type Server struct {
@@ -70,6 +75,10 @@ func (s *Server) LoadReport() error {
 // Handler returns the root http.Handler with all routes registered.
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+
+	// Serve embedded static dashboard UI at root.
+	staticContent, _ := fs.Sub(staticFS, "static")
+	mux.Handle("/", http.FileServer(http.FS(staticContent)))
 
 	mux.HandleFunc("/api/v1/health", s.handleHealth)
 	mux.HandleFunc("/api/v1/monitor/report", s.handleReport)

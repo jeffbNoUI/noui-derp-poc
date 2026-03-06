@@ -278,9 +278,126 @@ go run ./introspect/ \
 
 ---
 
-## Pending (Session 6)
+## PostgreSQL Live Validation
 
-- [ ] Integrate monitoring dashboard with NoUI workspace UI
-- [ ] Expand concept tagger with additional HR concepts
-- [ ] Test PostgreSQL adapter against a live PostgreSQL target
-- [ ] Validate monitor PostgreSQL adapter against a live PostgreSQL target
+**Date:** 2026-03-06
+**Session:** Session 6
+**Decision:** Added `targets/postgres-hr/` — standalone PostgreSQL target with ERPNext-compatible HR schema for adapter validation
+**Rationale:** Both introspect and monitor PostgreSQL adapters were built in Sessions 4-5 but never tested against a live PostgreSQL database. To prove the adapter pattern works end-to-end, created a PostgreSQL 15 target with identical table structures (same `tab`-prefixed naming), seeded with the same 32,158 records and 6 categories of DQ issues (same random seed=42 for reproducibility).
+**Status:** Complete — full pipeline validated against live PostgreSQL
+
+**New files:**
+- `targets/postgres-hr/docker-compose.yml` — PostgreSQL 15-alpine on port 5433
+- `targets/postgres-hr/seed/seed.py` — Creates schema DDL + seeds matching data
+- `targets/postgres-hr/seed/requirements.txt` — psycopg2-binary
+
+**E2E Results (PostgreSQL):**
+| Step | Tool | Result |
+|------|------|--------|
+| Introspect | `go run ./introspect/ --driver postgres` | 12 tables discovered |
+| Tag | `go run ./tagger/` | 8 tables tagged, 6 concepts |
+| Monitor | `go run ./monitor/ --driver postgres` | 5 baselines, 6 checks (all FAIL — detecting seeded DQ) |
+| Dashboard | `go run ./dashboard/ --port 8091` | Health + summary + checks APIs verified |
+
+**MySQL vs PostgreSQL Detection Parity:**
+| Check | ERPNext (MySQL) | PostgreSQL | Match |
+|-------|----------------|------------|-------|
+| salary_gap | 237 gaps | 237 gaps | YES |
+| negative_leave | 13 | 13 | YES |
+| missing_termination | 5 | 5 | YES |
+| missing_payroll | 3 months | 3 months | YES |
+| invalid_hire_date | 8 | 8 | YES |
+| contribution_imbalance | 89 slips | 89 slips | YES |
+
+**Baseline Parity (identical values):**
+| Metric | MySQL | PostgreSQL |
+|--------|-------|-----------|
+| monthly_employee_count | 177.75 | 177.75 |
+| monthly_gross_total | 1,235,222.43 | 1,235,222.43 |
+| monthly_avg_gross | 6,945.19 | 6,945.19 |
+| avg_leave_allocation | 12.21 | 12.21 |
+| monthly_payroll_runs | 1.00 | 1.00 |
+
+---
+
+## Embedded HTML Dashboard
+
+**Date:** 2026-03-06
+**Session:** Session 7
+**Decision:** Added embedded HTML dashboard served from the Go binary via `embed.FS`
+**Rationale:** The dashboard API had 7 JSON endpoints but no visual interface. The NoUI workspace needs a self-contained monitoring UI that ships with the binary — no separate frontend build required. Uses Go 1.16+ `embed` directive to serve `static/index.html` at the root path.
+**Status:** Complete — 2 new tests pass (20 total dashboard tests)
+
+**Features:**
+- Summary cards (total/pass/warn/fail counts)
+- Baseline metrics table
+- Filterable check results with expandable details
+- Run history table
+- Auto-refresh every 30 seconds
+- Responsive layout
+
+---
+
+## Expanded Concept Tagger (5 New Concepts)
+
+**Date:** 2026-03-06
+**Session:** Session 7
+**Decision:** Added 5 new HR concept definitions to the signal-based tagger
+**Rationale:** The original 7 concepts covered core HR/payroll (employee, salary, payroll, leave, timeline, attendance, benefits). Real ERP systems like ERPNext have additional HR domains worth identifying. Each new concept follows the same signal-based architecture with auditable weights and thresholds.
+**Status:** Complete — 5 new concept tests + updated fixture test, 16 total tagger tests pass
+
+**New concepts:**
+| Concept | Threshold | Key Signals |
+|---------|-----------|-------------|
+| training-record | 3.0 | Table name: training/certification/skill; columns: trainer, course, event_name; completion: result, grade, hours |
+| expense-claim | 3.0 | Table name: expense/reimbursement; columns: claim_amount, sanctioned_amount, expense_type; approval workflow |
+| performance-review | 2.5 | Table name: appraisal/performance/review; columns: score, rating, goal, kpi; review period |
+| shift-schedule | 3.0 | Table name: shift/roster; columns: shift_type, start_time, end_time; date range pattern |
+| loan-advance | 3.0 | Table name: loan/advance; columns: loan_amount, repayment_amount, disbursement_date; interest/tenure |
+
+**Total concepts:** 12 (7 original + 5 new)
+
+---
+
+## MSSQL Adapter (Introspect + Monitor)
+
+**Date:** 2026-03-06
+**Session:** Session 7
+**Decision:** Added Microsoft SQL Server adapter for both schema introspection and monitoring
+**Rationale:** Future Neospin support requires SQL Server. Following the proven adapter pattern from MySQL/PostgreSQL: interface + factory + per-driver implementation. No live MSSQL target yet — adapters are factory-tested and ready for E2E validation when a target is available.
+**Status:** Complete — 2 new factory tests pass, 72 total tests
+
+**New files:**
+- `connector/introspect/mssql.go` — `MSSQLAdapter` implementing `SchemaAdapter` (3 methods)
+- `connector/monitor/adapter_mssql.go` — `MSSQLMonitorAdapter` implementing `MonitorAdapter` (11 methods)
+
+**MSSQL-specific translations:**
+| MySQL | MSSQL |
+|-------|-------|
+| `` `tabName` `` | `[tabName]` |
+| `CURDATE()` | `CAST(GETDATE() AS DATE)` |
+| `YEAR(col)` | `YEAR(col)` (same) |
+| `MONTH(col)` | `MONTH(col)` (same) |
+
+**Introspect design:**
+- Uses `sys.tables` + `sys.partitions` for accurate row counts
+- Uses `sys.foreign_keys` + `sys.foreign_key_columns` for FK discovery
+- Uses `INFORMATION_SCHEMA.COLUMNS` for column metadata
+- Default schema: `dbo` (MSSQL convention)
+
+**Dependencies added:** `github.com/microsoft/go-mssqldb v1.9.8`
+
+**Usage:**
+```bash
+go run ./introspect/ --driver mssql --dsn "sqlserver://user:pass@host:1433?database=mydb" --db dbo --output manifest.json
+go run ./monitor/ --driver mssql --dsn "sqlserver://user:pass@host:1433?database=mydb" --output report.json
+```
+
+---
+
+## Pending (Session 8)
+
+- [ ] Add MSSQL target with Docker container + seed data for live validation
+- [ ] Integrate dashboard UI with NoUI workspace embedding (iframe/Web Component)
+- [ ] Run expanded tagger against live ERPNext to validate new concept detection
+- [ ] Add timeliness checks to monitoring engine

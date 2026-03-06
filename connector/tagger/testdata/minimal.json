@@ -3,7 +3,7 @@
   "driver": "mysql",
   "database": "test_db",
   "introspected_at": "2026-01-01T00:00:00Z",
-  "table_count": 6,
+  "table_count": 11,
   "tables": [
     {
       "name": "employees",
@@ -100,6 +100,79 @@
         {"name": "name", "data_type": "varchar", "is_nullable": false, "key_type": "PRI"},
         {"name": "value", "data_type": "text", "is_nullable": true, "key_type": ""},
         {"name": "modified", "data_type": "datetime", "is_nullable": true, "key_type": ""}
+      ],
+      "foreign_keys": [],
+      "noui_tags": []
+    },
+    {
+      "name": "training_events",
+      "row_count": 150,
+      "columns": [
+        {"name": "id", "data_type": "int", "is_nullable": false, "key_type": "PRI"},
+        {"name": "employee", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "training_date", "data_type": "date", "is_nullable": false, "key_type": ""},
+        {"name": "event_name", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "trainer", "data_type": "varchar", "is_nullable": true, "key_type": ""},
+        {"name": "result", "data_type": "varchar", "is_nullable": true, "key_type": ""},
+        {"name": "hours", "data_type": "decimal", "is_nullable": true, "key_type": ""}
+      ],
+      "foreign_keys": [],
+      "noui_tags": []
+    },
+    {
+      "name": "expense_claims",
+      "row_count": 500,
+      "columns": [
+        {"name": "id", "data_type": "int", "is_nullable": false, "key_type": "PRI"},
+        {"name": "employee", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "expense_date", "data_type": "date", "is_nullable": false, "key_type": ""},
+        {"name": "claim_amount", "data_type": "decimal", "is_nullable": false, "key_type": ""},
+        {"name": "sanctioned_amount", "data_type": "decimal", "is_nullable": false, "key_type": ""},
+        {"name": "expense_type", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "approval_status", "data_type": "varchar", "is_nullable": false, "key_type": ""}
+      ],
+      "foreign_keys": [],
+      "noui_tags": []
+    },
+    {
+      "name": "staff_appraisals",
+      "row_count": 400,
+      "columns": [
+        {"name": "id", "data_type": "int", "is_nullable": false, "key_type": "PRI"},
+        {"name": "employee", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "score", "data_type": "decimal", "is_nullable": true, "key_type": ""},
+        {"name": "rating", "data_type": "varchar", "is_nullable": true, "key_type": ""},
+        {"name": "goal", "data_type": "varchar", "is_nullable": true, "key_type": ""},
+        {"name": "appraisal_cycle", "data_type": "varchar", "is_nullable": true, "key_type": ""}
+      ],
+      "foreign_keys": [],
+      "noui_tags": []
+    },
+    {
+      "name": "shift_assignments",
+      "row_count": 1200,
+      "columns": [
+        {"name": "id", "data_type": "int", "is_nullable": false, "key_type": "PRI"},
+        {"name": "employee", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "shift_type", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "start_date", "data_type": "date", "is_nullable": false, "key_type": ""},
+        {"name": "end_date", "data_type": "date", "is_nullable": false, "key_type": ""},
+        {"name": "status", "data_type": "varchar", "is_nullable": false, "key_type": ""}
+      ],
+      "foreign_keys": [],
+      "noui_tags": []
+    },
+    {
+      "name": "employee_loans",
+      "row_count": 80,
+      "columns": [
+        {"name": "id", "data_type": "int", "is_nullable": false, "key_type": "PRI"},
+        {"name": "employee", "data_type": "varchar", "is_nullable": false, "key_type": ""},
+        {"name": "loan_amount", "data_type": "decimal", "is_nullable": false, "key_type": ""},
+        {"name": "repayment_amount", "data_type": "decimal", "is_nullable": false, "key_type": ""},
+        {"name": "disbursement_date", "data_type": "date", "is_nullable": false, "key_type": ""},
+        {"name": "rate_of_interest", "data_type": "decimal", "is_nullable": true, "key_type": ""},
+        {"name": "status", "data_type": "varchar", "is_nullable": false, "key_type": ""}
       ],
       "foreign_keys": [],
       "noui_tags": []
