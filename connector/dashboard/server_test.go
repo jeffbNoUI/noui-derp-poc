@@ -544,6 +544,79 @@ func TestStaticFileEmbedded(t *testing.T) {
 	}
 }
 
+func TestEmbedConfigEndpoint(t *testing.T) {
+	_, ts := newTestServer(t)
+
+	resp, err := http.Get(ts.URL + "/api/v1/embed/config")
+	if err != nil {
+		t.Fatalf("GET /api/v1/embed/config: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	var body map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("decoding embed config: %v", err)
+	}
+
+	if body["embeddable"] != true {
+		t.Error("expected embeddable=true")
+	}
+	if body["version"] != "1.0" {
+		t.Errorf("expected version=1.0, got %v", body["version"])
+	}
+	if body["has_data"] != true {
+		t.Error("expected has_data=true when report is loaded")
+	}
+
+	features, ok := body["features"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected features map in response")
+	}
+	if features["postMessage"] != true {
+		t.Error("expected features.postMessage=true")
+	}
+	if features["embedMode"] != true {
+		t.Error("expected features.embedMode=true")
+	}
+
+	endpoints, ok := body["endpoints"].(map[string]interface{})
+	if !ok {
+		t.Fatal("expected endpoints map in response")
+	}
+	if endpoints["health"] != "/api/v1/health" {
+		t.Errorf("expected endpoints.health=/api/v1/health, got %v", endpoints["health"])
+	}
+}
+
+func TestEmbedConfigNoData(t *testing.T) {
+	srv := NewServer("/nonexistent/report.json")
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/embed/config")
+	if err != nil {
+		t.Fatalf("GET /api/v1/embed/config: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200 even without data, got %d", resp.StatusCode)
+	}
+
+	var body map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("decoding embed config: %v", err)
+	}
+
+	if body["has_data"] != false {
+		t.Error("expected has_data=false when no report loaded")
+	}
+}
+
 func TestMethodNotAllowed(t *testing.T) {
 	_, ts := newTestServer(t)
 
@@ -554,6 +627,7 @@ func TestMethodNotAllowed(t *testing.T) {
 		"/api/v1/monitor/checks",
 		"/api/v1/monitor/baselines",
 		"/api/v1/monitor/history",
+		"/api/v1/embed/config",
 	}
 
 	for _, endpoint := range endpoints {

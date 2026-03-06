@@ -141,3 +141,21 @@ func (a *MSSQLMonitorAdapter) QueryContributionImbalances(db *sql.DB) (*sql.Rows
 		ORDER BY deviation_pct DESC
 	`)
 }
+
+// --- Timeliness queries ---
+
+func (a *MSSQLMonitorAdapter) QueryLatestSalarySlipDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT CONVERT(VARCHAR(10), MAX(start_date), 120) AS latest_date
+		FROM [tabSalary Slip]
+		WHERE docstatus = 1
+	`)
+}
+
+func (a *MSSQLMonitorAdapter) QueryLatestAttendanceDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT CONVERT(VARCHAR(10), MAX(attendance_date), 120) AS latest_date
+		FROM [tabAttendance]
+		WHERE docstatus = 1
+	`)
+}

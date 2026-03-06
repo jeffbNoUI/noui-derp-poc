@@ -395,9 +395,120 @@ go run ./monitor/ --driver mssql --dsn "sqlserver://user:pass@host:1433?database
 
 ---
 
-## Pending (Session 8)
+## MSSQL Live Target
 
-- [ ] Add MSSQL target with Docker container + seed data for live validation
-- [ ] Integrate dashboard UI with NoUI workspace embedding (iframe/Web Component)
-- [ ] Run expanded tagger against live ERPNext to validate new concept detection
-- [ ] Add timeliness checks to monitoring engine
+**Date:** 2026-03-06
+**Session:** Session 8
+**Decision:** Added `targets/mssql-hr/` — MSSQL target with Docker container, seed data, and full E2E validation
+**Rationale:** The MSSQL adapter was built in Session 7 but never tested against a live database. Created an Azure SQL Edge container (ARM64-compatible alternative to MSSQL Server 2022) with identical schema, seed data (32,158 records, seed=42), and DQ issues. Validated full pipeline parity across all 3 database engines.
+**Status:** Complete — all 8 checks, 5 baselines identical across MySQL, PostgreSQL, and MSSQL
+
+**New files:**
+- `targets/mssql-hr/docker-compose.yml` — Azure SQL Edge on port 1434
+- `targets/mssql-hr/seed/seed.py` — MSSQL seed (pymssql, bracket quoting, DATETIME types)
+- `targets/mssql-hr/seed/requirements.txt` — pymssql
+
+**Driver name fix:** go-mssqldb registers as "sqlserver" for URL-style DSNs, not "mssql". Added mapping in both `introspect/main.go` and `monitor/main.go`: `if sqlDriver == "mssql" { sqlDriver = "sqlserver" }`
+
+**Three-database parity:**
+| Check | MySQL | PostgreSQL | MSSQL |
+|-------|-------|-----------|-------|
+| salary_gap | 237 | 237 | 237 |
+| negative_leave | 13 | 13 | 13 |
+| missing_termination | 5 | 5 | 5 |
+| missing_payroll | 3 | 3 | 3 |
+| invalid_hire_date | 8 | 8 | 8 |
+| contribution_imbalance | 89 | 89 | 89 |
+| stale_payroll | 3 months | 3 months | 3 months |
+| stale_attendance | 65 days | 65 days | 65 days |
+
+---
+
+## Expanded Tagger Validation (Live ERPNext)
+
+**Date:** 2026-03-06
+**Session:** Session 8
+**Decision:** Ran expanded 12-concept tagger against live ERPNext (876 tables)
+**Rationale:** The 5 new concepts added in Session 7 were only tested against the fixture manifest. Needed live validation against the full ERPNext schema to confirm signal-based detection works at scale.
+**Status:** Complete — 39 tables tagged across all 12 concepts
+
+**Results:**
+| Concept | Tables Tagged |
+|---------|-------------|
+| employee-master | 1 |
+| salary-history | 2 |
+| payroll-run | 1 |
+| leave-balance | 8 |
+| employment-timeline | 4 |
+| attendance | 2 |
+| benefit-deduction | 5 |
+| training-record | 4 |
+| expense-claim | 2 |
+| performance-review | 6 |
+| shift-schedule | 3 |
+| loan-advance | 1 |
+
+---
+
+## Timeliness Checks
+
+**Date:** 2026-03-06
+**Session:** Session 8
+**Decision:** Added 2 timeliness checks to the monitoring engine (8 total checks)
+**Rationale:** The existing 6 checks covered completeness, validity, and consistency. Timeliness — detecting stale or lagging data — is a critical DQ dimension missing from the engine. Two new checks measure how far behind payroll and attendance data are.
+**Status:** Complete — 34 monitor tests pass (up from 32)
+
+**New checks:**
+| Check | Category | FAIL threshold | WARN threshold |
+|-------|----------|---------------|---------------|
+| stale_payroll | timeliness | >2 months behind | >1 month behind |
+| stale_attendance | timeliness | >30 days stale | >7 days stale |
+
+**New adapter methods:** `QueryLatestSalarySlipDate`, `QueryLatestAttendanceDate` — implemented in all 3 adapters (MySQL, PostgreSQL, MSSQL)
+
+---
+
+## Dashboard Workspace Embedding
+
+**Date:** 2026-03-06
+**Session:** Session 8
+**Decision:** Added workspace embedding support to the dashboard (embed mode, postMessage API, embed config endpoint)
+**Rationale:** The NoUI workspace needs to embed the monitoring dashboard as an iframe within the workspace UI. This requires: compact embed mode (no header), bidirectional postMessage communication, and a discovery endpoint for the workspace to query capabilities.
+**Status:** Complete — 22 dashboard tests pass (up from 20)
+
+**Changes:**
+- `server.go` — Added `handleEmbedConfig` handler + `/api/v1/embed/config` route
+- `index.html` — Added `?embed=true` mode (hides header, compact layout), postMessage listener (refresh, setFilter), parent notification on refresh, fixed category filter (accuracy → timeliness)
+- `server_test.go` — 2 new tests: `TestEmbedConfigEndpoint`, `TestEmbedConfigNoData`
+
+**Embed config response:**
+```json
+{
+  "embeddable": true,
+  "version": "1.0",
+  "features": { "postMessage": true, "embedMode": true, "autoRefresh": true },
+  "endpoints": { "health": "/api/v1/health", ... },
+  "has_data": true
+}
+```
+
+**postMessage API:**
+- Parent → Dashboard: `{ target: "noui-dashboard", action: "refresh" }` or `{ target: "noui-dashboard", action: "setFilter", status: "fail", category: "timeliness" }`
+- Dashboard → Parent: `{ source: "noui-dashboard", type: "refreshed", data: { timestamp: "..." } }`
+
+**Embed usage:**
+```html
+<iframe src="http://localhost:8090/?embed=true"></iframe>
+```
+
+---
+
+## Session 8 Test Summary
+
+| Package | Tests | Change |
+|---------|-------|--------|
+| dashboard | 22 | +2 (embed config) |
+| introspect | 4 | — |
+| tagger | 16 | — |
+| monitor | 34 | +2 (timeliness) |
+| **Total** | **78** | **+4** |

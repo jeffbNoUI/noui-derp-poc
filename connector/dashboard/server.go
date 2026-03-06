@@ -87,6 +87,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/monitor/checks/", s.handleCheckByName)
 	mux.HandleFunc("/api/v1/monitor/baselines", s.handleBaselines)
 	mux.HandleFunc("/api/v1/monitor/history", s.handleHistory)
+	mux.HandleFunc("/api/v1/embed/config", s.handleEmbedConfig)
 
 	return withCORS(withLogging(mux))
 }
@@ -281,6 +282,38 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 	s.mu.RUnlock()
 
 	writeJSON(w, http.StatusOK, history)
+}
+
+func (s *Server) handleEmbedConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	s.mu.RLock()
+	report := s.state.Report
+	s.mu.RUnlock()
+
+	hasData := report != nil
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"embeddable": true,
+		"version":    "1.0",
+		"features": map[string]bool{
+			"postMessage": true,
+			"embedMode":   true,
+			"autoRefresh": true,
+		},
+		"endpoints": map[string]string{
+			"health":    "/api/v1/health",
+			"report":    "/api/v1/monitor/report",
+			"summary":   "/api/v1/monitor/summary",
+			"checks":    "/api/v1/monitor/checks",
+			"baselines": "/api/v1/monitor/baselines",
+			"history":   "/api/v1/monitor/history",
+		},
+		"has_data": hasData,
+	})
 }
 
 // --- Helpers ---

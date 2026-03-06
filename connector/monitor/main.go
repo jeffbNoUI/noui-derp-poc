@@ -56,7 +56,11 @@ func main() {
 	}
 
 	log.Printf("Connecting to %s database (%s)...", *driver, database)
-	db, err := sql.Open(*driver, *dsn)
+	sqlDriver := *driver
+	if sqlDriver == "mssql" {
+		sqlDriver = "sqlserver" // go-mssqldb registers as "sqlserver" for URL-style DSNs
+	}
+	db, err := sql.Open(sqlDriver, *dsn)
 	if err != nil {
 		log.Fatalf("Failed to open connection: %v", err)
 	}

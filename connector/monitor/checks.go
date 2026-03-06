@@ -24,6 +24,8 @@ func AllChecks(adapter MonitorAdapter) []CheckFunc {
 		func(db *sql.DB) schema.CheckResult { return MissingPayrollRunCheck(db, adapter) },
 		func(db *sql.DB) schema.CheckResult { return InvalidHireDateCheck(db, adapter) },
 		func(db *sql.DB) schema.CheckResult { return ContributionImbalanceCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return StalePayrollCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return StaleAttendanceCheck(db, adapter) },
 	}
 }
 
@@ -402,6 +404,168 @@ func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.Check
 	} else {
 		result.Status = "pass"
 		result.Message = "all salary slips are within 5% of salary structure base"
+		result.Deviation = 0
+	}
+
+	return result
+}
+
+// StalePayrollCheck detects if salary slip processing has fallen behind.
+// Compares the most recent salary slip start_date to the current date.
+// If the latest slip is > 2 months behind the current month: FAIL.
+// If > 1 month behind: WARN. Otherwise: PASS.
+//
+// Category: timeliness
+// Evidence: latest salary slip date and days since
+func StalePayrollCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+	now := time.Now().UTC()
+	result := schema.CheckResult{
+		CheckName: "stale_payroll_check",
+		Category:  "timeliness",
+		Timestamp: now.Format(time.RFC3339),
+	}
+
+	rows, err := adapter.QueryLatestSalarySlipDate(db)
+	if err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("query error: %v", err)
+		return result
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		result.Status = "fail"
+		result.Message = "no salary slips found"
+		return result
+	}
+
+	var latestDateStr sql.NullString
+	if err := rows.Scan(&latestDateStr); err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("scan error: %v", err)
+		return result
+	}
+	if err := rows.Err(); err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("rows error: %v", err)
+		return result
+	}
+
+	if !latestDateStr.Valid || latestDateStr.String == "" {
+		result.Status = "fail"
+		result.Message = "no salary slips with valid dates found"
+		return result
+	}
+
+	latestDate, err := time.Parse("2006-01-02", latestDateStr.String)
+	if err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("date parse error: %v", err)
+		return result
+	}
+
+	daysSince := int(now.Sub(latestDate).Hours() / 24)
+	// Calculate month difference
+	monthsSince := (now.Year()-latestDate.Year())*12 + int(now.Month()) - int(latestDate.Month())
+
+	result.Expected = 0 // 0 months behind is the ideal
+	result.Actual = float64(monthsSince)
+	result.Details = []string{
+		fmt.Sprintf("latest salary slip date: %s", latestDateStr.String),
+		fmt.Sprintf("days since latest: %d", daysSince),
+		fmt.Sprintf("months behind: %d", monthsSince),
+	}
+
+	if monthsSince > 2 {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("payroll processing is %d months behind (latest: %s)", monthsSince, latestDateStr.String)
+		result.Deviation = float64(monthsSince)
+	} else if monthsSince > 1 {
+		result.Status = "warn"
+		result.Message = fmt.Sprintf("payroll processing is %d months behind (latest: %s)", monthsSince, latestDateStr.String)
+		result.Deviation = float64(monthsSince)
+	} else {
+		result.Status = "pass"
+		result.Message = fmt.Sprintf("payroll processing is current (latest: %s)", latestDateStr.String)
+		result.Deviation = 0
+	}
+
+	return result
+}
+
+// StaleAttendanceCheck detects if attendance recording has gone stale.
+// Compares the most recent attendance date to the current date.
+// If > 30 days old: FAIL. If > 7 days old: WARN. Otherwise: PASS.
+//
+// Category: timeliness
+// Evidence: latest attendance date and days since
+func StaleAttendanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+	now := time.Now().UTC()
+	result := schema.CheckResult{
+		CheckName: "stale_attendance_check",
+		Category:  "timeliness",
+		Timestamp: now.Format(time.RFC3339),
+	}
+
+	rows, err := adapter.QueryLatestAttendanceDate(db)
+	if err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("query error: %v", err)
+		return result
+	}
+	defer rows.Close()
+
+	if !rows.Next() {
+		result.Status = "fail"
+		result.Message = "no attendance records found"
+		return result
+	}
+
+	var latestDateStr sql.NullString
+	if err := rows.Scan(&latestDateStr); err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("scan error: %v", err)
+		return result
+	}
+	if err := rows.Err(); err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("rows error: %v", err)
+		return result
+	}
+
+	if !latestDateStr.Valid || latestDateStr.String == "" {
+		result.Status = "fail"
+		result.Message = "no attendance records with valid dates found"
+		return result
+	}
+
+	latestDate, err := time.Parse("2006-01-02", latestDateStr.String)
+	if err != nil {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("date parse error: %v", err)
+		return result
+	}
+
+	daysSince := int(now.Sub(latestDate).Hours() / 24)
+
+	result.Expected = 0 // 0 days behind is the ideal
+	result.Actual = float64(daysSince)
+	result.Details = []string{
+		fmt.Sprintf("latest attendance date: %s", latestDateStr.String),
+		fmt.Sprintf("days since latest: %d", daysSince),
+	}
+
+	if daysSince > 30 {
+		result.Status = "fail"
+		result.Message = fmt.Sprintf("attendance recording is %d days stale (latest: %s)", daysSince, latestDateStr.String)
+		result.Deviation = float64(daysSince)
+	} else if daysSince > 7 {
+		result.Status = "warn"
+		result.Message = fmt.Sprintf("attendance recording is %d days behind (latest: %s)", daysSince, latestDateStr.String)
+		result.Deviation = float64(daysSince)
+	} else {
+		result.Status = "pass"
+		result.Message = fmt.Sprintf("attendance recording is current (latest: %s)", latestDateStr.String)
 		result.Deviation = 0
 	}
 

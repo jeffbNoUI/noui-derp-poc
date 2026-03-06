@@ -212,14 +212,14 @@ func TestAllPassScenario(t *testing.T) {
 
 // ============================================================================
 // Check logic documentation tests
-// These tests verify that AllChecks(NewMonitorAdapter("mysql")) returns the expected set of 6 checks
+// These tests verify that AllChecks(NewMonitorAdapter("mysql")) returns the expected set of 8 checks
 // and document what each check verifies.
 // ============================================================================
 
 func TestAllChecksCount(t *testing.T) {
 	checks := AllChecks(NewMonitorAdapter("mysql"))
-	if len(checks) != 6 {
-		t.Errorf("expected 6 monitoring checks, got %d", len(checks))
+	if len(checks) != 8 {
+		t.Errorf("expected 8 monitoring checks, got %d", len(checks))
 	}
 }
 
@@ -232,6 +232,8 @@ func TestCheckCategories(t *testing.T) {
 		"missing_payroll_run_check":    "completeness",
 		"invalid_hire_date_check":      "validity",
 		"contribution_imbalance_check": "consistency",
+		"stale_payroll_check":          "timeliness",
+		"stale_attendance_check":       "timeliness",
 	}
 
 	t.Logf("Monitor defines %d checks:", len(expectedChecks))
@@ -244,7 +246,7 @@ func TestCheckCategories(t *testing.T) {
 	for _, cat := range expectedChecks {
 		categories[cat] = true
 	}
-	expectedCategories := []string{"completeness", "validity", "consistency"}
+	expectedCategories := []string{"completeness", "validity", "consistency", "timeliness"}
 	for _, ec := range expectedCategories {
 		if !categories[ec] {
 			t.Errorf("expected category %q to be represented in checks", ec)
@@ -505,4 +507,26 @@ func TestDeviationCalculation(t *testing.T) {
 	if round2(deviation) != 3.0 {
 		t.Errorf("expected 3%% deviation, got %.2f%%", deviation)
 	}
+}
+
+// ============================================================================
+// Timeliness check documentation tests
+// ============================================================================
+
+func TestStalePayrollCheckDescription(t *testing.T) {
+	t.Log("stale_payroll_check:")
+	t.Log("  Purpose: Detect if salary slip processing has fallen behind")
+	t.Log("  Table: tabSalary Slip (docstatus=1)")
+	t.Log("  Logic: Get MAX(start_date). Compare months behind current date.")
+	t.Log("  Status: FAIL if >2 months behind, WARN if >1 month behind, PASS otherwise")
+	t.Log("  Evidence: latest salary slip date, days since, months behind")
+}
+
+func TestStaleAttendanceCheckDescription(t *testing.T) {
+	t.Log("stale_attendance_check:")
+	t.Log("  Purpose: Detect if attendance recording has gone stale")
+	t.Log("  Table: tabAttendance (docstatus=1)")
+	t.Log("  Logic: Get MAX(attendance_date). Compare days since current date.")
+	t.Log("  Status: FAIL if >30 days stale, WARN if >7 days, PASS otherwise")
+	t.Log("  Evidence: latest attendance date, days since")
 }

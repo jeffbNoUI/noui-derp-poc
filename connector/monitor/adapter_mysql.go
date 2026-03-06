@@ -136,3 +136,21 @@ func (a *MySQLMonitorAdapter) QueryContributionImbalances(db *sql.DB) (*sql.Rows
 		ORDER BY deviation_pct DESC
 	`)
 }
+
+// --- Timeliness queries ---
+
+func (a *MySQLMonitorAdapter) QueryLatestSalarySlipDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT DATE_FORMAT(MAX(start_date), '%Y-%m-%d') AS latest_date
+		FROM ` + "`tabSalary Slip`" + `
+		WHERE docstatus = 1
+	`)
+}
+
+func (a *MySQLMonitorAdapter) QueryLatestAttendanceDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT DATE_FORMAT(MAX(attendance_date), '%Y-%m-%d') AS latest_date
+		FROM ` + "`tabAttendance`" + `
+		WHERE docstatus = 1
+	`)
+}

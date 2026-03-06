@@ -143,3 +143,21 @@ func (a *PostgresMonitorAdapter) QueryContributionImbalances(db *sql.DB) (*sql.R
 		ORDER BY deviation_pct DESC
 	`)
 }
+
+// --- Timeliness queries ---
+
+func (a *PostgresMonitorAdapter) QueryLatestSalarySlipDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT TO_CHAR(MAX(start_date), 'YYYY-MM-DD') AS latest_date
+		FROM "tabSalary Slip"
+		WHERE docstatus = 1
+	`)
+}
+
+func (a *PostgresMonitorAdapter) QueryLatestAttendanceDate(db *sql.DB) (*sql.Rows, error) {
+	return db.Query(`
+		SELECT TO_CHAR(MAX(attendance_date), 'YYYY-MM-DD') AS latest_date
+		FROM "tabAttendance"
+		WHERE docstatus = 1
+	`)
+}

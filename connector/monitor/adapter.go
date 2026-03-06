@@ -40,6 +40,16 @@ type MonitorAdapter interface {
 	// QueryContributionImbalances returns (employee_name, slip_name, gross_pay,
 	// expected_base, deviation_pct) for slips with >5% deviation from salary structure base.
 	QueryContributionImbalances(db *sql.DB) (*sql.Rows, error)
+
+	// --- Timeliness queries ---
+
+	// QueryLatestSalarySlipDate returns a single row with the most recent salary slip
+	// start_date as a string (YYYY-MM-DD format).
+	QueryLatestSalarySlipDate(db *sql.DB) (*sql.Rows, error)
+
+	// QueryLatestAttendanceDate returns a single row with the most recent attendance
+	// date as a string (YYYY-MM-DD format).
+	QueryLatestAttendanceDate(db *sql.DB) (*sql.Rows, error)
 }
 
 // NewMonitorAdapter returns the appropriate MonitorAdapter for the given driver.
