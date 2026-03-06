@@ -4,13 +4,15 @@ import MemberSearch from '@/components/staff/MemberSearch';
 import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
 import CSRContextHub from '@/components/staff/CSRContextHub';
 import ServiceMap from '@/components/admin/ServiceMap';
+import DataQualityPanel from '@/components/admin/DataQualityPanel';
+import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
 
 interface StaffPortalProps {
   onOpenCase: (caseId: string, memberId: number, retDate: string, flags?: string[]) => void;
   onChangeView: (mode: string) => void;
 }
 
-type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map';
+type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence';
 
 const WORK_QUEUE = [
   {
@@ -111,6 +113,8 @@ const SIDEBAR_NAV = [
   { key: 'executive' as StaffTab, label: 'Executive', icon: '\ud83d\udcc8', shortcut: 'G E' },
   { key: 'csr' as StaffTab, label: 'CSR Hub', icon: '\ud83d\udcde', shortcut: 'G C' },
   { key: 'service-map' as StaffTab, label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P' },
+  { key: 'dq' as StaffTab, label: 'Data Quality', icon: '\ud83d\udee1\ufe0f', shortcut: 'G D' },
+  { key: 'correspondence' as StaffTab, label: 'Correspondence', icon: '\u2709\ufe0f', shortcut: 'G X' },
 ];
 
 export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalProps) {
@@ -215,7 +219,7 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
         {/* Top bar with search */}
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
           <h1 className="text-sm font-bold text-gray-700">
-            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map' }[activeTab]}
+            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map', dq: 'Data Quality', correspondence: 'Correspondence' }[activeTab]}
           </h1>
           {activeTab === 'queue' && (
             <input
@@ -360,6 +364,12 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
 
           {/* Service Map tab */}
           {activeTab === 'service-map' && <ServiceMap />}
+
+          {/* Data Quality tab */}
+          {activeTab === 'dq' && <DataQualityPanel />}
+
+          {/* Correspondence tab */}
+          {activeTab === 'correspondence' && <CorrespondencePanel />}
 
           <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
             <p className="font-medium">NoUI Staff Portal</p>
