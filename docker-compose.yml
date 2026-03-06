@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: derp
+      POSTGRES_USER: derp
+      POSTGRES_PASSWORD: derp
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./database/schema/001_legacy_schema.sql:/docker-entrypoint-initdb.d/001_legacy_schema.sql
+      - ./database/schema/002_crm_schema.sql:/docker-entrypoint-initdb.d/002_crm_schema.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U derp"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  connector:
+    build:
+      context: ./services/connector
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    environment:
+      PORT: "8081"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: derp
+      DB_PASSWORD: derp
+      DB_NAME: derp
+      DB_SSLMODE: disable
+      CORS_ORIGIN: "http://localhost:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  intelligence:
+    build:
+      context: ./services/intelligence
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    environment:
+      PORT: "8082"
+      CONNECTOR_URL: "http://connector:8081"
+      CORS_ORIGIN: "http://localhost:3000"
+    depends_on:
+      - connector
+
+  crm:
+    build:
+      context: ./services/crm
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    environment:
+      PORT: "8083"
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: derp
+      DB_PASSWORD: derp
+      DB_NAME: derp
+      DB_SSLMODE: disable
+      CORS_ORIGIN: "http://localhost:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - connector
+      - intelligence
+      - crm
+
+volumes:
+  pgdata:

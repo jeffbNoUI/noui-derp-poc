@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+
+# Build output
+frontend/dist/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+.eggs/
+
+# compose-sim output
+compose-sim/results/
+compose-sim/reports/
+compose-sim/cache/
+compose-sim/prompt_versions/
+
+# Environment
+.env
+.venv/
+venv/
+
+# Docker volumes
+pgdata/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/
