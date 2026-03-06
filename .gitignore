@@ -24,10 +24,12 @@ venv/
 
 # Docker volumes
 pgdata/
+.docker-data/
 
 # IDE
 .vscode/
 .idea/
+*.swp
 
 # OS
 .DS_Store
