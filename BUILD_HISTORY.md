@@ -278,9 +278,50 @@ go run ./introspect/ \
 
 ---
 
-## Pending (Session 6)
+## PostgreSQL Live Validation
+
+**Date:** 2026-03-06
+**Session:** Session 6
+**Decision:** Added `targets/postgres-hr/` — standalone PostgreSQL target with ERPNext-compatible HR schema for adapter validation
+**Rationale:** Both introspect and monitor PostgreSQL adapters were built in Sessions 4-5 but never tested against a live PostgreSQL database. To prove the adapter pattern works end-to-end, created a PostgreSQL 15 target with identical table structures (same `tab`-prefixed naming), seeded with the same 32,158 records and 6 categories of DQ issues (same random seed=42 for reproducibility).
+**Status:** Complete — full pipeline validated against live PostgreSQL
+
+**New files:**
+- `targets/postgres-hr/docker-compose.yml` — PostgreSQL 15-alpine on port 5433
+- `targets/postgres-hr/seed/seed.py` — Creates schema DDL + seeds matching data
+- `targets/postgres-hr/seed/requirements.txt` — psycopg2-binary
+
+**E2E Results (PostgreSQL):**
+| Step | Tool | Result |
+|------|------|--------|
+| Introspect | `go run ./introspect/ --driver postgres` | 12 tables discovered |
+| Tag | `go run ./tagger/` | 8 tables tagged, 6 concepts |
+| Monitor | `go run ./monitor/ --driver postgres` | 5 baselines, 6 checks (all FAIL — detecting seeded DQ) |
+| Dashboard | `go run ./dashboard/ --port 8091` | Health + summary + checks APIs verified |
+
+**MySQL vs PostgreSQL Detection Parity:**
+| Check | ERPNext (MySQL) | PostgreSQL | Match |
+|-------|----------------|------------|-------|
+| salary_gap | 237 gaps | 237 gaps | YES |
+| negative_leave | 13 | 13 | YES |
+| missing_termination | 5 | 5 | YES |
+| missing_payroll | 3 months | 3 months | YES |
+| invalid_hire_date | 8 | 8 | YES |
+| contribution_imbalance | 89 slips | 89 slips | YES |
+
+**Baseline Parity (identical values):**
+| Metric | MySQL | PostgreSQL |
+|--------|-------|-----------|
+| monthly_employee_count | 177.75 | 177.75 |
+| monthly_gross_total | 1,235,222.43 | 1,235,222.43 |
+| monthly_avg_gross | 6,945.19 | 6,945.19 |
+| avg_leave_allocation | 12.21 | 12.21 |
+| monthly_payroll_runs | 1.00 | 1.00 |
+
+---
+
+## Pending (Session 7)
 
 - [ ] Integrate monitoring dashboard with NoUI workspace UI
 - [ ] Expand concept tagger with additional HR concepts
-- [ ] Test PostgreSQL adapter against a live PostgreSQL target
-- [ ] Validate monitor PostgreSQL adapter against a live PostgreSQL target
+- [ ] Add MSSQL adapter for introspect and monitor (future Neospin support)

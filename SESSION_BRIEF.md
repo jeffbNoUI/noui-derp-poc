@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-06 | Status: Session 5 Complete_
+_Updated: 2026-03-06 | Status: Session 6 Complete_
 
 ---
 
 ## Current State
 
-ERPNext v16.8.1 running (port 8083, DB on port 3307). Database seeded with 32,158 records (200 employees, 3 years of salary/payroll/leave/attendance data, 6 categories of embedded DQ issues). Full monitoring pipeline operational: introspect → tag → monitor → dashboard API. Shared types package, PostgreSQL monitor adapter, and E2E validation completed in Session 5. 63 unit tests passing across all components.
+Two live targets running: ERPNext (MariaDB, port 3307) and PostgreSQL HR (port 5433). Both seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against both MySQL and PostgreSQL with identical detection results. 63 unit tests passing.
 
 ## Session 1 Summary (Complete)
 
@@ -177,6 +177,84 @@ go run ./dashboard/ \
 - [x] BUILD_HISTORY.md updated
 - [x] All changes committed
 
+## Session 6 Summary (Complete)
+
+**Goal:** Validate PostgreSQL adapters against a live PostgreSQL database
+
+### Deliverables
+
+1. **PostgreSQL HR target** (`targets/postgres-hr/`)
+   - PostgreSQL 15-alpine Docker container on port 5433
+   - ERPNext-compatible schema (12 tables, `tab`-prefixed naming)
+   - Seed script creating identical data: 200 employees, 3 years, 6 DQ categories
+   - Same random seed (42) for reproducible, comparable results
+
+2. **Full pipeline E2E validation against live PostgreSQL**
+   - Introspect: 12 tables discovered with columns, FKs, and row counts
+   - Tagger: 8 tables tagged across 6 concepts (signal-based, no hardcoding)
+   - Monitor: All 6 checks detect identical DQ issues (237 gaps, 13 negative leave, 5 missing terminations, 3 missing payroll, 8 invalid dates, 89 imbalances)
+   - Dashboard: All 7 API endpoints serving PG monitor report
+
+3. **MySQL/PostgreSQL parity confirmed**
+   - All check results identical between ERPNext (MySQL) and PostgreSQL targets
+   - All 5 baseline metrics identical
+   - Adapter pattern proven: same Go code, different SQL dialects, same results
+
+### Session 6 Exit Criteria
+- [x] PostgreSQL target running and seeded (32,158 records)
+- [x] Introspect PG adapter validated against live database (12 tables)
+- [x] Monitor PG adapter validated — all 6 checks detecting DQ issues
+- [x] Tagger validated against PG manifest (8 tables, 6 concepts)
+- [x] Dashboard API verified against PG monitor report
+- [x] MySQL vs PostgreSQL detection parity confirmed
+- [x] All unit tests passing (63 total)
+- [x] BUILD_HISTORY.md updated
+- [x] All changes committed
+
+## PostgreSQL Target Environment
+
+| Item | Value |
+|------|-------|
+| PostgreSQL host | localhost:5433 |
+| PostgreSQL DB | hrlab |
+| PostgreSQL user | hrlab / hrlab |
+| PostgreSQL version | 15-alpine |
+| Tables | 12 (ERPNext-compatible naming) |
+
+## Full Pipeline Commands (PostgreSQL)
+
+```bash
+# 1. Start PostgreSQL
+docker compose -f targets/postgres-hr/docker-compose.yml up -d
+
+# 2. Seed data
+cd targets/postgres-hr/seed && pip install -r requirements.txt && python seed.py
+
+# 3. Introspect schema
+cd connector && go run ./introspect/ \
+  --driver postgres \
+  --dsn "postgres://hrlab:hrlab@127.0.0.1:5433/hrlab?sslmode=disable" \
+  --db public \
+  --output ../targets/postgres-hr/schema-manifest/manifest.json
+
+# 4. Tag concepts
+go run ./tagger/ \
+  --input ../targets/postgres-hr/schema-manifest/manifest.json \
+  --output ../targets/postgres-hr/schema-manifest/manifest-tagged.json \
+  --report ../targets/postgres-hr/schema-manifest/tags-report.json
+
+# 5. Run monitoring checks
+go run ./monitor/ \
+  --driver postgres \
+  --dsn "postgres://hrlab:hrlab@127.0.0.1:5433/hrlab?sslmode=disable" \
+  --output ../targets/postgres-hr/schema-manifest/monitor-report.json
+
+# 6. Start dashboard API
+go run ./dashboard/ \
+  --report-file ../targets/postgres-hr/schema-manifest/monitor-report.json \
+  --port 8091
+```
+
 ## What's Built So Far
 
 | Component | Location | Status | Tests |
@@ -186,5 +264,7 @@ go run ./dashboard/ \
 | Concept tagger (7 concepts) | `connector/tagger/` | Complete | 11 |
 | Monitor engine (6 checks + scheduler + PG adapter) | `connector/monitor/` | Complete | 30 |
 | Dashboard API (7 endpoints) | `connector/dashboard/` | Complete | 18 |
-| Seed script (200 employees, 3yr) | `targets/erpnext/seed/seed.py` | Complete | — |
+| ERPNext seed (200 employees, 3yr) | `targets/erpnext/seed/seed.py` | Complete | — |
 | ERPNext Docker stack | `targets/erpnext/docker-compose.yml` | Running | — |
+| **PostgreSQL HR seed (200 employees, 3yr)** | `targets/postgres-hr/seed/seed.py` | **Complete** | — |
+| **PostgreSQL Docker stack** | `targets/postgres-hr/docker-compose.yml` | **Running** | — |
