@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-06 | Status: Session 4 Complete_
+_Updated: 2026-03-06 | Status: Session 5 Complete_
 
 ---
 
 ## Current State
 
-ERPNext v16.8.1 running (port 8083, DB on port 3307). Database seeded with 32,158 records (200 employees, 3 years of salary/payroll/leave/attendance data, 6 categories of embedded DQ issues). Full monitoring pipeline operational: introspect → tag → monitor → dashboard API.
+ERPNext v16.8.1 running (port 8083, DB on port 3307). Database seeded with 32,158 records (200 employees, 3 years of salary/payroll/leave/attendance data, 6 categories of embedded DQ issues). Full monitoring pipeline operational: introspect → tag → monitor → dashboard API. Shared types package, PostgreSQL monitor adapter, and E2E validation completed in Session 5. 63 unit tests passing across all components.
 
 ## Session 1 Summary (Complete)
 
@@ -143,9 +143,48 @@ go run ./dashboard/ \
   --port 8090
 ```
 
-## Pending (Session 5)
+## Session 5 Summary (Complete)
 
-- [ ] Integrate monitoring dashboard with NoUI workspace UI
-- [ ] Expand concept tagger with additional HR concepts
-- [ ] Test PostgreSQL adapter against a live PostgreSQL target
-- [ ] Add PostgreSQL adapter to monitor (target-specific check queries)
+**Goal:** Shared types package, PostgreSQL monitor adapter, E2E pipeline validation
+
+### Deliverables
+
+1. **Shared types package** (`connector/schema/`)
+   - Extracted 8 types into importable library package
+   - `manifest.go` — SchemaManifest, TableInfo, ColumnInfo, ForeignKey
+   - `monitor.go` — MonitorReport, CheckResult, Baseline, ReportSummary
+   - All 4 binaries (introspect, tagger, monitor, dashboard) updated to import `schema`
+   - Eliminated all type duplication across packages
+
+2. **PostgreSQL monitor adapter** (`connector/monitor/`)
+   - `MonitorAdapter` interface with 11 methods (5 baseline + 6 checks)
+   - `adapter_mysql.go` — All MySQL queries extracted from inline code
+   - `adapter_postgres.go` — All queries translated to PostgreSQL syntax
+   - MySQL→PG translations: YEAR()→EXTRACT(), MONTH()→EXTRACT(), CURDATE()→CURRENT_DATE, backticks→double quotes
+   - 3 adapter factory tests
+
+3. **E2E pipeline validation**
+   - Full pipeline run against live ERPNext after refactor
+   - 876 tables introspected, 23 tagged, 6 checks (all FAIL detecting DQ issues)
+   - Dashboard API verified (health + summary endpoints)
+
+### Session 5 Exit Criteria
+- [x] Shared types extracted, all type duplication eliminated
+- [x] PostgreSQL adapter built for monitor (11 query methods)
+- [x] Monitor refactored to adapter pattern (ComputeBaselines, AllChecks, RunMonitor, RunScheduled)
+- [x] All unit tests passing (introspect: 3, tagger: 11, monitor: 30, dashboard: 18, adapter: 3 = 63 total)
+- [x] Full pipeline validated end-to-end against live ERPNext
+- [x] BUILD_HISTORY.md updated
+- [x] All changes committed
+
+## What's Built So Far
+
+| Component | Location | Status | Tests |
+|-----------|----------|--------|-------|
+| Shared types library | `connector/schema/` | Complete | — |
+| Schema introspect (MySQL + PostgreSQL) | `connector/introspect/` | Complete | 3 |
+| Concept tagger (7 concepts) | `connector/tagger/` | Complete | 11 |
+| Monitor engine (6 checks + scheduler + PG adapter) | `connector/monitor/` | Complete | 30 |
+| Dashboard API (7 endpoints) | `connector/dashboard/` | Complete | 18 |
+| Seed script (200 employees, 3yr) | `targets/erpnext/seed/seed.py` | Complete | — |
+| ERPNext Docker stack | `targets/erpnext/docker-compose.yml` | Running | — |

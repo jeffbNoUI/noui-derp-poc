@@ -1,11 +1,15 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+
+	"github.com/noui/connector-lab/schema"
+)
 
 // MySQLAdapter implements SchemaAdapter for MySQL/MariaDB databases.
 type MySQLAdapter struct{}
 
-func (a *MySQLAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, error) {
+func (a *MySQLAdapter) GetTables(db *sql.DB, dbName string) ([]schema.TableInfo, error) {
 	rows, err := db.Query(`
 		SELECT TABLE_NAME, COALESCE(TABLE_ROWS, 0)
 		FROM information_schema.TABLES
@@ -18,9 +22,9 @@ func (a *MySQLAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, error)
 	}
 	defer rows.Close()
 
-	var tables []TableInfo
+	var tables []schema.TableInfo
 	for rows.Next() {
-		var t TableInfo
+		var t schema.TableInfo
 		if err := rows.Scan(&t.Name, &t.RowCount); err != nil {
 			return nil, err
 		}
@@ -29,7 +33,7 @@ func (a *MySQLAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, error)
 	return tables, rows.Err()
 }
 
-func (a *MySQLAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]ColumnInfo, error) {
+func (a *MySQLAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]schema.ColumnInfo, error) {
 	rows, err := db.Query(`
 		SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COALESCE(COLUMN_KEY, '')
 		FROM information_schema.COLUMNS
@@ -42,9 +46,9 @@ func (a *MySQLAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]Colum
 	}
 	defer rows.Close()
 
-	var cols []ColumnInfo
+	var cols []schema.ColumnInfo
 	for rows.Next() {
-		var c ColumnInfo
+		var c schema.ColumnInfo
 		var nullable string
 		if err := rows.Scan(&c.Name, &c.DataType, &nullable, &c.IsKey); err != nil {
 			return nil, err
@@ -55,7 +59,7 @@ func (a *MySQLAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]Colum
 	return cols, rows.Err()
 }
 
-func (a *MySQLAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) ([]ForeignKey, error) {
+func (a *MySQLAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) ([]schema.ForeignKey, error) {
 	rows, err := db.Query(`
 		SELECT CONSTRAINT_NAME, COLUMN_NAME,
 		       REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
@@ -70,9 +74,9 @@ func (a *MySQLAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) ([]F
 	}
 	defer rows.Close()
 
-	var fks []ForeignKey
+	var fks []schema.ForeignKey
 	for rows.Next() {
-		var fk ForeignKey
+		var fk schema.ForeignKey
 		if err := rows.Scan(&fk.ConstraintName, &fk.Column,
 			&fk.ReferencedTable, &fk.ReferencedColumn); err != nil {
 			return nil, err

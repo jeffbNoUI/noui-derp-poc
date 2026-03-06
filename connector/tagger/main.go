@@ -5,6 +5,8 @@ import (
 	"flag"
 	"log"
 	"os"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 func main() {
@@ -20,7 +22,7 @@ func main() {
 		log.Fatalf("Failed to read manifest: %v", err)
 	}
 
-	var manifest SchemaManifest
+	var manifest schema.SchemaManifest
 	if err := json.Unmarshal(data, &manifest); err != nil {
 		log.Fatalf("Failed to parse manifest: %v", err)
 	}

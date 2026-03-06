@@ -1,10 +1,14 @@
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/noui/connector-lab/schema"
+)
 
 // TagManifest processes the entire schema manifest and returns tag results.
 // It also updates manifest.Tables[i].NoUITags in place.
-func TagManifest(manifest *SchemaManifest, concepts []ConceptDef) *TagReport {
+func TagManifest(manifest *schema.SchemaManifest, concepts []ConceptDef) *TagReport {
 	report := &TagReport{
 		GeneratedAt:    Now().UTC().Format(time.RFC3339),
 		ManifestSource: manifest.Source,

@@ -1,8 +1,10 @@
 package main
 
+import "github.com/noui/connector-lab/schema"
+
 // ScoreTable evaluates all signals for a given concept against a table.
 // Returns the accumulated score and the list of signals that fired.
-func ScoreTable(table TableInfo, allTables []TableInfo, concept ConceptDef) (float64, []SignalHit) {
+func ScoreTable(table schema.TableInfo, allTables []schema.TableInfo, concept ConceptDef) (float64, []SignalHit) {
 	var score float64
 	var hits []SignalHit
 
@@ -24,7 +26,7 @@ func ScoreTable(table TableInfo, allTables []TableInfo, concept ConceptDef) (flo
 
 // AssignTags evaluates a table against all concept definitions.
 // Returns the assigned tags, scores per concept, and signal audit per concept.
-func AssignTags(table TableInfo, allTables []TableInfo, concepts []ConceptDef) ([]ConceptTag, map[ConceptTag]float64, map[ConceptTag][]SignalHit) {
+func AssignTags(table schema.TableInfo, allTables []schema.TableInfo, concepts []ConceptDef) ([]ConceptTag, map[ConceptTag]float64, map[ConceptTag][]SignalHit) {
 	var tags []ConceptTag
 	scores := make(map[ConceptTag]float64)
 	signals := make(map[ConceptTag][]SignalHit)

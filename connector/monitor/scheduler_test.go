@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 func TestWriteReport(t *testing.T) {
@@ -12,17 +14,17 @@ func TestWriteReport(t *testing.T) {
 	outputPath := filepath.Join(tmpDir, "latest.json")
 	historyDir := filepath.Join(tmpDir, "history")
 
-	report := &MonitorReport{
+	report := &schema.MonitorReport{
 		Source:   "mysql",
 		Database: "testdb",
 		RunAt:    "2026-03-06T10:00:00Z",
-		Baselines: []Baseline{
+		Baselines: []schema.Baseline{
 			{MetricName: "test_metric", Mean: 42.0, StdDev: 1.5, Min: 40.0, Max: 44.0, SampleSize: 10},
 		},
-		Checks: []CheckResult{
+		Checks: []schema.CheckResult{
 			{CheckName: "test_check", Category: "validity", Status: "pass", Message: "ok"},
 		},
-		Summary: ReportSummary{TotalChecks: 1, Passed: 1},
+		Summary: schema.ReportSummary{TotalChecks: 1, Passed: 1},
 	}
 
 	// Should create history dir automatically
@@ -36,7 +38,7 @@ func TestWriteReport(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read latest report: %v", err)
 	}
-	var parsed MonitorReport
+	var parsed schema.MonitorReport
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("Latest report is not valid JSON: %v", err)
 	}
@@ -61,11 +63,11 @@ func TestWriteReportNoHistoryDir(t *testing.T) {
 	tmpDir := t.TempDir()
 	outputPath := filepath.Join(tmpDir, "latest.json")
 
-	report := &MonitorReport{
+	report := &schema.MonitorReport{
 		Source:   "mysql",
 		Database: "testdb",
 		RunAt:    "2026-03-06T10:00:00Z",
-		Summary:  ReportSummary{},
+		Summary:  schema.ReportSummary{},
 	}
 
 	// Empty historyDir should not fail
@@ -92,11 +94,11 @@ func TestWriteReportMultipleRuns(t *testing.T) {
 	}
 
 	for _, ts := range timestamps {
-		report := &MonitorReport{
+		report := &schema.MonitorReport{
 			Source:   "mysql",
 			Database: "testdb",
 			RunAt:    ts,
-			Summary:  ReportSummary{TotalChecks: 6, Failed: 3, Passed: 3},
+			Summary:  schema.ReportSummary{TotalChecks: 6, Failed: 3, Passed: 3},
 		}
 		if err := writeReport(report, outputPath, historyDir); err != nil {
 			t.Fatalf("writeReport failed for %s: %v", ts, err)
@@ -117,7 +119,7 @@ func TestWriteReportMultipleRuns(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to read latest report: %v", err)
 	}
-	var parsed MonitorReport
+	var parsed schema.MonitorReport
 	if err := json.Unmarshal(data, &parsed); err != nil {
 		t.Fatalf("Latest report is not valid JSON: %v", err)
 	}

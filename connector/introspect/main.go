@@ -35,43 +35,10 @@ import (
 	"os"
 	"time"
 
+	"github.com/noui/connector-lab/schema"
+
 	_ "github.com/go-sql-driver/mysql"
 )
-
-// SchemaManifest is the top-level output structure.
-type SchemaManifest struct {
-	Source         string      `json:"source"`
-	Driver        string      `json:"driver"`
-	Database      string      `json:"database"`
-	IntrospectedAt string     `json:"introspected_at"`
-	TableCount    int         `json:"table_count"`
-	Tables        []TableInfo `json:"tables"`
-}
-
-// TableInfo describes a single table.
-type TableInfo struct {
-	Name        string       `json:"name"`
-	RowCount    int64        `json:"row_count"`
-	Columns     []ColumnInfo `json:"columns"`
-	ForeignKeys []ForeignKey `json:"foreign_keys"`
-	NoUITags    []string     `json:"noui_tags"` // populated by tagger
-}
-
-// ColumnInfo describes a single column.
-type ColumnInfo struct {
-	Name       string `json:"name"`
-	DataType   string `json:"data_type"`
-	IsNullable bool   `json:"is_nullable"`
-	IsKey      string `json:"key_type"` // PRI, UNI, MUL, ""
-}
-
-// ForeignKey describes a referential constraint.
-type ForeignKey struct {
-	ConstraintName   string `json:"constraint_name"`
-	Column           string `json:"column"`
-	ReferencedTable  string `json:"referenced_table"`
-	ReferencedColumn string `json:"referenced_column"`
-}
 
 func main() {
 	driver := flag.String("driver", "mysql", "Database driver: mysql | postgres")
@@ -102,7 +69,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to marshal manifest: %v", err)
 	}
-
 	if err := os.WriteFile(*output, data, 0644); err != nil {
 		log.Fatalf("Failed to write output: %v", err)
 	}
@@ -111,8 +77,8 @@ func main() {
 	log.Printf("Tables discovered: %d", manifest.TableCount)
 }
 
-func introspect(db *sql.DB, adapter SchemaAdapter, driver, dbName string) (*SchemaManifest, error) {
-	manifest := &SchemaManifest{
+func introspect(db *sql.DB, adapter SchemaAdapter, driver, dbName string) (*schema.SchemaManifest, error) {
+	manifest := &schema.SchemaManifest{
 		Source:         dbName,
 		Driver:         driver,
 		Database:       dbName,

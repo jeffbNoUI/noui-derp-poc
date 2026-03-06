@@ -10,6 +10,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // Server is the monitoring dashboard HTTP server.
@@ -39,7 +41,7 @@ func (s *Server) LoadReport() error {
 		return fmt.Errorf("reading report file: %w", err)
 	}
 
-	var report MonitorReport
+	var report schema.MonitorReport
 	if err := json.Unmarshal(data, &report); err != nil {
 		return fmt.Errorf("parsing report JSON: %w", err)
 	}
@@ -193,14 +195,14 @@ func (s *Server) handleChecks(w http.ResponseWriter, r *http.Request) {
 
 	// Filter by status if requested.
 	if statusFilter := r.URL.Query().Get("status"); statusFilter != "" {
-		checks = filterChecks(checks, func(c CheckResult) bool {
+		checks = filterChecks(checks, func(c schema.CheckResult) bool {
 			return strings.EqualFold(c.Status, statusFilter)
 		})
 	}
 
 	// Filter by category if requested.
 	if categoryFilter := r.URL.Query().Get("category"); categoryFilter != "" {
-		checks = filterChecks(checks, func(c CheckResult) bool {
+		checks = filterChecks(checks, func(c schema.CheckResult) bool {
 			return strings.EqualFold(c.Category, categoryFilter)
 		})
 	}
@@ -274,8 +276,8 @@ func (s *Server) handleHistory(w http.ResponseWriter, r *http.Request) {
 
 // --- Helpers ---
 
-func filterChecks(checks []CheckResult, fn func(CheckResult) bool) []CheckResult {
-	var result []CheckResult
+func filterChecks(checks []schema.CheckResult, fn func(schema.CheckResult) bool) []schema.CheckResult {
+	var result []schema.CheckResult
 	for _, c := range checks {
 		if fn(c) {
 			result = append(result, c)

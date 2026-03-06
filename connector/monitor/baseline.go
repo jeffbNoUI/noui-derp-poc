@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"math"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // round2 rounds a float64 to 2 decimal places.
@@ -11,136 +13,43 @@ func round2(v float64) float64 {
 	return math.Round(v*100) / 100
 }
 
-// ComputeBaselines queries the database and establishes statistical baselines
-// for key HR/payroll metrics. All numeric outputs are rounded to 2 decimal places.
-func ComputeBaselines(db *sql.DB) ([]Baseline, error) {
-	var baselines []Baseline
-
-	// 1. Monthly employee count: avg number of salary slips per month
-	empCount, err := computeMonthlyEmployeeCount(db)
-	if err != nil {
-		return nil, fmt.Errorf("monthly_employee_count: %w", err)
+// ComputeBaselines queries the database via the adapter and establishes
+// statistical baselines for key HR/payroll metrics. All numeric outputs
+// are rounded to 2 decimal places.
+func ComputeBaselines(db *sql.DB, adapter MonitorAdapter) ([]schema.Baseline, error) {
+	type baselineQuery struct {
+		name    string
+		queryFn func(*sql.DB) (*sql.Rows, error)
 	}
-	baselines = append(baselines, empCount)
 
-	// 2. Monthly gross total: avg total gross pay per month
-	grossTotal, err := computeMonthlyGrossTotal(db)
-	if err != nil {
-		return nil, fmt.Errorf("monthly_gross_total: %w", err)
+	queries := []baselineQuery{
+		{"monthly_employee_count", adapter.QueryMonthlyEmployeeCount},
+		{"monthly_gross_total", adapter.QueryMonthlyGrossTotal},
+		{"monthly_avg_gross", adapter.QueryMonthlyAvgGross},
+		{"avg_leave_allocation", adapter.QueryAvgLeaveAllocation},
+		{"monthly_payroll_runs", adapter.QueryMonthlyPayrollRuns},
 	}
-	baselines = append(baselines, grossTotal)
 
-	// 3. Monthly average gross: avg gross pay per employee per month
-	avgGross, err := computeMonthlyAvgGross(db)
-	if err != nil {
-		return nil, fmt.Errorf("monthly_avg_gross: %w", err)
+	var baselines []schema.Baseline
+	for _, q := range queries {
+		rows, err := q.queryFn(db)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", q.name, err)
+		}
+		values, err := scanFloatRows(rows)
+		if err != nil {
+			return nil, fmt.Errorf("%s: %w", q.name, err)
+		}
+		baselines = append(baselines, computeStats(q.name, values))
 	}
-	baselines = append(baselines, avgGross)
-
-	// 4. Average leave allocation per employee per year
-	leaveAlloc, err := computeAvgLeaveAllocation(db)
-	if err != nil {
-		return nil, fmt.Errorf("avg_leave_allocation: %w", err)
-	}
-	baselines = append(baselines, leaveAlloc)
-
-	// 5. Monthly payroll runs: expected 1 per month
-	payrollRuns, err := computeMonthlyPayrollRuns(db)
-	if err != nil {
-		return nil, fmt.Errorf("monthly_payroll_runs: %w", err)
-	}
-	baselines = append(baselines, payrollRuns)
 
 	return baselines, nil
 }
 
-// computeMonthlyEmployeeCount returns statistics on the count of salary slips per month.
-func computeMonthlyEmployeeCount(db *sql.DB) (Baseline, error) {
-	query := `
-		SELECT COUNT(*) AS slip_count
-		FROM ` + "`tabSalary Slip`" + `
-		WHERE docstatus = 1
-		GROUP BY YEAR(start_date), MONTH(start_date)
-		ORDER BY YEAR(start_date), MONTH(start_date)
-	`
-	values, err := queryFloatColumn(db, query)
-	if err != nil {
-		return Baseline{}, err
-	}
-	return computeStats("monthly_employee_count", values), nil
-}
-
-// computeMonthlyGrossTotal returns statistics on total gross pay per month.
-func computeMonthlyGrossTotal(db *sql.DB) (Baseline, error) {
-	query := `
-		SELECT COALESCE(SUM(gross_pay), 0) AS total_gross
-		FROM ` + "`tabSalary Slip`" + `
-		WHERE docstatus = 1
-		GROUP BY YEAR(start_date), MONTH(start_date)
-		ORDER BY YEAR(start_date), MONTH(start_date)
-	`
-	values, err := queryFloatColumn(db, query)
-	if err != nil {
-		return Baseline{}, err
-	}
-	return computeStats("monthly_gross_total", values), nil
-}
-
-// computeMonthlyAvgGross returns statistics on average gross pay per employee per month.
-func computeMonthlyAvgGross(db *sql.DB) (Baseline, error) {
-	query := `
-		SELECT COALESCE(AVG(gross_pay), 0) AS avg_gross
-		FROM ` + "`tabSalary Slip`" + `
-		WHERE docstatus = 1
-		GROUP BY YEAR(start_date), MONTH(start_date)
-		ORDER BY YEAR(start_date), MONTH(start_date)
-	`
-	values, err := queryFloatColumn(db, query)
-	if err != nil {
-		return Baseline{}, err
-	}
-	return computeStats("monthly_avg_gross", values), nil
-}
-
-// computeAvgLeaveAllocation returns statistics on leaves allocated per employee per year.
-func computeAvgLeaveAllocation(db *sql.DB) (Baseline, error) {
-	query := `
-		SELECT COALESCE(total_leaves_allocated, 0) AS leaves
-		FROM ` + "`tabLeave Allocation`" + `
-		WHERE docstatus = 1
-	`
-	values, err := queryFloatColumn(db, query)
-	if err != nil {
-		return Baseline{}, err
-	}
-	return computeStats("avg_leave_allocation", values), nil
-}
-
-// computeMonthlyPayrollRuns returns statistics on the number of payroll entries per month.
-func computeMonthlyPayrollRuns(db *sql.DB) (Baseline, error) {
-	query := `
-		SELECT COUNT(*) AS run_count
-		FROM ` + "`tabPayroll Entry`" + `
-		WHERE docstatus = 1
-		GROUP BY YEAR(start_date), MONTH(start_date)
-		ORDER BY YEAR(start_date), MONTH(start_date)
-	`
-	values, err := queryFloatColumn(db, query)
-	if err != nil {
-		return Baseline{}, err
-	}
-	return computeStats("monthly_payroll_runs", values), nil
-}
-
-// queryFloatColumn executes a query and returns a slice of float64 values
-// from the first column of each result row.
-func queryFloatColumn(db *sql.DB, query string) ([]float64, error) {
-	rows, err := db.Query(query)
-	if err != nil {
-		return nil, err
-	}
+// scanFloatRows reads all rows from a result set, extracting the first column
+// as float64. Closes the rows when done.
+func scanFloatRows(rows *sql.Rows) ([]float64, error) {
 	defer rows.Close()
-
 	var values []float64
 	for rows.Next() {
 		var v float64
@@ -154,8 +63,8 @@ func queryFloatColumn(db *sql.DB, query string) ([]float64, error) {
 
 // computeStats calculates mean, standard deviation, min, max from a slice of values.
 // All outputs are rounded to 2 decimal places.
-func computeStats(name string, values []float64) Baseline {
-	b := Baseline{
+func computeStats(name string, values []float64) schema.Baseline {
+	b := schema.Baseline{
 		MetricName: name,
 		SampleSize: len(values),
 	}

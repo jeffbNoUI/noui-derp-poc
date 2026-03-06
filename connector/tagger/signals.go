@@ -3,11 +3,13 @@ package main
 import (
 	"fmt"
 	"strings"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // hasColumnMatching returns true if any column name contains any of the given substrings.
 // Matching is case-insensitive. Returns the first match as evidence.
-func hasColumnMatching(table TableInfo, substrings []string) (bool, string) {
+func hasColumnMatching(table schema.TableInfo, substrings []string) (bool, string) {
 	for _, col := range table.Columns {
 		lower := strings.ToLower(col.Name)
 		for _, sub := range substrings {
@@ -20,7 +22,7 @@ func hasColumnMatching(table TableInfo, substrings []string) (bool, string) {
 }
 
 // columnsMatching returns all column names that match any of the given substrings.
-func columnsMatching(table TableInfo, substrings []string) []string {
+func columnsMatching(table schema.TableInfo, substrings []string) []string {
 	var matches []string
 	for _, col := range table.Columns {
 		lower := strings.ToLower(col.Name)
@@ -35,12 +37,12 @@ func columnsMatching(table TableInfo, substrings []string) []string {
 }
 
 // countColumnsMatching returns how many columns match any of the given substrings.
-func countColumnsMatching(table TableInfo, substrings []string) int {
+func countColumnsMatching(table schema.TableInfo, substrings []string) int {
 	return len(columnsMatching(table, substrings))
 }
 
 // hasColumnPair returns true if the table has columns matching both pattern sets.
-func hasColumnPair(table TableInfo, patternsA, patternsB []string) (bool, string) {
+func hasColumnPair(table schema.TableInfo, patternsA, patternsB []string) (bool, string) {
 	foundA, evA := hasColumnMatching(table, patternsA)
 	foundB, evB := hasColumnMatching(table, patternsB)
 	if foundA && foundB {
@@ -50,7 +52,7 @@ func hasColumnPair(table TableInfo, patternsA, patternsB []string) (bool, string
 }
 
 // tableNameContains returns true if the table name contains any of the given substrings.
-func tableNameContains(table TableInfo, substrings []string) (bool, string) {
+func tableNameContains(table schema.TableInfo, substrings []string) (bool, string) {
 	lower := strings.ToLower(table.Name)
 	for _, sub := range substrings {
 		if strings.Contains(lower, strings.ToLower(sub)) {
@@ -62,7 +64,7 @@ func tableNameContains(table TableInfo, substrings []string) (bool, string) {
 
 // tableNameContainsButNot returns true if the table name contains any of the include
 // substrings but none of the exclude substrings.
-func tableNameContainsButNot(table TableInfo, include, exclude []string) (bool, string) {
+func tableNameContainsButNot(table schema.TableInfo, include, exclude []string) (bool, string) {
 	lower := strings.ToLower(table.Name)
 	for _, ex := range exclude {
 		if strings.Contains(lower, strings.ToLower(ex)) {
@@ -73,7 +75,7 @@ func tableNameContainsButNot(table TableInfo, include, exclude []string) (bool, 
 }
 
 // decimalColumnRatio returns the fraction of columns that are decimal/numeric types.
-func decimalColumnRatio(table TableInfo) float64 {
+func decimalColumnRatio(table schema.TableInfo) float64 {
 	if len(table.Columns) == 0 {
 		return 0
 	}
@@ -89,7 +91,7 @@ func decimalColumnRatio(table TableInfo) float64 {
 
 // dateColumnCount returns the number of date/datetime/timestamp columns,
 // excluding common framework columns (creation, modified) that appear on most tables.
-func dateColumnCount(table TableInfo) int {
+func dateColumnCount(table schema.TableInfo) int {
 	frameworkCols := map[string]bool{
 		"creation": true,
 		"modified": true,
@@ -108,7 +110,7 @@ func dateColumnCount(table TableInfo) int {
 }
 
 // hasDateRangePattern detects from_date/to_date or start_date/end_date column pairs.
-func hasDateRangePattern(table TableInfo) (bool, string) {
+func hasDateRangePattern(table schema.TableInfo) (bool, string) {
 	startPatterns := []string{"from_date", "start_date", "begin_date", "period_start"}
 	endPatterns := []string{"to_date", "end_date", "finish_date", "period_end"}
 	return hasColumnPair(table, startPatterns, endPatterns)
@@ -116,7 +118,7 @@ func hasDateRangePattern(table TableInfo) (bool, string) {
 
 // fkReferencesTableLike returns true if any FK references a table whose name
 // matches one of the given substrings.
-func fkReferencesTableLike(table TableInfo, substrings []string) (bool, string) {
+func fkReferencesTableLike(table schema.TableInfo, substrings []string) (bool, string) {
 	for _, fk := range table.ForeignKeys {
 		lower := strings.ToLower(fk.ReferencedTable)
 		for _, sub := range substrings {
@@ -131,7 +133,7 @@ func fkReferencesTableLike(table TableInfo, substrings []string) (bool, string) 
 // hasColumnLinkToTableLike returns true if any column name suggests a link to
 // an entity matching the given substrings (e.g., a column named "employee"
 // suggests a link to an employee table, even without a formal FK).
-func hasColumnLinkToTableLike(table TableInfo, substrings []string) (bool, string) {
+func hasColumnLinkToTableLike(table schema.TableInfo, substrings []string) (bool, string) {
 	for _, col := range table.Columns {
 		lower := strings.ToLower(col.Name)
 		for _, sub := range substrings {
@@ -144,6 +146,6 @@ func hasColumnLinkToTableLike(table TableInfo, substrings []string) (bool, strin
 }
 
 // hasStatusColumn detects a status-like column.
-func hasStatusColumn(table TableInfo) (bool, string) {
+func hasStatusColumn(table schema.TableInfo) (bool, string) {
 	return hasColumnMatching(table, []string{"status"})
 }

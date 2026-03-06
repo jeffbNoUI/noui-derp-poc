@@ -11,12 +11,14 @@ import (
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // RunScheduled runs the monitor on a fixed interval, writing each report to
 // both the latest output path and a timestamped file in historyDir.
 // It blocks until interrupted by SIGINT/SIGTERM.
-func RunScheduled(db *sql.DB, driver, database, outputPath, historyDir string, interval time.Duration, baselineOnly, checksOnly bool) {
+func RunScheduled(db *sql.DB, adapter MonitorAdapter, driver, database, outputPath, historyDir string, interval time.Duration, baselineOnly, checksOnly bool) {
 	// Ensure history directory exists
 	if historyDir != "" {
 		if err := os.MkdirAll(historyDir, 0755); err != nil {
@@ -34,7 +36,7 @@ func RunScheduled(db *sql.DB, driver, database, outputPath, historyDir string, i
 		runCount++
 		log.Printf("--- Scheduled run #%d ---", runCount)
 
-		report, err := RunMonitor(db, driver, database, baselineOnly, checksOnly)
+		report, err := RunMonitor(db, adapter, driver, database, baselineOnly, checksOnly)
 		if err != nil {
 			log.Printf("Monitor run #%d failed: %v", runCount, err)
 		} else {
@@ -60,7 +62,7 @@ func RunScheduled(db *sql.DB, driver, database, outputPath, historyDir string, i
 
 // writeReport writes the monitor report to the output path and optionally
 // to a timestamped file in the history directory.
-func writeReport(report *MonitorReport, outputPath, historyDir string) error {
+func writeReport(report *schema.MonitorReport, outputPath, historyDir string) error {
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {
 		return fmt.Errorf("marshaling report: %w", err)

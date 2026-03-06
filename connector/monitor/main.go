@@ -34,6 +34,7 @@ import (
 	"time"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -65,18 +66,21 @@ func main() {
 	}
 	log.Println("Connected.")
 
+	adapter := NewMonitorAdapter(*driver)
+	log.Printf("Using %s monitor adapter", *driver)
+
 	// Scheduled mode: run in a loop until interrupted
 	if *schedule != "" {
 		interval, err := time.ParseDuration(*schedule)
 		if err != nil {
 			log.Fatalf("Invalid schedule interval %q: %v", *schedule, err)
 		}
-		RunScheduled(db, *driver, database, *output, *historyDir, interval, *baselineOnly, *checksOnly)
+		RunScheduled(db, adapter, *driver, database, *output, *historyDir, interval, *baselineOnly, *checksOnly)
 		return
 	}
 
 	// Single-run mode
-	report, err := RunMonitor(db, *driver, database, *baselineOnly, *checksOnly)
+	report, err := RunMonitor(db, adapter, *driver, database, *baselineOnly, *checksOnly)
 	if err != nil {
 		log.Fatalf("Monitor run failed: %v", err)
 	}

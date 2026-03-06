@@ -4,19 +4,18 @@ import (
 	"database/sql"
 	"fmt"
 
+	"github.com/noui/connector-lab/schema"
+
 	_ "github.com/lib/pq"
 )
 
 // PostgresAdapter implements SchemaAdapter for PostgreSQL databases.
 type PostgresAdapter struct{}
 
-func (a *PostgresAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, error) {
-	// PostgreSQL: use pg_stat_user_tables for accurate row counts (n_live_tup)
-	// instead of information_schema.tables which doesn't expose TABLE_ROWS.
-	// dbName maps to schema_name (typically "public").
-	schema := dbName
-	if schema == "" {
-		schema = "public"
+func (a *PostgresAdapter) GetTables(db *sql.DB, dbName string) ([]schema.TableInfo, error) {
+	schemaName := dbName
+	if schemaName == "" {
+		schemaName = "public"
 	}
 
 	rows, err := db.Query(`
@@ -27,15 +26,15 @@ func (a *PostgresAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, err
 		WHERE t.table_schema = $1
 		  AND t.table_type = 'BASE TABLE'
 		ORDER BY t.table_name
-	`, schema)
+	`, schemaName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
 
-	var tables []TableInfo
+	var tables []schema.TableInfo
 	for rows.Next() {
-		var t TableInfo
+		var t schema.TableInfo
 		if err := rows.Scan(&t.Name, &t.RowCount); err != nil {
 			return nil, err
 		}
@@ -44,14 +43,12 @@ func (a *PostgresAdapter) GetTables(db *sql.DB, dbName string) ([]TableInfo, err
 	return tables, rows.Err()
 }
 
-func (a *PostgresAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]ColumnInfo, error) {
-	schema := dbName
-	if schema == "" {
-		schema = "public"
+func (a *PostgresAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]schema.ColumnInfo, error) {
+	schemaName := dbName
+	if schemaName == "" {
+		schemaName = "public"
 	}
 
-	// PostgreSQL: information_schema.columns has no COLUMN_KEY.
-	// We determine key type by joining with constraint information.
 	rows, err := db.Query(`
 		SELECT
 			c.column_name,
@@ -82,15 +79,15 @@ func (a *PostgresAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]Co
 		WHERE c.table_schema = $1
 		  AND c.table_name = $2
 		ORDER BY c.ordinal_position
-	`, schema, tableName)
+	`, schemaName, tableName)
 	if err != nil {
-		return nil, fmt.Errorf("querying columns for %s.%s: %w", schema, tableName, err)
+		return nil, fmt.Errorf("querying columns for %s.%s: %w", schemaName, tableName, err)
 	}
 	defer rows.Close()
 
-	var cols []ColumnInfo
+	var cols []schema.ColumnInfo
 	for rows.Next() {
-		var c ColumnInfo
+		var c schema.ColumnInfo
 		var nullable string
 		if err := rows.Scan(&c.Name, &c.DataType, &nullable, &c.IsKey); err != nil {
 			return nil, err
@@ -101,14 +98,12 @@ func (a *PostgresAdapter) GetColumns(db *sql.DB, dbName, tableName string) ([]Co
 	return cols, rows.Err()
 }
 
-func (a *PostgresAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) ([]ForeignKey, error) {
-	schema := dbName
-	if schema == "" {
-		schema = "public"
+func (a *PostgresAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) ([]schema.ForeignKey, error) {
+	schemaName := dbName
+	if schemaName == "" {
+		schemaName = "public"
 	}
 
-	// PostgreSQL: information_schema.KEY_COLUMN_USAGE lacks REFERENCED_TABLE_NAME.
-	// Use referential_constraints to bridge source and target key_column_usage entries.
 	rows, err := db.Query(`
 		SELECT
 			tc.constraint_name,
@@ -126,15 +121,15 @@ func (a *PostgresAdapter) GetForeignKeys(db *sql.DB, dbName, tableName string) (
 		  AND tc.table_schema = $1
 		  AND tc.table_name = $2
 		ORDER BY tc.constraint_name
-	`, schema, tableName)
+	`, schemaName, tableName)
 	if err != nil {
-		return nil, fmt.Errorf("querying FKs for %s.%s: %w", schema, tableName, err)
+		return nil, fmt.Errorf("querying FKs for %s.%s: %w", schemaName, tableName, err)
 	}
 	defer rows.Close()
 
-	var fks []ForeignKey
+	var fks []schema.ForeignKey
 	for rows.Next() {
-		var fk ForeignKey
+		var fk schema.ForeignKey
 		if err := rows.Scan(&fk.ConstraintName, &fk.Column,
 			&fk.ReferencedTable, &fk.ReferencedColumn); err != nil {
 			return nil, err

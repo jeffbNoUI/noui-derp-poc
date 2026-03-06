@@ -7,14 +7,16 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // testReport is a small fixture report used across tests.
-var testReport = MonitorReport{
+var testReport = schema.MonitorReport{
 	Source:   "erpnext",
 	Database: "_0919b4e09c48d335",
 	RunAt:    "2026-03-06T10:00:00Z",
-	Baselines: []Baseline{
+	Baselines: []schema.Baseline{
 		{
 			MetricName: "employee_count",
 			Mean:       200.0,
@@ -32,7 +34,7 @@ var testReport = MonitorReport{
 			SampleSize: 36,
 		},
 	},
-	Checks: []CheckResult{
+	Checks: []schema.CheckResult{
 		{
 			CheckName: "employee_count_check",
 			Category:  "completeness",
@@ -66,7 +68,7 @@ var testReport = MonitorReport{
 			Timestamp: "2026-03-06T10:00:02Z",
 		},
 	},
-	Summary: ReportSummary{
+	Summary: schema.ReportSummary{
 		TotalChecks: 3,
 		Passed:      1,
 		Warnings:    1,
@@ -195,7 +197,7 @@ func TestReportEndpoint(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var report MonitorReport
+	var report schema.MonitorReport
 	if err := json.NewDecoder(resp.Body).Decode(&report); err != nil {
 		t.Fatalf("decoding report: %v", err)
 	}
@@ -265,7 +267,7 @@ func TestSummaryEndpoint(t *testing.T) {
 		t.Error("expected 'baselines' key in response")
 	}
 
-	var summary ReportSummary
+	var summary schema.ReportSummary
 	if err := json.Unmarshal(body["summary"], &summary); err != nil {
 		t.Fatalf("decoding summary: %v", err)
 	}
@@ -290,7 +292,7 @@ func TestChecksEndpoint(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var checks []CheckResult
+	var checks []schema.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&checks); err != nil {
 		t.Fatalf("decoding checks: %v", err)
 	}
@@ -313,7 +315,7 @@ func TestChecksFilterByStatus(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var checks []CheckResult
+	var checks []schema.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&checks); err != nil {
 		t.Fatalf("decoding checks: %v", err)
 	}
@@ -339,7 +341,7 @@ func TestChecksFilterByCategory(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var checks []CheckResult
+	var checks []schema.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&checks); err != nil {
 		t.Fatalf("decoding checks: %v", err)
 	}
@@ -363,7 +365,7 @@ func TestChecksFilterCombined(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	var checks []CheckResult
+	var checks []schema.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&checks); err != nil {
 		t.Fatalf("decoding checks: %v", err)
 	}
@@ -389,7 +391,7 @@ func TestCheckByName(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var check CheckResult
+	var check schema.CheckResult
 	if err := json.NewDecoder(resp.Body).Decode(&check); err != nil {
 		t.Fatalf("decoding check: %v", err)
 	}
@@ -438,7 +440,7 @@ func TestBaselinesEndpoint(t *testing.T) {
 		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 
-	var baselines []Baseline
+	var baselines []schema.Baseline
 	if err := json.NewDecoder(resp.Body).Decode(&baselines); err != nil {
 		t.Fatalf("decoding baselines: %v", err)
 	}

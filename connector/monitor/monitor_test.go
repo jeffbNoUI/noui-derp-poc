@@ -3,6 +3,8 @@ package main
 import (
 	"math"
 	"testing"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // ============================================================================
@@ -128,7 +130,7 @@ func TestRound2(t *testing.T) {
 // ============================================================================
 
 func TestCheckResultFields(t *testing.T) {
-	r := CheckResult{
+	r := schema.CheckResult{
 		CheckName: "test_check",
 		Category:  "validity",
 		Status:    "pass",
@@ -151,7 +153,7 @@ func TestCheckResultFields(t *testing.T) {
 }
 
 func TestReportSummaryAggregation(t *testing.T) {
-	checks := []CheckResult{
+	checks := []schema.CheckResult{
 		{Status: "pass"},
 		{Status: "pass"},
 		{Status: "warn"},
@@ -160,7 +162,7 @@ func TestReportSummaryAggregation(t *testing.T) {
 		{Status: "fail"},
 	}
 
-	summary := ReportSummary{TotalChecks: len(checks)}
+	summary := schema.ReportSummary{TotalChecks: len(checks)}
 	for _, c := range checks {
 		switch c.Status {
 		case "pass":
@@ -187,13 +189,13 @@ func TestReportSummaryAggregation(t *testing.T) {
 }
 
 func TestAllPassScenario(t *testing.T) {
-	checks := []CheckResult{
+	checks := []schema.CheckResult{
 		{Status: "pass"},
 		{Status: "pass"},
 		{Status: "pass"},
 	}
 
-	summary := ReportSummary{TotalChecks: len(checks)}
+	summary := schema.ReportSummary{TotalChecks: len(checks)}
 	for _, c := range checks {
 		if c.Status == "pass" {
 			summary.Passed++
@@ -210,12 +212,12 @@ func TestAllPassScenario(t *testing.T) {
 
 // ============================================================================
 // Check logic documentation tests
-// These tests verify that AllChecks() returns the expected set of 6 checks
+// These tests verify that AllChecks(NewMonitorAdapter("mysql")) returns the expected set of 6 checks
 // and document what each check verifies.
 // ============================================================================
 
 func TestAllChecksCount(t *testing.T) {
-	checks := AllChecks()
+	checks := AllChecks(NewMonitorAdapter("mysql"))
 	if len(checks) != 6 {
 		t.Errorf("expected 6 monitoring checks, got %d", len(checks))
 	}
@@ -317,7 +319,7 @@ func TestContributionImbalanceCheckDescription(t *testing.T) {
 // ============================================================================
 
 func TestBaselineType(t *testing.T) {
-	b := Baseline{
+	b := schema.Baseline{
 		MetricName: "test",
 		Mean:       100.50,
 		StdDev:     10.25,
@@ -342,18 +344,18 @@ func TestBaselineType(t *testing.T) {
 // ============================================================================
 
 func TestMonitorReportStructure(t *testing.T) {
-	report := MonitorReport{
+	report := schema.MonitorReport{
 		Source:   "mysql",
 		Database: "test_db",
 		RunAt:   "2026-01-01T00:00:00Z",
-		Baselines: []Baseline{
+		Baselines: []schema.Baseline{
 			{MetricName: "metric1", Mean: 10, SampleSize: 5},
 		},
-		Checks: []CheckResult{
+		Checks: []schema.CheckResult{
 			{CheckName: "check1", Status: "pass"},
 			{CheckName: "check2", Status: "fail", Details: []string{"error1"}},
 		},
-		Summary: ReportSummary{
+		Summary: schema.ReportSummary{
 			TotalChecks: 2,
 			Passed:      1,
 			Failed:      1,
@@ -406,7 +408,7 @@ func TestExtractDBFromDSN(t *testing.T) {
 // ============================================================================
 
 func TestCheckResultEmptyDetails(t *testing.T) {
-	r := CheckResult{
+	r := schema.CheckResult{
 		CheckName: "empty_check",
 		Status:    "pass",
 		Message:   "nothing found",

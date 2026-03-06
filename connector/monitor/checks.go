@@ -5,22 +5,25 @@ import (
 	"fmt"
 	"math"
 	"time"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // CheckFunc is the signature for a monitoring check function.
-// Each check queries the database and returns a CheckResult with
+// Each check queries the database and returns a schema.CheckResult with
 // auditable evidence of what was found.
-type CheckFunc func(db *sql.DB) CheckResult
+type CheckFunc func(db *sql.DB) schema.CheckResult
 
-// AllChecks returns the ordered list of all monitoring check functions.
-func AllChecks() []CheckFunc {
+// AllChecks returns the ordered list of all monitoring check functions,
+// using the given adapter for database-specific queries.
+func AllChecks(adapter MonitorAdapter) []CheckFunc {
 	return []CheckFunc{
-		SalaryGapCheck,
-		NegativeLeaveBalanceCheck,
-		MissingTerminationCheck,
-		MissingPayrollRunCheck,
-		InvalidHireDateCheck,
-		ContributionImbalanceCheck,
+		func(db *sql.DB) schema.CheckResult { return SalaryGapCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return NegativeLeaveBalanceCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return MissingTerminationCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return MissingPayrollRunCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return InvalidHireDateCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return ContributionImbalanceCheck(db, adapter) },
 	}
 }
 
@@ -31,24 +34,15 @@ func AllChecks() []CheckFunc {
 //
 // Category: completeness
 // Evidence: employee name + missing month(s)
-func SalaryGapCheck(db *sql.DB) CheckResult {
+func SalaryGapCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "salary_gap_check",
 		Category:  "completeness",
 		Timestamp: now,
 	}
 
-	// Get all employee/month combinations from submitted salary slips
-	query := `
-		SELECT employee_name,
-		       YEAR(start_date) AS yr,
-		       MONTH(start_date) AS mo
-		FROM ` + "`tabSalary Slip`" + `
-		WHERE docstatus = 1
-		ORDER BY employee_name, yr, mo
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QuerySalarySlipMonths(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)
@@ -124,21 +118,15 @@ func SalaryGapCheck(db *sql.DB) CheckResult {
 //
 // Category: validity
 // Evidence: employee name + negative amount
-func NegativeLeaveBalanceCheck(db *sql.DB) CheckResult {
+func NegativeLeaveBalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "negative_leave_balance_check",
 		Category:  "validity",
 		Timestamp: now,
 	}
 
-	query := `
-		SELECT employee_name, leave_type, total_leaves_allocated
-		FROM ` + "`tabLeave Allocation`" + `
-		WHERE total_leaves_allocated < 0
-		  AND docstatus = 1
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QueryNegativeLeaveBalances(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)
@@ -185,23 +173,15 @@ func NegativeLeaveBalanceCheck(db *sql.DB) CheckResult {
 //
 // Category: completeness
 // Evidence: employee IDs missing separation records
-func MissingTerminationCheck(db *sql.DB) CheckResult {
+func MissingTerminationCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "missing_termination_check",
 		Category:  "completeness",
 		Timestamp: now,
 	}
 
-	query := `
-		SELECT e.name, e.employee_name
-		FROM ` + "`tabEmployee`" + ` e
-		LEFT JOIN ` + "`tabEmployee Separation`" + ` es
-		  ON e.name = es.employee
-		WHERE e.status = 'Left'
-		  AND es.name IS NULL
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QueryMissingTerminations(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)
@@ -247,32 +227,15 @@ func MissingTerminationCheck(db *sql.DB) CheckResult {
 //
 // Category: completeness
 // Evidence: months with salary slips but no payroll entry
-func MissingPayrollRunCheck(db *sql.DB) CheckResult {
+func MissingPayrollRunCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "missing_payroll_run_check",
 		Category:  "completeness",
 		Timestamp: now,
 	}
 
-	// Get months that have submitted salary slips but no submitted payroll entry
-	query := `
-		SELECT ss_months.yr, ss_months.mo
-		FROM (
-			SELECT DISTINCT YEAR(start_date) AS yr, MONTH(start_date) AS mo
-			FROM ` + "`tabSalary Slip`" + `
-			WHERE docstatus = 1
-		) ss_months
-		LEFT JOIN (
-			SELECT DISTINCT YEAR(start_date) AS yr, MONTH(start_date) AS mo
-			FROM ` + "`tabPayroll Entry`" + `
-			WHERE docstatus = 1
-		) pe_months
-		  ON ss_months.yr = pe_months.yr AND ss_months.mo = pe_months.mo
-		WHERE pe_months.yr IS NULL
-		ORDER BY ss_months.yr, ss_months.mo
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QueryMissingPayrollRuns(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)
@@ -318,20 +281,15 @@ func MissingPayrollRunCheck(db *sql.DB) CheckResult {
 //
 // Category: validity
 // Evidence: employee IDs and future dates
-func InvalidHireDateCheck(db *sql.DB) CheckResult {
+func InvalidHireDateCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "invalid_hire_date_check",
 		Category:  "validity",
 		Timestamp: now,
 	}
 
-	query := `
-		SELECT name, employee_name, date_of_joining
-		FROM ` + "`tabEmployee`" + `
-		WHERE date_of_joining > CURDATE()
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QueryFutureHireDates(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)
@@ -382,36 +340,15 @@ func InvalidHireDateCheck(db *sql.DB) CheckResult {
 //
 // Category: consistency
 // Evidence: employee IDs, expected base, actual gross, deviation percentage
-func ContributionImbalanceCheck(db *sql.DB) CheckResult {
+func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
-	result := CheckResult{
+	result := schema.CheckResult{
 		CheckName: "contribution_imbalance_check",
 		Category:  "consistency",
 		Timestamp: now,
 	}
 
-	// For each employee, get their latest salary structure assignment base
-	// and compare with their latest salary slip gross_pay.
-	query := `
-		SELECT
-			ss.employee_name,
-			ss.name AS slip_name,
-			ss.gross_pay,
-			ssa.base AS expected_base,
-			ABS(ss.gross_pay - ssa.base) / NULLIF(ssa.base, 0) * 100 AS deviation_pct
-		FROM ` + "`tabSalary Slip`" + ` ss
-		INNER JOIN (
-			SELECT employee, base,
-			       ROW_NUMBER() OVER (PARTITION BY employee ORDER BY from_date DESC) AS rn
-			FROM ` + "`tabSalary Structure Assignment`" + `
-			WHERE docstatus = 1
-		) ssa ON ss.employee = ssa.employee AND ssa.rn = 1
-		WHERE ss.docstatus = 1
-		  AND ssa.base > 0
-		  AND ABS(ss.gross_pay - ssa.base) / ssa.base * 100 > 5
-		ORDER BY deviation_pct DESC
-	`
-	rows, err := db.Query(query)
+	rows, err := adapter.QueryContributionImbalances(db)
 	if err != nil {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("query error: %v", err)

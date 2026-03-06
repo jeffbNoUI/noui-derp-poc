@@ -14,7 +14,11 @@
 
 package main
 
-import "time"
+import (
+	"time"
+
+	"github.com/noui/connector-lab/schema"
+)
 
 // ConceptTag enumerates the recognized concept tags.
 type ConceptTag string
@@ -64,7 +68,7 @@ type TagSummary struct {
 
 // SignalFunc detects whether a signal fires for a given table.
 // Returns (fired, evidence_description).
-type SignalFunc func(table TableInfo, allTables []TableInfo) (bool, string)
+type SignalFunc func(table schema.TableInfo, allTables []schema.TableInfo) (bool, string)
 
 // SignalDef defines a signal detection function and its metadata.
 type SignalDef struct {
@@ -79,43 +83,6 @@ type ConceptDef struct {
 	Tag       ConceptTag
 	Threshold float64
 	Signals   []SignalDef
-}
-
-// --- Schema manifest types (mirrored from connector/introspect) ---
-
-// SchemaManifest is the top-level introspection output.
-type SchemaManifest struct {
-	Source         string      `json:"source"`
-	Driver         string      `json:"driver"`
-	Database       string      `json:"database"`
-	IntrospectedAt string      `json:"introspected_at"`
-	TableCount     int         `json:"table_count"`
-	Tables         []TableInfo `json:"tables"`
-}
-
-// TableInfo describes a single table.
-type TableInfo struct {
-	Name        string       `json:"name"`
-	RowCount    int64        `json:"row_count"`
-	Columns     []ColumnInfo `json:"columns"`
-	ForeignKeys []ForeignKey `json:"foreign_keys"`
-	NoUITags    []string     `json:"noui_tags"`
-}
-
-// ColumnInfo describes a single column.
-type ColumnInfo struct {
-	Name       string `json:"name"`
-	DataType   string `json:"data_type"`
-	IsNullable bool   `json:"is_nullable"`
-	IsKey      string `json:"key_type"`
-}
-
-// ForeignKey describes a referential constraint.
-type ForeignKey struct {
-	ConstraintName   string `json:"constraint_name"`
-	Column           string `json:"column"`
-	ReferencedTable  string `json:"referenced_table"`
-	ReferencedColumn string `json:"referenced_column"`
 }
 
 // Now returns the current time (extracted for testability).

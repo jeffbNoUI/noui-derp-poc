@@ -4,11 +4,13 @@ import (
 	"encoding/json"
 	"os"
 	"testing"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // helper to build a minimal TableInfo for testing
-func makeTable(name string, cols []ColumnInfo, fks []ForeignKey) TableInfo {
-	return TableInfo{
+func makeTable(name string, cols []schema.ColumnInfo, fks []schema.ForeignKey) schema.TableInfo {
+	return schema.TableInfo{
 		Name:        name,
 		RowCount:    100,
 		Columns:     cols,
@@ -17,16 +19,16 @@ func makeTable(name string, cols []ColumnInfo, fks []ForeignKey) TableInfo {
 	}
 }
 
-func col(name, dataType string) ColumnInfo {
-	return ColumnInfo{Name: name, DataType: dataType, IsNullable: true, IsKey: ""}
+func col(name, dataType string) schema.ColumnInfo {
+	return schema.ColumnInfo{Name: name, DataType: dataType, IsNullable: true, IsKey: ""}
 }
 
-func pk(name string) ColumnInfo {
-	return ColumnInfo{Name: name, DataType: "int", IsNullable: false, IsKey: "PRI"}
+func pk(name string) schema.ColumnInfo {
+	return schema.ColumnInfo{Name: name, DataType: "int", IsNullable: false, IsKey: "PRI"}
 }
 
-func fk(colName, refTable, refCol string) ForeignKey {
-	return ForeignKey{
+func fk(colName, refTable, refCol string) schema.ForeignKey {
+	return schema.ForeignKey{
 		ConstraintName:   "fk_" + colName,
 		Column:           colName,
 		ReferencedTable:  refTable,
@@ -44,7 +46,7 @@ func hasTag(tags []ConceptTag, target ConceptTag) bool {
 }
 
 func TestEmployeeMasterTag(t *testing.T) {
-	table := makeTable("Employee Master", []ColumnInfo{
+	table := makeTable("Employee Master", []schema.ColumnInfo{
 		pk("id"),
 		col("first_name", "varchar"),
 		col("last_name", "varchar"),
@@ -58,7 +60,7 @@ func TestEmployeeMasterTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptEmployeeMaster) {
 		t.Errorf("expected employee-master tag, got tags=%v scores=%v", tags, scores)
@@ -66,7 +68,7 @@ func TestEmployeeMasterTag(t *testing.T) {
 }
 
 func TestSalaryHistoryTag(t *testing.T) {
-	table := makeTable("Monthly Pay Slips", []ColumnInfo{
+	table := makeTable("Monthly Pay Slips", []schema.ColumnInfo{
 		pk("id"),
 		col("employee_id", "int"),
 		col("start_date", "date"),
@@ -76,12 +78,12 @@ func TestSalaryHistoryTag(t *testing.T) {
 		col("total_deduction", "decimal"),
 		col("base_gross_pay", "decimal"),
 		col("posting_date", "date"),
-	}, []ForeignKey{
+	}, []schema.ForeignKey{
 		fk("employee_id", "employees", "id"),
 	})
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptSalaryHistory) {
 		t.Errorf("expected salary-history tag, got tags=%v scores=%v", tags, scores)
@@ -89,7 +91,7 @@ func TestSalaryHistoryTag(t *testing.T) {
 }
 
 func TestPayrollRunTag(t *testing.T) {
-	table := makeTable("Payroll Batch", []ColumnInfo{
+	table := makeTable("Payroll Batch", []schema.ColumnInfo{
 		pk("id"),
 		col("start_date", "date"),
 		col("end_date", "date"),
@@ -101,7 +103,7 @@ func TestPayrollRunTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptPayrollRun) {
 		t.Errorf("expected payroll-run tag, got tags=%v scores=%v", tags, scores)
@@ -109,7 +111,7 @@ func TestPayrollRunTag(t *testing.T) {
 }
 
 func TestLeaveBalanceTag(t *testing.T) {
-	table := makeTable("Leave Entitlement", []ColumnInfo{
+	table := makeTable("Leave Entitlement", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("leave_type", "varchar"),
@@ -123,7 +125,7 @@ func TestLeaveBalanceTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptLeaveBalance) {
 		t.Errorf("expected leave-balance tag, got tags=%v scores=%v", tags, scores)
@@ -131,7 +133,7 @@ func TestLeaveBalanceTag(t *testing.T) {
 }
 
 func TestEmploymentTimelineTag(t *testing.T) {
-	table := makeTable("Staff Promotion", []ColumnInfo{
+	table := makeTable("Staff Promotion", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("promotion_date", "date"),
@@ -140,7 +142,7 @@ func TestEmploymentTimelineTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptEmploymentTimeline) {
 		t.Errorf("expected employment-timeline tag, got tags=%v scores=%v", tags, scores)
@@ -148,7 +150,7 @@ func TestEmploymentTimelineTag(t *testing.T) {
 }
 
 func TestAttendanceTag(t *testing.T) {
-	table := makeTable("Daily Attendance Log", []ColumnInfo{
+	table := makeTable("Daily Attendance Log", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("attendance_date", "date"),
@@ -159,7 +161,7 @@ func TestAttendanceTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptAttendance) {
 		t.Errorf("expected attendance tag, got tags=%v scores=%v", tags, scores)
@@ -167,7 +169,7 @@ func TestAttendanceTag(t *testing.T) {
 }
 
 func TestBenefitDeductionTag(t *testing.T) {
-	table := makeTable("Employee Benefit Claims", []ColumnInfo{
+	table := makeTable("Employee Benefit Claims", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("amount", "decimal"),
@@ -178,7 +180,7 @@ func TestBenefitDeductionTag(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, scores, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, scores, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if !hasTag(tags, ConceptBenefitDeduction) {
 		t.Errorf("expected benefit-deduction tag, got tags=%v scores=%v", tags, scores)
@@ -186,14 +188,14 @@ func TestBenefitDeductionTag(t *testing.T) {
 }
 
 func TestNoTagForGenericTable(t *testing.T) {
-	table := makeTable("System Settings", []ColumnInfo{
+	table := makeTable("System Settings", []schema.ColumnInfo{
 		pk("name"),
 		col("value", "text"),
 		col("modified", "datetime"),
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, _, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, _, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if len(tags) > 0 {
 		t.Errorf("expected no tags for generic table, got %v", tags)
@@ -202,7 +204,7 @@ func TestNoTagForGenericTable(t *testing.T) {
 
 func TestMultipleTagsAllowed(t *testing.T) {
 	// A table with salary-history AND benefit-deduction signals
-	table := makeTable("Salary Component Deduction", []ColumnInfo{
+	table := makeTable("Salary Component Deduction", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("gross_pay", "decimal"),
@@ -216,7 +218,7 @@ func TestMultipleTagsAllowed(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	tags, _, _ := AssignTags(table, []TableInfo{table}, concepts)
+	tags, _, _ := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	if len(tags) < 2 {
 		t.Logf("table got %d tags: %v (multiple tags are allowed)", len(tags), tags)
@@ -229,7 +231,7 @@ func TestMinimalFixture(t *testing.T) {
 		t.Fatalf("failed to read fixture: %v", err)
 	}
 
-	var manifest SchemaManifest
+	var manifest schema.SchemaManifest
 	if err := json.Unmarshal(data, &manifest); err != nil {
 		t.Fatalf("failed to parse fixture: %v", err)
 	}
@@ -295,7 +297,7 @@ func TestMinimalFixture(t *testing.T) {
 }
 
 func TestSignalAuditTrail(t *testing.T) {
-	table := makeTable("Salary Slip", []ColumnInfo{
+	table := makeTable("Salary Slip", []schema.ColumnInfo{
 		pk("id"),
 		col("employee", "varchar"),
 		col("gross_pay", "decimal"),
@@ -306,7 +308,7 @@ func TestSignalAuditTrail(t *testing.T) {
 	}, nil)
 
 	concepts := DefaultConcepts()
-	_, _, signals := AssignTags(table, []TableInfo{table}, concepts)
+	_, _, signals := AssignTags(table, []schema.TableInfo{table}, concepts)
 
 	salarySignals := signals[ConceptSalaryHistory]
 	if len(salarySignals) == 0 {

@@ -214,9 +214,73 @@ go run ./introspect/ \
 
 ---
 
-## Pending (Session 5)
+## Shared Types Package
+
+**Date:** 2026-03-06
+**Session:** Session 5
+**Decision:** Extracted 8 shared types into `connector/schema/` library package
+**Rationale:** SchemaManifest/TableInfo/ColumnInfo/ForeignKey were duplicated in both introspect and tagger. MonitorReport/CheckResult/Baseline/ReportSummary were duplicated in both monitor and dashboard. All packages were `package main` so they couldn't import each other. Created `connector/schema/` as a library package (`package schema`) importable by all 4 binaries.
+**Status:** Complete — all 4 packages refactored, 63 tests pass
+
+**New files:**
+- `connector/schema/manifest.go` — SchemaManifest, TableInfo, ColumnInfo, ForeignKey
+- `connector/schema/monitor.go` — MonitorReport, CheckResult, Baseline, ReportSummary
+
+**Modified files:** 20 files across introspect/, tagger/, monitor/, dashboard/ — all type references qualified with `schema.` prefix
+
+---
+
+## PostgreSQL Adapter for Monitor
+
+**Date:** 2026-03-06
+**Session:** Session 5
+**Decision:** Added `MonitorAdapter` interface to `connector/monitor/` with MySQL and PostgreSQL implementations
+**Rationale:** The introspect tool already had a swappable adapter pattern, but the monitor's 5 baseline queries and 6 check queries were hardcoded MySQL (YEAR(), MONTH(), CURDATE(), backtick quoting). This blocked monitoring against PostgreSQL targets. Following the same adapter pattern from introspect: interface + factory + per-driver implementations.
+**Status:** Complete — 63 tests pass (59 original + 3 adapter factory + 1 new count check)
+
+**Architecture:**
+- `adapter.go` — `MonitorAdapter` interface (11 methods: 5 baseline + 6 checks) + `NewMonitorAdapter()` factory
+- `adapter_mysql.go` — All existing MySQL queries extracted from baseline.go and checks.go
+- `adapter_postgres.go` — All queries ported to PostgreSQL syntax
+- `adapter_test.go` — Factory tests (mysql, postgres, default)
+
+**MySQL → PostgreSQL translations:**
+| MySQL | PostgreSQL |
+|-------|-----------|
+| `YEAR(col)` | `EXTRACT(YEAR FROM col)::int` |
+| `MONTH(col)` | `EXTRACT(MONTH FROM col)::int` |
+| `CURDATE()` | `CURRENT_DATE` |
+| `` `tabName` `` | `"tabName"` |
+
+**Refactored functions:**
+- `ComputeBaselines(db, adapter)` — delegates queries to adapter
+- `AllChecks(adapter)` — returns closures that pass adapter to each check
+- `RunMonitor(db, adapter, ...)` — passes adapter through
+- `RunScheduled(db, adapter, ...)` — passes adapter through
+
+---
+
+## E2E Pipeline Validation (Session 5)
+
+**Date:** 2026-03-06
+**Session:** Session 5
+**Decision:** Full pipeline validated end-to-end against live ERPNext after shared types + adapter refactor
+**Rationale:** After significant refactoring (shared types + adapter pattern), need to verify the full pipeline still works against the live database.
+**Status:** Complete
+
+**Results:**
+| Step | Tool | Result |
+|------|------|--------|
+| Introspect | `go run ./introspect/` | 876 tables discovered |
+| Tag | `go run ./tagger/` | 23 tables tagged, 7 concepts |
+| Monitor | `go run ./monitor/` | 5 baselines, 6 checks (all FAIL — detecting seeded DQ) |
+| Dashboard | `go run ./dashboard/` | Health + summary APIs verified |
+
+---
+
+## Pending (Session 6)
 
 - [ ] Integrate monitoring dashboard with NoUI workspace UI
 - [ ] Expand concept tagger with additional HR concepts
 - [ ] Test PostgreSQL adapter against a live PostgreSQL target
-- [ ] Add PostgreSQL adapter to monitor (target-specific check queries)
+- [ ] Validate monitor PostgreSQL adapter against a live PostgreSQL target

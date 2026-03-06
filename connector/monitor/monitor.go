@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"log"
 	"time"
+
+	"github.com/noui/connector-lab/schema"
 )
 
 // RunMonitor connects to the database, computes baselines, runs all checks,
 // and returns a complete MonitorReport.
-func RunMonitor(db *sql.DB, source, database string, baselineOnly, checksOnly bool) (*MonitorReport, error) {
-	report := &MonitorReport{
+func RunMonitor(db *sql.DB, adapter MonitorAdapter, source, database string, baselineOnly, checksOnly bool) (*schema.MonitorReport, error) {
+	report := &schema.MonitorReport{
 		Source:   source,
 		Database: database,
 		RunAt:    time.Now().UTC().Format(time.RFC3339),
@@ -19,7 +21,7 @@ func RunMonitor(db *sql.DB, source, database string, baselineOnly, checksOnly bo
 	// Compute baselines (unless --checks-only)
 	if !checksOnly {
 		log.Println("Computing statistical baselines...")
-		baselines, err := ComputeBaselines(db)
+		baselines, err := ComputeBaselines(db, adapter)
 		if err != nil {
 			return nil, fmt.Errorf("computing baselines: %w", err)
 		}
@@ -33,14 +35,14 @@ func RunMonitor(db *sql.DB, source, database string, baselineOnly, checksOnly bo
 
 	// Stop here if --baseline-only
 	if baselineOnly {
-		report.Summary = ReportSummary{}
+		report.Summary = schema.ReportSummary{}
 		return report, nil
 	}
 
 	// Run all checks
 	log.Println("Running monitoring checks...")
-	checks := AllChecks()
-	var results []CheckResult
+	checks := AllChecks(adapter)
+	var results []schema.CheckResult
 	for _, check := range checks {
 		r := check(db)
 		results = append(results, r)
@@ -58,7 +60,7 @@ func RunMonitor(db *sql.DB, source, database string, baselineOnly, checksOnly bo
 	report.Checks = results
 
 	// Build summary
-	summary := ReportSummary{
+	summary := schema.ReportSummary{
 		TotalChecks: len(results),
 	}
 	for _, r := range results {
