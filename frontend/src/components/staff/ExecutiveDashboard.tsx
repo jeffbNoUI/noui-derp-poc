@@ -1,9 +1,12 @@
-const KPIS = [
+import { useEffect, useState } from 'react';
+import { dqAPI } from '@/lib/dqApi';
+import type { DQScore } from '@/types/DataQuality';
+
+const STATIC_KPIS = [
   { label: 'Cases This Month', value: '127', color: 'text-iw-navy', sub: '+12% vs last month' },
   { label: 'On-Time Rate', value: '96.8%', color: 'text-emerald-600', sub: 'Target: 95%' },
   { label: 'Avg Processing', value: '3.2d', color: 'text-blue-600', sub: 'Best: 2.1d (Lisa P.)' },
   { label: 'Accuracy Rate', value: '99.97%', color: 'text-emerald-600', sub: '1 variance in 312 calcs' },
-  { label: 'Data Quality', value: '4 open', color: 'text-amber-600', sub: '2 critical this month' },
 ];
 
 const VOLUME_DATA = [
@@ -15,18 +18,47 @@ const VOLUME_DATA = [
   { month: 'Feb', value: 127 },
 ];
 
-const SYSTEM_HEALTH = [
+const STATIC_HEALTH = [
   { name: 'Data Connector', status: 'Healthy', healthy: true },
   { name: 'Rules Engine', status: 'Healthy', healthy: true },
   { name: 'Composition Engine', status: 'Healthy', healthy: true },
   { name: 'AI Services', status: 'Healthy', healthy: true },
-  { name: 'Data Quality Engine', status: '2 findings', healthy: false },
 ];
 
 /**
  * Executive Dashboard — KPIs, volume chart, system health.
+ * Data Quality KPI and health status are fetched live from the DQ API.
  */
 export default function ExecutiveDashboard() {
+  const [dqScore, setDqScore] = useState<DQScore | null>(null);
+
+  useEffect(() => {
+    dqAPI.getScore().then(setDqScore).catch(() => {
+      // Fallback: leave dqScore null, dashboard shows hardcoded defaults
+    });
+  }, []);
+
+  const dqKpi = dqScore
+    ? {
+        label: 'Data Quality',
+        value: `${dqScore.openIssues} open`,
+        color: dqScore.criticalIssues > 0 ? 'text-amber-600' : 'text-emerald-600',
+        sub: `${dqScore.criticalIssues} critical · ${dqScore.overallScore.toFixed(1)}% score`,
+      }
+    : { label: 'Data Quality', value: '4 open', color: 'text-amber-600', sub: '2 critical this month' };
+
+  const KPIS = [...STATIC_KPIS, dqKpi];
+
+  const dqHealth = dqScore
+    ? {
+        name: 'Data Quality Engine',
+        status: dqScore.openIssues > 0 ? `${dqScore.openIssues} findings` : 'Healthy',
+        healthy: dqScore.criticalIssues === 0,
+      }
+    : { name: 'Data Quality Engine', status: '2 findings', healthy: false };
+
+  const SYSTEM_HEALTH = [...STATIC_HEALTH, dqHealth];
+
   const maxVolume = Math.max(...VOLUME_DATA.map((d) => d.value));
 
   return (
