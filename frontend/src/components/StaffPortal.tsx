@@ -1,9 +1,16 @@
 import { useState } from 'react';
+import SupervisorDashboard from '@/components/staff/SupervisorDashboard';
+import MemberSearch from '@/components/staff/MemberSearch';
+import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
+import CSRContextHub from '@/components/staff/CSRContextHub';
+import ServiceMap from '@/components/admin/ServiceMap';
 
 interface StaffPortalProps {
-  onOpenCase: (caseId: string, memberId: number, retDate: string) => void;
+  onOpenCase: (caseId: string, memberId: number, retDate: string, flags?: string[]) => void;
   onChangeView: (mode: string) => void;
 }
+
+type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map';
 
 const WORK_QUEUE = [
   {
@@ -97,9 +104,18 @@ const TIER_STYLES: Record<number, string> = {
   3: 'bg-emerald-50 text-emerald-700 border-emerald-200',
 };
 
+const SIDEBAR_NAV = [
+  { key: 'queue' as StaffTab, label: 'Work Queue', icon: '\ud83d\udccb', shortcut: 'G Q' },
+  { key: 'search' as StaffTab, label: 'Member Lookup', icon: '\ud83d\udd0d', shortcut: 'G M' },
+  { key: 'supervisor' as StaffTab, label: 'Supervisor', icon: '\ud83d\udcca', shortcut: 'G S' },
+  { key: 'executive' as StaffTab, label: 'Executive', icon: '\ud83d\udcc8', shortcut: 'G E' },
+  { key: 'csr' as StaffTab, label: 'CSR Hub', icon: '\ud83d\udcde', shortcut: 'G C' },
+  { key: 'service-map' as StaffTab, label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P' },
+];
+
 export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'queue' | 'search'>('queue');
+  const [activeTab, setActiveTab] = useState<StaffTab>('queue');
 
   const filteredQueue = WORK_QUEUE.filter(
     (item) =>
@@ -115,222 +131,244 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
     avgDays: Math.round(WORK_QUEUE.reduce((a, w) => a + w.daysOpen, 0) / WORK_QUEUE.length),
   };
 
+  const handleMemberSelect = (memberId: number) => {
+    const match = WORK_QUEUE.find((w) => w.memberId === memberId);
+    if (match) {
+      onOpenCase(match.caseId, match.memberId, match.retDate, match.flags);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <nav className="bg-white border-b border-gray-200 shadow-sm">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex items-center justify-between h-14">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
-                  N
-                </div>
-                <div>
-                  <div className="text-sm font-bold text-iw-navy font-display leading-none">NoUI</div>
-                  <div className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold">Staff Portal</div>
-                </div>
-              </div>
-              <div className="h-6 w-px bg-gray-200" />
-              <div className="flex gap-1">
-                {[
-                  { key: 'staff', label: 'Staff Portal' },
-                  { key: 'portal', label: 'Member Portal' },
-                  { key: 'workspace', label: 'Agent Workspace' },
-                  { key: 'crm', label: 'CRM' },
-                  { key: 'employer', label: 'Employer Portal' },
-                ].map((tab) => (
-                  <button
-                    key={tab.key}
-                    onClick={() => onChangeView(tab.key)}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                      tab.key === 'staff'
-                        ? 'bg-iw-sageLight text-iw-sage'
-                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))}
-              </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      {/* Sidebar */}
+      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
+        {/* Brand */}
+        <div className="px-4 py-4 border-b border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
+              N
             </div>
-            <div className="flex items-center gap-3">
-              <div className="text-xs text-gray-400">Sarah Chen, Benefits Analyst</div>
+            <div>
+              <div className="text-sm font-bold text-iw-navy font-display leading-none">NoUI</div>
+              <div className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold">Staff Portal</div>
             </div>
           </div>
         </div>
-      </nav>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
-        {/* Stats row */}
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Active Cases</div>
-            <div className="text-2xl font-bold text-iw-navy mt-1">{stats.total}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Urgent</div>
-            <div className="text-2xl font-bold text-red-600 mt-1">{stats.urgent}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">SLA At Risk</div>
-            <div className="text-2xl font-bold text-amber-600 mt-1">{stats.atRisk}</div>
-          </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Days Open</div>
-            <div className="text-2xl font-bold text-gray-700 mt-1">{stats.avgDays}</div>
-          </div>
-        </div>
-
-        {/* Tab switcher */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex gap-1">
+        {/* Nav items */}
+        <nav className="flex-1 py-2">
+          {SIDEBAR_NAV.map((item) => (
             <button
-              onClick={() => setActiveTab('queue')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'queue'
-                  ? 'bg-iw-sage text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              key={item.key}
+              onClick={() => setActiveTab(item.key)}
+              className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
+                activeTab === item.key
+                  ? 'bg-iw-sageLight/50 text-iw-sage border-r-2 border-iw-sage'
+                  : 'text-gray-600 hover:bg-gray-50'
               }`}
             >
-              My Work Queue
+              <div className="flex items-center gap-2.5">
+                <span className="text-sm">{item.icon}</span>
+                <span className="text-sm font-medium">{item.label}</span>
+              </div>
+              <kbd className="text-[9px] text-gray-300 font-mono">{item.shortcut}</kbd>
             </button>
+          ))}
+
+          <div className="h-px bg-gray-200 my-2 mx-4" />
+
+          {/* Portal links */}
+          {[
+            { key: 'portal', label: 'Member Portal', icon: '\ud83d\udc64' },
+            { key: 'workspace', label: 'Agent Workspace', icon: '\ud83e\uddee' },
+            { key: 'crm', label: 'CRM', icon: '\ud83d\udcac' },
+            { key: 'employer', label: 'Employer Portal', icon: '\ud83c\udfe2' },
+            { key: 'vendor', label: 'Vendor Portal', icon: '\ud83c\udfe5' },
+          ].map((item) => (
             <button
-              onClick={() => setActiveTab('search')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === 'search'
-                  ? 'bg-iw-sage text-white'
-                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-              }`}
+              key={item.key}
+              onClick={() => onChangeView(item.key)}
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
             >
-              Member / Employer Lookup
+              <span className="text-sm">{item.icon}</span>
+              <span className="text-xs font-medium">{item.label}</span>
             </button>
+          ))}
+        </nav>
+
+        {/* User */}
+        <div className="px-4 py-3 border-t border-gray-200">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full bg-iw-sageLight flex items-center justify-center text-xs font-bold text-iw-sage">
+              SC
+            </div>
+            <div>
+              <div className="text-xs font-medium text-gray-700">Sarah Chen</div>
+              <div className="text-[10px] text-gray-400">Benefits Analyst</div>
+            </div>
           </div>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search cases, members, employers..."
-            className="w-72 rounded-lg border border-gray-300 px-4 py-2 text-sm focus:border-iw-sage focus:ring-1 focus:ring-iw-sage outline-none"
-          />
         </div>
+      </aside>
 
-        {activeTab === 'queue' && (
-          <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-            {/* Queue header */}
-            <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
-              <div className="col-span-1">Priority</div>
-              <div className="col-span-2">Case ID</div>
-              <div className="col-span-3">Member</div>
-              <div className="col-span-2">Current Stage</div>
-              <div className="col-span-1">SLA</div>
-              <div className="col-span-1">Days</div>
-              <div className="col-span-2">Flags</div>
-            </div>
-
-            {/* Queue rows */}
-            {filteredQueue.map((item) => (
-              <div
-                key={item.caseId}
-                onClick={() => onOpenCase(item.caseId, item.memberId, item.retDate)}
-                className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-gray-100 hover:bg-iw-sageLight/30 cursor-pointer transition-colors items-center"
-              >
-                <div className="col-span-1">
-                  <span
-                    className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[item.priority]}`}
-                  >
-                    {item.priority}
-                  </span>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-sm font-mono font-semibold text-iw-navy">{item.caseId}</span>
-                </div>
-                <div className="col-span-3">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TIER_STYLES[item.tier]}`}
-                    >
-                      T{item.tier}
-                    </span>
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                      <div className="text-xs text-gray-500">{item.dept}</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="col-span-2">
-                  <div className="text-sm text-gray-700">{item.stage}</div>
-                  <div className="flex gap-0.5 mt-1">
-                    {STAGES.slice(0, 7).map((_, idx) => (
-                      <div
-                        key={idx}
-                        className={`h-1 flex-1 rounded-full ${
-                          idx < item.stageIdx
-                            ? 'bg-iw-sage'
-                            : idx === item.stageIdx
-                            ? 'bg-iw-sage animate-pulse'
-                            : 'bg-gray-200'
-                        }`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="col-span-1">
-                  <span
-                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SLA_STYLES[item.sla].className}`}
-                  >
-                    {SLA_STYLES[item.sla].label}
-                  </span>
-                </div>
-                <div className="col-span-1">
-                  <span className="text-sm text-gray-600">{item.daysOpen}d</span>
-                </div>
-                <div className="col-span-2">
-                  <div className="flex flex-wrap gap-1">
-                    {item.flags.map((flag) => (
-                      <span
-                        key={flag}
-                        className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200"
-                      >
-                        {flag}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            ))}
-
-            {filteredQueue.length === 0 && (
-              <div className="px-4 py-8 text-center text-gray-500 text-sm">
-                No cases match your search.
-              </div>
-            )}
-          </div>
-        )}
-
-        {activeTab === 'search' && (
-          <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
-            <div className="text-gray-400 text-sm mb-4">
-              Search for a member by ID, name, SSN, or look up an employer by name or code.
-            </div>
+      {/* Main content */}
+      <div className="flex-1">
+        {/* Top bar with search */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+          <h1 className="text-sm font-bold text-gray-700">
+            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map' }[activeTab]}
+          </h1>
+          {activeTab === 'queue' && (
             <input
               type="text"
-              placeholder="Enter member ID, name, or employer..."
-              className="w-96 rounded-lg border border-gray-300 px-4 py-3 text-sm focus:border-iw-sage focus:ring-1 focus:ring-iw-sage outline-none"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Filter cases..."
+              className="w-64 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-iw-sage focus:ring-1 focus:ring-iw-sage outline-none"
             />
-            <div className="mt-6 text-xs text-gray-400">
-              Try: 10001, Robert Martinez, Public Works
-            </div>
-          </div>
-        )}
+          )}
+          <div className="text-[10px] text-gray-300 font-mono">⌘K command palette</div>
+        </div>
 
-        <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
-          <p className="font-medium">NoUI Staff Portal — Phase 1</p>
-          <p>
-            AI-composed workspace. Cases are routed and prioritized based on member context, SLA status, and case complexity.
-          </p>
-        </footer>
-      </main>
+        <main className="p-6">
+          {/* Work Queue tab */}
+          {activeTab === 'queue' && (
+            <>
+              {/* Stats row */}
+              <div className="grid grid-cols-4 gap-4 mb-6">
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Active Cases</div>
+                  <div className="text-2xl font-bold text-iw-navy mt-1">{stats.total}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Urgent</div>
+                  <div className="text-2xl font-bold text-red-600 mt-1">{stats.urgent}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">SLA At Risk</div>
+                  <div className="text-2xl font-bold text-amber-600 mt-1">{stats.atRisk}</div>
+                </div>
+                <div className="bg-white rounded-lg border border-gray-200 p-4">
+                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Days Open</div>
+                  <div className="text-2xl font-bold text-gray-700 mt-1">{stats.avgDays}</div>
+                </div>
+              </div>
+
+              {/* Queue table */}
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                  <div className="col-span-1">Priority</div>
+                  <div className="col-span-2">Case ID</div>
+                  <div className="col-span-3">Member</div>
+                  <div className="col-span-2">Current Stage</div>
+                  <div className="col-span-1">SLA</div>
+                  <div className="col-span-1">Days</div>
+                  <div className="col-span-2">Flags</div>
+                </div>
+
+                {filteredQueue.map((item) => (
+                  <div
+                    key={item.caseId}
+                    onClick={() => onOpenCase(item.caseId, item.memberId, item.retDate, item.flags)}
+                    className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-gray-100 hover:bg-iw-sageLight/30 cursor-pointer transition-colors items-center"
+                  >
+                    <div className="col-span-1">
+                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[item.priority]}`}>
+                        {item.priority}
+                      </span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-sm font-mono font-semibold text-iw-navy">{item.caseId}</span>
+                    </div>
+                    <div className="col-span-3">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TIER_STYLES[item.tier]}`}>
+                          T{item.tier}
+                        </span>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                          <div className="text-xs text-gray-500">{item.dept}</div>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="text-sm text-gray-700">{item.stage}</div>
+                      <div className="flex gap-0.5 mt-1">
+                        {STAGES.slice(0, 7).map((_, idx) => (
+                          <div
+                            key={idx}
+                            className={`h-1 flex-1 rounded-full ${
+                              idx < item.stageIdx
+                                ? 'bg-iw-sage'
+                                : idx === item.stageIdx
+                                ? 'bg-iw-sage animate-pulse'
+                                : 'bg-gray-200'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                    <div className="col-span-1">
+                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SLA_STYLES[item.sla].className}`}>
+                        {SLA_STYLES[item.sla].label}
+                      </span>
+                    </div>
+                    <div className="col-span-1">
+                      <span className="text-sm text-gray-600">{item.daysOpen}d</span>
+                    </div>
+                    <div className="col-span-2">
+                      <div className="flex flex-wrap gap-1">
+                        {item.flags.map((flag) => (
+                          <span key={flag} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
+                            {flag}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {filteredQueue.length === 0 && (
+                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                    No cases match your search.
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Member Search tab */}
+          {activeTab === 'search' && (
+            <div className="max-w-2xl mx-auto">
+              <div className="mb-6">
+                <h2 className="text-sm font-semibold text-gray-700 mb-2">Search for a member or employer</h2>
+                <MemberSearch onSelect={handleMemberSelect} />
+              </div>
+              <div className="text-xs text-gray-400 text-center">
+                Try: 10001, Robert Martinez, Public Works, Jennifer Kim
+              </div>
+            </div>
+          )}
+
+          {/* Supervisor Dashboard tab */}
+          {activeTab === 'supervisor' && <SupervisorDashboard />}
+
+          {/* Executive Dashboard tab */}
+          {activeTab === 'executive' && <ExecutiveDashboard />}
+
+          {/* CSR Context Hub tab */}
+          {activeTab === 'csr' && <CSRContextHub />}
+
+          {/* Service Map tab */}
+          {activeTab === 'service-map' && <ServiceMap />}
+
+          <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
+            <p className="font-medium">NoUI Staff Portal</p>
+            <p>
+              AI-composed workspace. Cases are routed and prioritized based on member context, SLA status, and case complexity.
+            </p>
+          </footer>
+        </main>
+      </div>
     </div>
   );
 }
