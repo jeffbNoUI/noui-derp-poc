@@ -1,0 +1,24 @@
+# Generated artifacts — do not commit
+targets/*/schema-manifest/*.json
+
+# Go
+connector/vendor/
+connector/*.test
+connector/bin/
+
+# Python
+__pycache__/
+*.pyc
+targets/*/seed/__pycache__/
+
+# Docker volumes (local only)
+.docker-data/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
