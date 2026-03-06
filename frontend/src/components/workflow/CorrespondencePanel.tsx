@@ -32,8 +32,8 @@ export default function CorrespondencePanel({ memberId, contactId }: Corresponde
             contact_id: contactId,
           }),
         ]);
-        setTemplates(tmplData);
-        setHistory(histData);
+        setTemplates(tmplData || []);
+        setHistory(histData || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load correspondence data');
       } finally {

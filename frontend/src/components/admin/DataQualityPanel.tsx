@@ -23,8 +23,8 @@ export default function DataQualityPanel() {
           dqAPI.listChecks(),
         ]);
         setScore(scoreData);
-        setIssues(issueData);
-        setChecks(checkData);
+        setIssues(issueData || []);
+        setChecks(checkData || []);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to load DQ data');
       } finally {
