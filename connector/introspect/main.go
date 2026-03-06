@@ -38,6 +38,7 @@ import (
 	"github.com/noui/connector-lab/schema"
 
 	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/microsoft/go-mssqldb"
 )
 
 func main() {

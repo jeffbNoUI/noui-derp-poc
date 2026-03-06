@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-connector-lab
 
-_Updated: 2026-03-06 | Status: Session 6 Complete_
+_Updated: 2026-03-06 | Status: Session 7 Complete_
 
 ---
 
 ## Current State
 
-Two live targets running: ERPNext (MariaDB, port 3307) and PostgreSQL HR (port 5433). Both seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against both MySQL and PostgreSQL with identical detection results. 63 unit tests passing.
+Two live targets running: ERPNext (MariaDB, port 3307) and PostgreSQL HR (port 5433). Both seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against both MySQL and PostgreSQL with identical detection results. Dashboard now has embedded HTML UI. Tagger expanded to 12 concepts. MSSQL adapter ready for future Neospin. 72 unit tests passing.
 
 ## Session 1 Summary (Complete)
 
@@ -255,16 +255,51 @@ go run ./dashboard/ \
   --port 8091
 ```
 
+## Session 7 Summary (Complete)
+
+**Goal:** Embedded dashboard UI, expanded tagger concepts, MSSQL adapter
+
+### Deliverables
+
+1. **Embedded HTML dashboard** (`connector/dashboard/static/index.html`)
+   - Self-contained HTML/CSS/JS served via Go `embed.FS`
+   - Summary cards, baseline metrics table, filterable checks, run history
+   - Auto-refresh every 30 seconds, responsive layout
+   - 2 new tests (20 total dashboard tests)
+
+2. **5 new tagger concepts** (`connector/tagger/concepts.go`)
+   - training-record, expense-claim, performance-review, shift-schedule, loan-advance
+   - Signal-based detection with auditable weights and thresholds (2.5-3.5)
+   - 5 new unit tests + updated fixture test (16 total tagger tests)
+   - Fixture validates 10/11 tables tagged across 10 concepts
+
+3. **MSSQL adapter** (`connector/introspect/mssql.go`, `connector/monitor/adapter_mssql.go`)
+   - `MSSQLAdapter` implementing `SchemaAdapter` (3 methods: GetTables, GetColumns, GetForeignKeys)
+   - `MSSQLMonitorAdapter` implementing `MonitorAdapter` (11 methods: 5 baseline + 6 checks)
+   - Uses sys.tables/sys.partitions for row counts, sys.foreign_keys for FK discovery
+   - Square bracket quoting, CAST(GETDATE() AS DATE), @p1/@p2 placeholders
+   - 2 new factory tests (4 introspect + 32 monitor = 36 total)
+   - Added `github.com/microsoft/go-mssqldb v1.9.8` dependency
+
+### Session 7 Exit Criteria
+- [x] Embedded HTML dashboard served at root path
+- [x] 5 new concepts added with signal-based detection
+- [x] MSSQL adapter for both introspect and monitor
+- [x] All unit tests passing (dashboard: 20, introspect: 4, tagger: 16, monitor: 32 = 72 total)
+- [x] All 4 binaries compile
+- [x] BUILD_HISTORY.md updated
+- [x] All changes committed
+
 ## What's Built So Far
 
 | Component | Location | Status | Tests |
 |-----------|----------|--------|-------|
 | Shared types library | `connector/schema/` | Complete | — |
-| Schema introspect (MySQL + PostgreSQL) | `connector/introspect/` | Complete | 3 |
-| Concept tagger (7 concepts) | `connector/tagger/` | Complete | 11 |
-| Monitor engine (6 checks + scheduler + PG adapter) | `connector/monitor/` | Complete | 30 |
-| Dashboard API (7 endpoints) | `connector/dashboard/` | Complete | 18 |
+| Schema introspect (MySQL + PostgreSQL + **MSSQL**) | `connector/introspect/` | Complete | 4 |
+| Concept tagger (**12 concepts**) | `connector/tagger/` | Complete | 16 |
+| Monitor engine (6 checks + scheduler + PG + **MSSQL** adapter) | `connector/monitor/` | Complete | 32 |
+| Dashboard API (7 endpoints + **HTML UI**) | `connector/dashboard/` | Complete | 20 |
 | ERPNext seed (200 employees, 3yr) | `targets/erpnext/seed/seed.py` | Complete | — |
 | ERPNext Docker stack | `targets/erpnext/docker-compose.yml` | Running | — |
-| **PostgreSQL HR seed (200 employees, 3yr)** | `targets/postgres-hr/seed/seed.py` | **Complete** | — |
-| **PostgreSQL Docker stack** | `targets/postgres-hr/docker-compose.yml` | **Running** | — |
+| PostgreSQL HR seed (200 employees, 3yr) | `targets/postgres-hr/seed/seed.py` | Complete | — |
+| PostgreSQL Docker stack | `targets/postgres-hr/docker-compose.yml` | Running | — |

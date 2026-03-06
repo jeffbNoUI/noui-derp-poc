@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/noui/connector-lab/schema"
@@ -507,6 +508,39 @@ func TestHistoryAccumulates(t *testing.T) {
 
 	if len(history) != 2 {
 		t.Errorf("expected 2 history entries after 2 loads, got %d", len(history))
+	}
+}
+
+func TestRootServesHTML(t *testing.T) {
+	_, ts := newTestServer(t)
+
+	resp, err := http.Get(ts.URL + "/")
+	if err != nil {
+		t.Fatalf("GET /: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	ct := resp.Header.Get("Content-Type")
+	if !strings.Contains(ct, "text/html") {
+		t.Errorf("expected Content-Type containing text/html, got %q", ct)
+	}
+}
+
+func TestStaticFileEmbedded(t *testing.T) {
+	_, ts := newTestServer(t)
+
+	resp, err := http.Get(ts.URL + "/index.html")
+	if err != nil {
+		t.Fatalf("GET /index.html: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
 	}
 }
 

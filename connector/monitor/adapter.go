@@ -47,6 +47,8 @@ func NewMonitorAdapter(driver string) MonitorAdapter {
 	switch driver {
 	case "postgres":
 		return &PostgresMonitorAdapter{}
+	case "mssql":
+		return &MSSQLMonitorAdapter{}
 	default:
 		return &MySQLMonitorAdapter{}
 	}

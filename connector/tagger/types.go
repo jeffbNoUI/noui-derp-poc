@@ -31,6 +31,11 @@ const (
 	ConceptEmploymentTimeline ConceptTag = "employment-timeline"
 	ConceptAttendance         ConceptTag = "attendance"
 	ConceptBenefitDeduction   ConceptTag = "benefit-deduction"
+	ConceptTrainingRecord     ConceptTag = "training-record"
+	ConceptExpenseClaim       ConceptTag = "expense-claim"
+	ConceptPerformanceReview  ConceptTag = "performance-review"
+	ConceptShiftSchedule      ConceptTag = "shift-schedule"
+	ConceptLoanAdvance        ConceptTag = "loan-advance"
 )
 
 // SignalHit records a single signal that fired for a table-concept pair.
