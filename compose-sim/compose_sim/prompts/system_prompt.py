@@ -17,6 +17,7 @@ def build_system_prompt(few_shot_examples: list[dict] | None = None) -> str:
         parts.append(_format_few_shots(few_shot_examples))
 
     parts.append(CLOSING_INSTRUCTIONS)
+    parts.append(VERIFICATION_RULES)
     return "\n\n".join(parts)
 
 
@@ -40,45 +41,37 @@ must appear in either panels_shown or panels_hidden — never omit a panel.\
 PANEL_CATALOG = """\
 ## Panel Catalog (12 panels)
 
-Each panel has specific show/hide conditions:
+Every panel must appear in either panels_shown or panels_hidden.
 
-1. **member_banner** — Always shown when member data is available (has_member = true).
+### Group 1: Member panels (require has_member = true; hide ALL if has_member is false)
+- **member_banner** — Shown when has_member = true.
+- **service_credit_summary** — Shown when has_member AND earned_service_years > 0.
 
-2. **service_credit_summary** — Shown when has_member AND earned_service_years > 0.
+### Group 2: Calculation panels (require has_calculation = true; hide ALL if has_calculation is false)
+- **benefit_calculation** — Shown when has_calculation = true.
+- **payment_options** — Shown when has_calculation = true.
+- **death_benefit** — Shown when has_calculation = true.
+- **ipr_calculator** — Shown when has_calculation = true.
+- **dro_impact** — Shown when has_dro AND has_calculation. Both required.
+- **scenario_modeler** — Shown when best_eligible_type == "EARLY" AND has_calculation.
+  IMPORTANT: If best_eligible_type is "EARLY" and has_calculation is true, this panel MUST be shown.
+  This is one of the most commonly missed panels. Check best_eligible_type explicitly.
 
-3. **benefit_calculation** — Shown when has_calculation = true.
-   has_calculation requires ALL of: has_member, vested, AND status in (active, retired, deferred).
+### Group 3: Employment timeline (INDEPENDENT of has_member)
+- **employment_timeline** — Shown when has_employment_history == true AND employment_event_count > 0.
+  CRITICAL: This panel does NOT require has_member. Even for beneficiary, alternate_payee, or
+  external contacts with has_legacy_member_id=false, show this panel if the employment data exists.
+  has_member=false does NOT mean employment_timeline is hidden.
 
-4. **payment_options** — Shown when has_calculation = true.
+### Group 4: Journal chain (case_journal drives TWO companion panels)
+- **case_journal** — Shown when view_mode == "crm" OR open_conversations > 0.
+  In workspace mode with 0 open conversations, case_journal is HIDDEN.
 
-5. **dro_impact** — Shown when has_dro AND has_calculation.
-   Both conditions must be met.
-
-6. **scenario_modeler** — Shown when best_eligible_type == "EARLY" AND has_calculation.
-   Any member with has_calculation=true AND best_eligible_type="EARLY" gets this panel,
-   regardless of contact_type, view_mode, or other factors. Check both conditions explicitly.
-
-7. **death_benefit** — Shown when has_calculation = true.
-
-8. **ipr_calculator** — Shown when has_calculation = true.
-
-9. **employment_timeline** — Shown when has_employment_history == true AND employment_event_count > 0.
-   CRITICAL: This panel depends ONLY on the employment data fields in the member profile. It does
-   NOT depend on has_member, has_calculation, contact_type, or view_mode. Even when has_member is
-   false (e.g., external contact without legacy_member_id), if the profile says
-   has_employment_history=true and employment_event_count > 0, show this panel.
-
-10. **case_journal** — Shown when view_mode == "crm" OR open_conversations > 0.
-    CRITICAL: When view_mode is "crm" (i.e., contact_type is beneficiary, alternate_payee, or external),
-    case_journal is ALWAYS shown — even if open_conversations is 0. The OR means either condition alone
-    is sufficient. HOWEVER, when view_mode is "workspace" AND open_conversations is 0, case_journal
-    is HIDDEN. Both conditions must be false to hide it.
-
-11. **ai_summary** — Shown when case_journal is visible AND employment_timeline is visible.
-    Requires BOTH: journal visible (case_journal shown) AND timeline data (has_employment_history AND employment_event_count > 0).
-
-12. **crm_note_form** — Shown when case_journal is visible.
-    Always accompanies the case journal.\
+When case_journal IS shown, these two panels MUST be evaluated:
+- **crm_note_form** — ALWAYS shown alongside case_journal. If case_journal is shown, crm_note_form is shown.
+- **ai_summary** — Shown alongside case_journal WHEN employment_timeline is ALSO shown.
+  Rule: case_journal shown + employment_timeline shown = ai_summary shown.
+  This is a MANDATORY inclusion — if both prerequisites are in panels_shown, ai_summary goes in panels_shown too.\
 """
 
 ALERT_CATALOG = """\
@@ -146,20 +139,24 @@ Fetch data based on what panels are shown:
 DERIVATION_LOGIC = """\
 ## Key Derivation Logic
 
-These intermediate values drive panel and alert decisions:
+Compute these 4 values FIRST, then use them for all panel/alert decisions:
 
 **has_member** = (contact_type == "member") OR (has_legacy_member_id == true)
-  → If either condition is met, member data is available.
+  If contact_type is beneficiary/alternate_payee/external AND has_legacy_member_id is false,
+  then has_member is FALSE. When has_member is false: hide member_banner, hide service_credit_summary,
+  and do NOT fire any of the 9 member alerts — regardless of what other fields say.
 
-**has_calculation** = has_member AND vested AND status in ("active", "retired", "deferred")
-  → Terminated members NEVER have calculations, even if vested.
-  → Non-vested members NEVER have calculations.
+**has_calculation** = has_member AND vested AND (status is NOT "terminated")
+  If status == "terminated": has_calculation = false, ALWAYS. Hide ALL calc panels.
+  If status == "deferred": has_calculation CAN be true (deferred is allowed, terminated is not).
 
 **journal_visible** = (view_mode == "crm") OR (open_conversations > 0)
-  → The case journal shows for CRM views OR when there are open conversations.
+  Drives case_journal, crm_note_form, and ai_summary.
 
 **has_timeline** = has_employment_history AND employment_event_count > 0
-  → Employment data exists with at least one event.\
+
+**ai_summary_visible** = journal_visible AND has_timeline
+  If BOTH journal and timeline are shown, ai_summary MUST be shown.\
 """
 
 VIEW_MODE_RULES = """\
@@ -180,21 +177,31 @@ Follow this exact process:
 
 1. **Derive intermediate values** from the input data:
    - has_member = (contact_type == "member") OR (has_legacy_member_id == true)
-   - has_calculation = has_member AND vested AND status in (active, retired, deferred)
+   - has_calculation = has_member AND vested AND status != "terminated"
    - journal_visible = (view_mode == "crm") OR (open_conversations > 0)
    - has_timeline = has_employment_history AND employment_event_count > 0
 
-2. **Determine panels**: Apply each panel's show/hide condition using the derived values.
-   Every panel must appear in either panels_shown or panels_hidden.
+2. **Determine panels** using derived values. Every panel in panels_shown or panels_hidden.
 
-3. **Determine alerts**: For EACH alert, find the specific field value in the input and verify \
-   the trigger condition is met. Do NOT include any alert unless you have confirmed the field \
-   value matches. When in doubt, do NOT fire the alert.
+3. **Determine alerts**: Check each field value explicitly. Only fire if condition is met.
+   If has_member is false, skip ALL 9 member alerts (including leave_payout_ams_boost).
 
 4. **Determine data fetches**: Match fetches to shown panels.
 
-Call the compose_workspace tool with your complete composition decision. \
-Include a brief rationale for each panel decision.\
+Call the compose_workspace tool with your complete composition decision.\
+"""
+
+VERIFICATION_RULES = """\
+## FINAL CHECK — verify these rules before submitting
+
+a. has_member false => member_banner in panels_hidden, NO member alerts
+b. status == "terminated" => has_calculation = false => ALL calc panels in panels_hidden
+c. best_eligible_type == "EARLY" + has_calculation true => scenario_modeler in panels_shown
+d. has_employment_history + event_count > 0 => employment_timeline in panels_shown (even if has_member false)
+e. case_journal + employment_timeline BOTH shown => ai_summary in panels_shown
+f. view_mode == "workspace" + open_conversations == 0 => case_journal in panels_hidden
+g. fire_spousal_consent == True => spousal_consent_required MUST be in alerts
+h. fire_waiting_increases_benefit == False => waiting_increases_benefit MUST NOT be in alerts\
 """
 
 
@@ -248,15 +255,28 @@ def _summarize_input(inp: dict) -> str:
     return " | ".join(parts) if parts else str(inp)
 
 
-def format_scenario_for_prompt(scenario_dict: dict) -> str:
+def format_scenario_for_prompt(scenario_dict: dict, derived: dict | None = None) -> str:
     """Format a scenario's input data as the user message for the API call."""
     profile = scenario_dict["member_profile"]
     crm = scenario_dict["crm_context"]
     elig = scenario_dict["eligibility_snapshot"]
 
+    derived_section = ""
+    if derived:
+        derived_section = f"""
+## Pre-computed Derived Values (use these directly)
+- view_mode: {derived['view_mode']}
+- has_member: {derived['has_member']}
+- has_calculation: {derived['has_calculation']}
+- journal_visible: {derived['journal_visible']}
+- has_timeline: {derived['has_timeline']}
+- fire_spousal_consent: {derived['fire_spousal_consent']}
+- fire_waiting_increases_benefit: {derived['fire_waiting_increases_benefit']}
+"""
+
     return f"""\
 Compose the workspace for this scenario:
-
+{derived_section}
 ## Member Profile
 - Tier: {profile['tier']}
 - Status: {profile['status']}

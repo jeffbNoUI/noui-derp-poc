@@ -337,6 +337,52 @@ CURATED_EXAMPLES: list[dict] = [
                 "An empty alerts list is a valid and common outcome.",
     },
     {
+        "description": "Deferred vested member — has_calculation=true, calc panels SHOWN",
+        "input": {
+            "member_profile": {
+                "tier": 1, "status": "deferred", "vested": True,
+                "earned_service_years": 12.0, "has_dro": False,
+                "has_employment_history": True, "employment_event_count": 3,
+                "marital_status": "M", "has_purchased_service": False,
+                "leave_payout_eligible": False, "leave_payout_amount": 0,
+                "medicare_flag": "Y",
+            },
+            "crm_context": {
+                "contact_type": "member", "has_legacy_member_id": True,
+                "open_conversations": 1, "identity_verified": True,
+                "security_flag": None, "overdue_commitments": 0,
+                "sla_breached": False, "has_urgent_notes": False,
+            },
+            "eligibility_snapshot": {
+                "best_eligible_type": "DEFERRED", "rule_of_n_met": False,
+                "reduction_applies": False, "vested": True,
+                "leave_payout_ams_impact": 0, "rule_of_n_near": False,
+            },
+        },
+        "output": {
+            "view_mode": "workspace",
+            "panels_shown": [
+                "member_banner", "service_credit_summary", "benefit_calculation",
+                "payment_options", "death_benefit", "ipr_calculator",
+                "employment_timeline", "case_journal", "ai_summary", "crm_note_form",
+            ],
+            "panels_hidden": ["dro_impact", "scenario_modeler"],
+            "alerts": ["spousal_consent_required", "medicare_ipr_highlight"],
+            "data_fetches": [
+                "member_data", "service_credit", "benefit_calculation",
+                "payment_options", "employment_history",
+                "crm_contact", "crm_conversations", "crm_commitments",
+                "crm_interactions", "crm_outreach",
+            ],
+        },
+        "note": "CRITICAL: status=deferred is NOT the same as terminated. "
+                "has_calculation = has_member AND vested AND status in (active, retired, DEFERRED). "
+                "Deferred IS in the allowed set, so all calc panels (benefit_calculation, payment_options, "
+                "death_benefit, ipr_calculator) are SHOWN. "
+                "case_journal shown because open_conversations=1. "
+                "ai_summary shown because BOTH case_journal AND employment_timeline are visible.",
+    },
+    {
         "description": "EARLY retiree with rule_of_n_met=true — waiting_increases_benefit does NOT fire",
         "input": {
             "member_profile": {
