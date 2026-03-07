@@ -75,12 +75,66 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 
 ---
 
+## DERP POC Session 4
+
+**Date:** 2026-03-06
+**Session:** DERP POC Session 4
+
+### Commit: Expanded Command Palette + Knowledge Base Tab
+**Decision:** Expanded command palette from 9 to 16 entries, added Knowledge Base as 9th StaffPortal tab. 22 Vitest tests passing.
+**Rationale:** Complete frontend feature set for demo.
+**Status:** Complete
+
+---
+
+## DERP POC Session 5
+
+**Date:** 2026-03-06
+**Session:** DERP POC Session 5
+
+### Integration Tests (36 tests against live DB)
+**Decision:** Added HTTP integration tests for KB (13), DQ (11), and Correspondence (12) services running in Docker. Tests live in `tests/integration/` as a standalone Go module with build tag `//go:build integration`.
+**Rationale:** Existing unit tests (44 total) only tested helpers, serialization, and health checks — no tests verified actual database queries or full request/response cycles against the live PostgreSQL database.
+**Status:** Complete — 36/36 integration tests passing
+
+**Test coverage by service:**
+
+| Service | Tests | Endpoints Covered |
+|---------|-------|-------------------|
+| Knowledge Base (8087) | 13 | healthz, articles (list/get/filter), stages, search, rules (list/get/filter) |
+| Data Quality (8086) | 11 | healthz, checks (list/get/filter), results, score, trend, issues (list/filter/update) |
+| Correspondence (8085) | 12 | healthz, templates (list/get/filter), generate (success/404/400), history, update |
+
+### Error Response Standardization
+**Decision:** Fixed `requestId` inconsistency — connector and intelligence used `request_id` (snake_case) while CRM/KB/DQ/Correspondence used `requestId` (camelCase). Standardized all 6 services on `requestId`.
+**Rationale:** Consistent API contract across all services.
+**Status:** Complete
+
+**Files changed:**
+- `services/connector/models/response.go` — JSON tag `request_id` → `requestId`
+- `services/intelligence/api/handlers.go` — map key `request_id` → `requestId`
+
+---
+
+## Updated Test Inventory
+
+| Package | Unit Tests | Integration Tests |
+|---------|-----------|------------------|
+| intelligence/rules | 5 | — |
+| knowledgebase/api | 13 | 13 |
+| dataquality/api | 14 | 11 |
+| correspondence/api | 17 | 12 |
+| frontend (Vitest) | 22 | — |
+| **Total** | **71** | **36** |
+
+---
+
 ## Remaining Work
 
 - [ ] KnowledgeBase panel as standalone StaffPortal tab (currently only in ContextualHelp within workflow)
-- [ ] Full integration tests against live DB for new services
-- [ ] Add command palette entries for DQ and Correspondence tabs
-- [ ] Expand command palette from 9 to 16 entries (add DQ, Correspondence, KB, Supervisor, Executive, CSR, Service Map shortcuts)
+- [x] ~~Full integration tests against live DB for new services~~
+- [x] ~~Add command palette entries for DQ and Correspondence tabs~~
+- [x] ~~Expand command palette from 9 to 16 entries~~
 
 ---
 
