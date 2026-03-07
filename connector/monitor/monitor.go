@@ -11,7 +11,7 @@ import (
 
 // RunMonitor connects to the database, computes baselines, runs all checks,
 // and returns a complete MonitorReport.
-func RunMonitor(db *sql.DB, adapter MonitorAdapter, source, database string, baselineOnly, checksOnly bool) (*schema.MonitorReport, error) {
+func RunMonitor(db *sql.DB, adapter MonitorAdapter, th Thresholds, source, database string, baselineOnly, checksOnly bool) (*schema.MonitorReport, error) {
 	report := &schema.MonitorReport{
 		Source:   source,
 		Database: database,
@@ -41,7 +41,7 @@ func RunMonitor(db *sql.DB, adapter MonitorAdapter, source, database string, bas
 
 	// Run all checks
 	log.Println("Running monitoring checks...")
-	checks := AllChecks(adapter)
+	checks := AllChecks(adapter, th)
 	var results []schema.CheckResult
 	for _, check := range checks {
 		r := check(db)

@@ -2,6 +2,8 @@ package main
 
 import (
 	"math"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/noui/connector-lab/schema"
@@ -217,7 +219,7 @@ func TestAllPassScenario(t *testing.T) {
 // ============================================================================
 
 func TestAllChecksCount(t *testing.T) {
-	checks := AllChecks(NewMonitorAdapter("mysql"))
+	checks := AllChecks(NewMonitorAdapter("mysql"), DefaultThresholds())
 	if len(checks) != 8 {
 		t.Errorf("expected 8 monitoring checks, got %d", len(checks))
 	}
@@ -529,4 +531,190 @@ func TestStaleAttendanceCheckDescription(t *testing.T) {
 	t.Log("  Logic: Get MAX(attendance_date). Compare days since current date.")
 	t.Log("  Status: FAIL if >30 days stale, WARN if >7 days, PASS otherwise")
 	t.Log("  Evidence: latest attendance date, days since")
+}
+
+// ============================================================================
+// Configurable thresholds tests
+// ============================================================================
+
+func TestDefaultThresholds(t *testing.T) {
+	th := DefaultThresholds()
+
+	if th.ContributionWarnPct != 5 {
+		t.Errorf("expected contribution warn 5%%, got %.1f%%", th.ContributionWarnPct)
+	}
+	if th.ContributionFailPct != 10 {
+		t.Errorf("expected contribution fail 10%%, got %.1f%%", th.ContributionFailPct)
+	}
+	if th.StalePayrollWarnMonths != 1 {
+		t.Errorf("expected stale payroll warn 1 month, got %d", th.StalePayrollWarnMonths)
+	}
+	if th.StalePayrollFailMonths != 2 {
+		t.Errorf("expected stale payroll fail 2 months, got %d", th.StalePayrollFailMonths)
+	}
+	if th.StaleAttendWarnDays != 7 {
+		t.Errorf("expected stale attend warn 7 days, got %d", th.StaleAttendWarnDays)
+	}
+	if th.StaleAttendFailDays != 30 {
+		t.Errorf("expected stale attend fail 30 days, got %d", th.StaleAttendFailDays)
+	}
+}
+
+func TestLoadThresholds(t *testing.T) {
+	tmpDir := t.TempDir()
+	thFile := filepath.Join(tmpDir, "thresholds.json")
+
+	// Write custom thresholds — only override some fields
+	content := `{
+		"contribution_warn_pct": 3,
+		"contribution_fail_pct": 8,
+		"stale_attend_fail_days": 14
+	}`
+	if err := os.WriteFile(thFile, []byte(content), 0644); err != nil {
+		t.Fatalf("Failed to write thresholds file: %v", err)
+	}
+
+	th, err := LoadThresholds(thFile)
+	if err != nil {
+		t.Fatalf("LoadThresholds failed: %v", err)
+	}
+
+	// Overridden values
+	if th.ContributionWarnPct != 3 {
+		t.Errorf("expected contribution warn 3%%, got %.1f%%", th.ContributionWarnPct)
+	}
+	if th.ContributionFailPct != 8 {
+		t.Errorf("expected contribution fail 8%%, got %.1f%%", th.ContributionFailPct)
+	}
+	if th.StaleAttendFailDays != 14 {
+		t.Errorf("expected stale attend fail 14 days, got %d", th.StaleAttendFailDays)
+	}
+
+	// Defaults preserved for non-overridden fields
+	if th.StalePayrollWarnMonths != 1 {
+		t.Errorf("expected default stale payroll warn 1, got %d", th.StalePayrollWarnMonths)
+	}
+	if th.StalePayrollFailMonths != 2 {
+		t.Errorf("expected default stale payroll fail 2, got %d", th.StalePayrollFailMonths)
+	}
+}
+
+func TestEvaluateCountThreshold(t *testing.T) {
+	// Default: warn=1, fail=1 (any count triggers fail)
+	defaultTh := CheckThreshold{WarnAt: 1, FailAt: 1}
+	if evaluateCountThreshold(0, defaultTh) != "pass" {
+		t.Error("expected pass for count=0")
+	}
+	if evaluateCountThreshold(1, defaultTh) != "fail" {
+		t.Error("expected fail for count=1 with default threshold")
+	}
+
+	// Tiered: warn at 3, fail at 10
+	tiered := CheckThreshold{WarnAt: 3, FailAt: 10}
+	if evaluateCountThreshold(0, tiered) != "pass" {
+		t.Error("expected pass for count=0")
+	}
+	if evaluateCountThreshold(2, tiered) != "pass" {
+		t.Error("expected pass for count=2 (below warn threshold)")
+	}
+	if evaluateCountThreshold(5, tiered) != "warn" {
+		t.Error("expected warn for count=5")
+	}
+	if evaluateCountThreshold(10, tiered) != "fail" {
+		t.Error("expected fail for count=10")
+	}
+	if evaluateCountThreshold(15, tiered) != "fail" {
+		t.Error("expected fail for count=15")
+	}
+}
+
+// ============================================================================
+// Webhook status change detection tests
+// ============================================================================
+
+func TestDetectStatusChanges_FirstRun(t *testing.T) {
+	prev := make(map[string]string)
+	checks := []schema.CheckResult{
+		{CheckName: "check_a", Status: "pass"},
+		{CheckName: "check_b", Status: "fail"},
+	}
+
+	changes := detectStatusChanges(prev, checks)
+	if len(changes) != 0 {
+		t.Errorf("expected no changes on first run, got %d", len(changes))
+	}
+}
+
+func TestDetectStatusChanges_NoChanges(t *testing.T) {
+	prev := map[string]string{
+		"check_a": "pass",
+		"check_b": "fail",
+	}
+	checks := []schema.CheckResult{
+		{CheckName: "check_a", Status: "pass"},
+		{CheckName: "check_b", Status: "fail"},
+	}
+
+	changes := detectStatusChanges(prev, checks)
+	if len(changes) != 0 {
+		t.Errorf("expected no changes, got %d", len(changes))
+	}
+}
+
+func TestDetectStatusChanges_StatusChanged(t *testing.T) {
+	prev := map[string]string{
+		"check_a": "pass",
+		"check_b": "fail",
+		"check_c": "warn",
+	}
+	checks := []schema.CheckResult{
+		{CheckName: "check_a", Status: "fail", Message: "now failing"},
+		{CheckName: "check_b", Status: "pass", Message: "now passing"},
+		{CheckName: "check_c", Status: "warn", Message: "still warn"},
+	}
+
+	changes := detectStatusChanges(prev, checks)
+	if len(changes) != 2 {
+		t.Fatalf("expected 2 changes, got %d", len(changes))
+	}
+
+	// Verify change details
+	changeMap := make(map[string]StatusChange)
+	for _, ch := range changes {
+		changeMap[ch.CheckName] = ch
+	}
+
+	if ch, ok := changeMap["check_a"]; ok {
+		if ch.PrevStatus != "pass" || ch.NewStatus != "fail" {
+			t.Errorf("check_a: expected pass→fail, got %s→%s", ch.PrevStatus, ch.NewStatus)
+		}
+	} else {
+		t.Error("expected check_a in changes")
+	}
+
+	if ch, ok := changeMap["check_b"]; ok {
+		if ch.PrevStatus != "fail" || ch.NewStatus != "pass" {
+			t.Errorf("check_b: expected fail→pass, got %s→%s", ch.PrevStatus, ch.NewStatus)
+		}
+	} else {
+		t.Error("expected check_b in changes")
+	}
+}
+
+func TestDetectStatusChanges_NewCheck(t *testing.T) {
+	prev := map[string]string{
+		"check_a": "pass",
+	}
+	checks := []schema.CheckResult{
+		{CheckName: "check_a", Status: "pass"},
+		{CheckName: "check_new", Status: "fail", Message: "new check"},
+	}
+
+	changes := detectStatusChanges(prev, checks)
+	if len(changes) != 1 {
+		t.Fatalf("expected 1 change (new check), got %d", len(changes))
+	}
+	if changes[0].CheckName != "check_new" || changes[0].PrevStatus != "new" {
+		t.Errorf("expected new check change, got %+v", changes[0])
+	}
 }

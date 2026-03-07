@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -22,6 +24,7 @@ var staticFS embed.FS
 // Server is the monitoring dashboard HTTP server.
 type Server struct {
 	reportFile string
+	historyDir string
 	startTime  time.Time
 
 	mu    sync.RWMutex
@@ -29,9 +32,12 @@ type Server struct {
 }
 
 // NewServer creates a new dashboard server that reads reports from the given file.
-func NewServer(reportFile string) *Server {
+// If historyDir is non-empty, the /api/v1/monitor/trends endpoint will read
+// historical reports for trend analysis.
+func NewServer(reportFile, historyDir string) *Server {
 	return &Server{
 		reportFile: reportFile,
+		historyDir: historyDir,
 		startTime:  time.Now(),
 		state: DashboardState{
 			RunHistory: []RunSummary{},
@@ -87,6 +93,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/api/v1/monitor/checks/", s.handleCheckByName)
 	mux.HandleFunc("/api/v1/monitor/baselines", s.handleBaselines)
 	mux.HandleFunc("/api/v1/monitor/history", s.handleHistory)
+	mux.HandleFunc("/api/v1/monitor/trends", s.handleTrends)
 	mux.HandleFunc("/api/v1/embed/config", s.handleEmbedConfig)
 
 	return withCORS(withLogging(mux))
@@ -311,9 +318,182 @@ func (s *Server) handleEmbedConfig(w http.ResponseWriter, r *http.Request) {
 			"checks":    "/api/v1/monitor/checks",
 			"baselines": "/api/v1/monitor/baselines",
 			"history":   "/api/v1/monitor/history",
+			"trends":    "/api/v1/monitor/trends",
 		},
 		"has_data": hasData,
 	})
+}
+
+func (s *Server) handleTrends(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		writeError(w, http.StatusMethodNotAllowed, "method not allowed")
+		return
+	}
+
+	if s.historyDir == "" {
+		writeError(w, http.StatusNotFound, "no history directory configured (use --history-dir)")
+		return
+	}
+
+	reports, err := loadHistoryReports(s.historyDir)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("failed to load history: %v", err))
+		return
+	}
+
+	if len(reports) == 0 {
+		writeError(w, http.StatusNotFound, "no history reports found")
+		return
+	}
+
+	trends := computeTrends(reports)
+	writeJSON(w, http.StatusOK, trends)
+}
+
+// TrendResponse is the top-level trend analysis output.
+type TrendResponse struct {
+	DataPoints     int              `json:"data_points"`
+	TimeRange      TimeRange        `json:"time_range"`
+	BaselineTrends []BaselineTrend  `json:"baseline_trends"`
+	CheckTimeline  []CheckTimeline  `json:"check_timeline"`
+}
+
+// TimeRange describes the span of history data.
+type TimeRange struct {
+	Earliest string `json:"earliest"`
+	Latest   string `json:"latest"`
+}
+
+// BaselineTrend shows how a baseline metric has drifted over time.
+type BaselineTrend struct {
+	MetricName string          `json:"metric_name"`
+	Points     []TrendPoint    `json:"points"`
+	Drift      float64         `json:"drift_pct"` // percentage change from first to last
+}
+
+// TrendPoint is a single data point in a baseline trend.
+type TrendPoint struct {
+	RunAt string  `json:"run_at"`
+	Value float64 `json:"value"`
+}
+
+// CheckTimeline shows the status history of a single check.
+type CheckTimeline struct {
+	CheckName string              `json:"check_name"`
+	Points    []CheckTimePoint    `json:"points"`
+	Changes   int                 `json:"status_changes"`
+}
+
+// CheckTimePoint is a single status data point.
+type CheckTimePoint struct {
+	RunAt  string  `json:"run_at"`
+	Status string  `json:"status"`
+	Actual float64 `json:"actual"`
+}
+
+// loadHistoryReports reads all report-*.json files from historyDir,
+// parses them, and returns them sorted by RunAt (ascending).
+func loadHistoryReports(dir string) ([]schema.MonitorReport, error) {
+	entries, err := os.ReadDir(dir)
+	if err != nil {
+		return nil, fmt.Errorf("reading history directory: %w", err)
+	}
+
+	var reports []schema.MonitorReport
+	for _, entry := range entries {
+		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "report-") || !strings.HasSuffix(entry.Name(), ".json") {
+			continue
+		}
+
+		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
+		if err != nil {
+			log.Printf("Trends: skipping %s: %v", entry.Name(), err)
+			continue
+		}
+
+		var report schema.MonitorReport
+		if err := json.Unmarshal(data, &report); err != nil {
+			log.Printf("Trends: skipping %s: %v", entry.Name(), err)
+			continue
+		}
+
+		reports = append(reports, report)
+	}
+
+	sort.Slice(reports, func(i, j int) bool {
+		return reports[i].RunAt < reports[j].RunAt
+	})
+
+	return reports, nil
+}
+
+// computeTrends analyzes a series of historical reports and produces
+// baseline drift and check status timelines.
+func computeTrends(reports []schema.MonitorReport) TrendResponse {
+	resp := TrendResponse{
+		DataPoints: len(reports),
+		TimeRange: TimeRange{
+			Earliest: reports[0].RunAt,
+			Latest:   reports[len(reports)-1].RunAt,
+		},
+	}
+
+	// Build baseline trends
+	baselineMap := make(map[string][]TrendPoint)
+	for _, r := range reports {
+		for _, b := range r.Baselines {
+			baselineMap[b.MetricName] = append(baselineMap[b.MetricName], TrendPoint{
+				RunAt: r.RunAt,
+				Value: b.Mean,
+			})
+		}
+	}
+	for name, points := range baselineMap {
+		drift := 0.0
+		if len(points) >= 2 && points[0].Value != 0 {
+			drift = (points[len(points)-1].Value - points[0].Value) / points[0].Value * 100
+			// Round to 2 decimal places
+			drift = float64(int(drift*100)) / 100
+		}
+		resp.BaselineTrends = append(resp.BaselineTrends, BaselineTrend{
+			MetricName: name,
+			Points:     points,
+			Drift:      drift,
+		})
+	}
+	sort.Slice(resp.BaselineTrends, func(i, j int) bool {
+		return resp.BaselineTrends[i].MetricName < resp.BaselineTrends[j].MetricName
+	})
+
+	// Build check timelines
+	checkMap := make(map[string][]CheckTimePoint)
+	for _, r := range reports {
+		for _, c := range r.Checks {
+			checkMap[c.CheckName] = append(checkMap[c.CheckName], CheckTimePoint{
+				RunAt:  r.RunAt,
+				Status: c.Status,
+				Actual: c.Actual,
+			})
+		}
+	}
+	for name, points := range checkMap {
+		changes := 0
+		for i := 1; i < len(points); i++ {
+			if points[i].Status != points[i-1].Status {
+				changes++
+			}
+		}
+		resp.CheckTimeline = append(resp.CheckTimeline, CheckTimeline{
+			CheckName: name,
+			Points:    points,
+			Changes:   changes,
+		})
+	}
+	sort.Slice(resp.CheckTimeline, func(i, j int) bool {
+		return resp.CheckTimeline[i].CheckName < resp.CheckTimeline[j].CheckName
+	})
+
+	return resp
 }
 
 // --- Helpers ---
