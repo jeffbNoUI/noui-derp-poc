@@ -265,7 +265,7 @@ export default function RetirementApplication({
                 onClick={onBack}
                 className="text-sm text-gray-500 hover:text-gray-700 flex items-center gap-1"
               >
-                \u2190 Back to Queue
+                {'\u2190'} Back to Queue
               </button>
               <div className="h-6 w-px bg-gray-200" />
               <div>
@@ -308,7 +308,7 @@ export default function RetirementApplication({
                   {member.first_name} {member.last_name}
                 </div>
                 <div className="text-xs text-gray-500">
-                  ID: {member.member_id} \u00b7 Age {calcAge(member.dob) || '\u2014'} \u00b7{' '}
+                  ID: {member.member_id} {'\u00b7'} Age {calcAge(member.dob) || '\u2014'} {'\u00b7'}{' '}
                   {svcCreditData?.summary?.earned_years?.toFixed(2) || '\u2014'}y service
                 </div>
               </div>
@@ -397,16 +397,16 @@ export default function RetirementApplication({
         <div className="mx-auto max-w-7xl px-6 py-2 flex items-center justify-between text-xs text-gray-400">
           <div className="flex items-center gap-4">
             <span className="font-mono">{caseId}</span>
-            <span>\u00b7</span>
+            <span>{'\u00b7'}</span>
             <span>{stages[activeIdx]?.label}</span>
           </div>
           <div className="flex items-center gap-4">
             <span>Assigned: Sarah Chen</span>
-            <span>\u00b7</span>
+            <span>{'\u00b7'}</span>
             <span className="font-mono">{completed.size}/{stages.length} confirmed</span>
-            <span>\u00b7</span>
+            <span>{'\u00b7'}</span>
             <span className="text-[10px] text-gray-300">
-              \u2190\u2192 navigate \u00b7 1-{stages.length} jump \u00b7 Esc back
+              {'\u2190\u2192'} navigate {'\u00b7'} 1-{stages.length} jump {'\u00b7'} Esc back
             </span>
           </div>
         </div>

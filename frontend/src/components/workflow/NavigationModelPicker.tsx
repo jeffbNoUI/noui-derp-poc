@@ -21,7 +21,7 @@ export default function NavigationModelPicker({ model, onChange }: NavigationMod
       <button className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white text-xs text-gray-600 hover:bg-gray-50 transition-colors">
         <span>{MODELS.find((m) => m.key === model)?.icon}</span>
         <span className="font-medium">{MODELS.find((m) => m.key === model)?.label}</span>
-        <span className="text-gray-400">\u25be</span>
+        <span className="text-gray-400">{'\u25be'}</span>
       </button>
 
       {/* Dropdown */}
@@ -40,7 +40,7 @@ export default function NavigationModelPicker({ model, onChange }: NavigationMod
               <div className="text-[10px] text-gray-400">{m.desc}</div>
             </div>
             {model === m.key && (
-              <span className="ml-auto text-iw-sage text-xs font-bold">\u2713</span>
+              <span className="ml-auto text-iw-sage text-xs font-bold">{'\u2713'}</span>
             )}
           </button>
         ))}

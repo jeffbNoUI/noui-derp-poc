@@ -51,7 +51,7 @@ services:
       context: ./services/intelligence
       dockerfile: Dockerfile
     ports:
-      - "8082:8082"
+      - "8088:8082"
     environment:
       PORT: "8082"
       CONNECTOR_URL: "http://connector:8081"
