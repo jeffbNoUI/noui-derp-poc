@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-derp-poc
 
-_Updated: 2026-03-06 | Status: DERP POC Session 3 Complete / Connector Lab Session 9 Complete_
+_Updated: 2026-03-06 | Status: DERP POC Session 5 Complete / Connector Lab Session 9 Complete_
 
 ---
 
 ## Current State
 
-**DERP POC:** Full prototype deployed with 7 backend services and React frontend. All staff dashboards, workflow stages, navigation models, and portal views functional. DataQualityPanel and CorrespondencePanel wired into StaffPortal navigation. Frontend test coverage established (21 Vitest tests). Docker Compose validated end-to-end. Visual QA complete — all tabs render, command palette works, retirement workflow navigates correctly. Unit tests passing for all 3 new Go services (44 tests).
+**DERP POC:** Full prototype deployed with 6 backend services and React frontend. All staff dashboards, workflow stages, navigation models, and portal views functional. Command palette expanded to 16 entries. Knowledge Base added as 9th StaffPortal tab. 22 Vitest tests passing. 36 HTTP integration tests against live DB (KB: 13, DQ: 11, Correspondence: 12). Error response format standardized across all 6 services (`requestId` camelCase). 71 unit tests + 36 integration tests = 107 Go tests total.
 
 **Connector Lab:** Three live targets running: ERPNext (MariaDB, port 3307), PostgreSQL HR (port 5433), and MSSQL HR (Azure SQL Edge, port 1434). All seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against all 3 databases with identical detection results (8 checks, 5 baselines). Dashboard supports workspace embedding via iframe with postMessage API and trend analysis from history data. Tagger expanded to 12 concepts, all validated against live ERPNext (39 tables tagged). Monitor supports configurable thresholds via JSON file and webhook notifications on check status changes. 86 unit tests passing.
 
@@ -51,22 +51,25 @@ _Updated: 2026-03-06 | Status: DERP POC Session 3 Complete / Connector Lab Sessi
 6. **Knowledge Base** (8087) — Articles, stage help, rule references, search
 
 ### Test Coverage
-- `intelligence/rules/`: Benefit calculation, DRO, payment options, IPR, death benefit
+
+**Unit Tests (71):**
+- `intelligence/rules/`: Benefit calculation, DRO, payment options, IPR, death benefit (5 tests)
 - `correspondence/api/`: Health, helpers, template rendering (17 tests)
 - `dataquality/api/`: Health, helpers, model serialization (14 tests)
 - `knowledgebase/api/`: Health, helpers, search validation (13 tests)
-- `frontend/src/components/__tests__/`: StaffPortal, CommandPalette, RetirementApplication (21 tests)
+- `frontend/src/components/__tests__/`: StaffPortal, CommandPalette, RetirementApplication (22 tests)
+
+**Integration Tests (36) — `tests/integration/` with `//go:build integration`:**
+- KB (13): articles, stages, search, rules — list/get/filter/not-found
+- DQ (11): checks, results, scores, trend, issues — list/get/filter/update
+- Correspondence (12): templates, generate, history — list/get/filter/create/update/not-found
+
+Run: `go test -tags integration ./tests/integration/ -v`
 
 ## Next Session Scope
 
-### Priority 1: Expanded Command Palette
-1. Add entries for DQ, Correspondence, KB, Supervisor, Executive, CSR, Service Map (expand to 16)
-
-### Priority 2: KB Standalone Tab
-1. Add Knowledge Base as standalone StaffPortal tab
-
-### Priority 3: Integration Tests
-1. Integration tests with live database for CRUD operations
+### Priority 1: Remaining Frontend Work
+1. KnowledgeBase panel as standalone StaffPortal tab (currently only in ContextualHelp within workflow)
 2. Error handling review across all services
 
 ## Environment Details

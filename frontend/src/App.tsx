@@ -17,6 +17,7 @@ import StaffPortal from '@/components/StaffPortal';
 import RetirementApplication from '@/components/RetirementApplication';
 import CommandPalette from '@/components/CommandPalette';
 import VendorPortal from '@/components/portal/VendorPortal';
+import type { StaffTab } from '@/components/StaffPortal';
 
 type ViewMode = 'staff' | 'portal' | 'workspace' | 'crm' | 'employer' | 'vendor' | 'retirement-app';
 
@@ -98,6 +99,7 @@ export default function App() {
   const [retirementDate, setRetirementDate] = useState('2026-04-01');
   const [memberIDInput, setMemberIDInput] = useState('10001');
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
+  const [staffTab, setStaffTab] = useState<StaffTab | undefined>(undefined);
 
   // Retirement application state
   const [activeCaseId, setActiveCaseId] = useState('');
@@ -117,6 +119,11 @@ export default function App() {
     setViewMode(mode as ViewMode);
   }, []);
 
+  const goToStaffTab = useCallback((tab: StaffTab) => {
+    setStaffTab(tab);
+    setViewMode('staff');
+  }, []);
+
   // Global ⌘K / Ctrl+K handler
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -131,16 +138,23 @@ export default function App() {
 
   // Command palette commands
   const commands = useMemo(() => [
-    { id: 'search-member', label: 'Search Member', icon: '🔍', shortcut: 'G M', category: 'Navigation', action: () => setViewMode('staff') },
-    { id: 'open-queue', label: 'My Work Queue', icon: '📋', shortcut: 'G Q', category: 'Navigation', action: () => setViewMode('staff') },
+    { id: 'search-member', label: 'Search Member', icon: '🔍', shortcut: 'G M', category: 'Navigation', action: () => goToStaffTab('search') },
+    { id: 'open-queue', label: 'My Work Queue', icon: '📋', shortcut: 'G Q', category: 'Navigation', action: () => goToStaffTab('queue') },
     { id: 'run-calc', label: 'Run Calculation', icon: '🧮', category: 'Actions', action: () => setViewMode('workspace') },
-    { id: 'open-crm', label: 'Open CRM', icon: '💬', shortcut: 'G C', category: 'Navigation', action: () => setViewMode('crm') },
+    { id: 'open-crm', label: 'Open CRM', icon: '💬', category: 'Navigation', action: () => setViewMode('crm') },
     { id: 'member-portal', label: 'Member Portal', icon: '👤', category: 'Navigation', action: () => setViewMode('portal') },
     { id: 'employer-portal', label: 'Employer Portal', icon: '🏢', category: 'Navigation', action: () => setViewMode('employer') },
     { id: 'vendor-portal', label: 'Vendor Portal', icon: '\ud83c\udfe5', category: 'Navigation', action: () => setViewMode('vendor') },
+    { id: 'supervisor', label: 'Supervisor Dashboard', icon: '📊', shortcut: 'G S', category: 'Staff Tabs', action: () => goToStaffTab('supervisor') },
+    { id: 'executive', label: 'Executive Dashboard', icon: '📈', shortcut: 'G E', category: 'Staff Tabs', action: () => goToStaffTab('executive') },
+    { id: 'csr-hub', label: 'CSR Hub', icon: '📞', shortcut: 'G C', category: 'Staff Tabs', action: () => goToStaffTab('csr') },
+    { id: 'service-map', label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P', category: 'Staff Tabs', action: () => goToStaffTab('service-map') },
+    { id: 'data-quality', label: 'Data Quality', icon: '\ud83d\udee1\ufe0f', shortcut: 'G D', category: 'Staff Tabs', action: () => goToStaffTab('dq') },
+    { id: 'correspondence', label: 'Correspondence', icon: '\u2709\ufe0f', shortcut: 'G X', category: 'Staff Tabs', action: () => goToStaffTab('correspondence') },
+    { id: 'knowledge-base', label: 'Knowledge Base', icon: '\ud83d\udcda', shortcut: 'G K', category: 'Staff Tabs', action: () => goToStaffTab('kb') },
     { id: 'case-robert', label: 'Open Case: Robert Martinez', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0147', 10001, '2026-04-01', ['leave-payout']) },
     { id: 'case-jennifer', label: 'Open Case: Jennifer Kim', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0152', 10002, '2026-05-01', ['early-retirement', 'purchased-service']) },
-  ], [handleOpenCase]);
+  ], [handleOpenCase, goToStaffTab]);
 
   // ── View transition key — triggers re-animation on view change ──────
   const viewKey = useRef(0);
@@ -167,6 +181,7 @@ export default function App() {
         <StaffPortal
           onOpenCase={handleOpenCase}
           onChangeView={handleChangeView}
+          defaultTab={staffTab}
         />
       </div>
     );
