@@ -25,7 +25,7 @@ describe('CommandPalette', () => {
     render(
       <CommandPalette commands={commands} isOpen={true} onClose={vi.fn()} />
     );
-    expect(screen.getByPlaceholderText('Type a command...')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('What would you like to do?')).toBeInTheDocument();
     expect(screen.getByText('16 commands')).toBeInTheDocument();
     for (const cmd of commands) {
       expect(screen.getByText(cmd.label)).toBeInTheDocument();
@@ -37,7 +37,7 @@ describe('CommandPalette', () => {
     render(
       <CommandPalette commands={commands} isOpen={true} onClose={vi.fn()} />
     );
-    const input = screen.getByPlaceholderText('Type a command...');
+    const input = screen.getByPlaceholderText('What would you like to do?');
     fireEvent.change(input, { target: { value: 'Command 1' } });
     // "Command 1", "Command 10"-"Command 16" won't exist with 9, so only "Command 1"
     expect(screen.getByText('Command 1')).toBeInTheDocument();

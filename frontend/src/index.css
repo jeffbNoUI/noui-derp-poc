@@ -8,26 +8,137 @@
    Portal — "Institutional Warmth" styles
    ═══════════════════════════════════════════════════════ */
 
+/* ── Motion System ─────────────────────────────────────── */
+
 @keyframes breathe {
   0%, 100% { opacity: 0.6; }
   50% { opacity: 1; }
 }
 
 @keyframes fadeUp {
-  from { opacity: 0; transform: translateY(10px); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: translateY(0); }
 }
 
-.portal-card {
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* Entrance choreography — stagger children on page load */
+.iw-stagger > * {
+  opacity: 0;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.iw-stagger > *:nth-child(1) { animation-delay: 0.06s; }
+.iw-stagger > *:nth-child(2) { animation-delay: 0.12s; }
+.iw-stagger > *:nth-child(3) { animation-delay: 0.18s; }
+.iw-stagger > *:nth-child(4) { animation-delay: 0.24s; }
+.iw-stagger > *:nth-child(5) { animation-delay: 0.30s; }
+.iw-stagger > *:nth-child(6) { animation-delay: 0.36s; }
+.iw-stagger > *:nth-child(7) { animation-delay: 0.42s; }
+.iw-stagger > *:nth-child(8) { animation-delay: 0.48s; }
+
+.iw-fade-in {
+  animation: fadeIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.iw-slide-in {
+  animation: slideInRight 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.iw-scale-in {
+  animation: scaleIn 0.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* View transition wrapper */
+.iw-view-enter {
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+/* Skeleton loading shimmer */
+.iw-skeleton {
+  background: linear-gradient(90deg, #F8F7F4 25%, #EDEAE4 50%, #F8F7F4 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 8px;
+}
+
+/* ── Warm Card System ──────────────────────────────────── */
+
+.portal-card,
+.iw-card {
   background: #FFFFFF;
   border: 1px solid #E5E2DC;
   border-radius: 16px;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.portal-card:hover {
+.portal-card:hover,
+.iw-card:hover {
   border-color: #D0CEC8;
   box-shadow: 0 6px 24px rgba(27, 46, 74, 0.06);
+}
+
+/* Elevated variant — deeper shadow on hover, good for clickable cards */
+.iw-card-elevated {
+  background: #FFFFFF;
+  border: 1px solid #E5E2DC;
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+}
+
+.iw-card-elevated:hover {
+  border-color: #D0CEC8;
+  box-shadow: 0 8px 32px rgba(27, 46, 74, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Stat card — used for KPI displays */
+.iw-stat-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E2DC;
+  border-radius: 14px;
+  padding: 20px 24px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.iw-stat-card:hover {
+  border-color: #D0CEC8;
+  box-shadow: 0 4px 16px rgba(27, 46, 74, 0.05);
+}
+
+/* Hero gradient backgrounds */
+.iw-hero-navy {
+  background: linear-gradient(135deg, #1B2E4A 0%, #243B5C 50%, #2A5478 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.iw-hero-navy::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.04;
+  background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.4) 1px, transparent 0);
+  background-size: 32px 32px;
+  pointer-events: none;
 }
 
 .portal-nav-btn {
@@ -135,17 +246,44 @@
   font-weight: 600;
 }
 
-/* Custom scrollbar for portal */
+/* ── Custom scrollbar ─────────────────────────────────── */
+
 .portal-card ::-webkit-scrollbar,
+.iw-card ::-webkit-scrollbar,
 .portal-chat-input-wrap ::-webkit-scrollbar {
   width: 5px;
 }
 
-.portal-card ::-webkit-scrollbar-track {
+.portal-card ::-webkit-scrollbar-track,
+.iw-card ::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.portal-card ::-webkit-scrollbar-thumb {
+.portal-card ::-webkit-scrollbar-thumb,
+.iw-card ::-webkit-scrollbar-thumb {
   background: #E5E2DC;
   border-radius: 3px;
+}
+
+/* ── Command Palette Warm Override ────────────────────── */
+
+.iw-cmd-backdrop {
+  background: rgba(27, 46, 74, 0.35);
+  backdrop-filter: blur(12px);
+}
+
+.iw-cmd-palette {
+  background: #FDFCF9;
+  border: 1px solid #E5E2DC;
+  border-radius: 16px;
+  box-shadow:
+    0 24px 80px rgba(27, 46, 74, 0.12),
+    0 8px 24px rgba(27, 46, 74, 0.06);
+}
+
+/* ── Page background ──────────────────────────────────── */
+
+.iw-page {
+  background: #F8F7F4;
+  min-height: 100vh;
 }

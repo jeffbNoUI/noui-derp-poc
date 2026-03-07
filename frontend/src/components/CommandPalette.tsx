@@ -74,33 +74,33 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
   const categories = [...new Set(filtered.map((c) => c.category))];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-[18vh]">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 iw-cmd-backdrop" onClick={onClose} />
 
       {/* Palette */}
-      <div className="relative w-full max-w-lg bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden">
+      <div className="relative w-full max-w-lg iw-cmd-palette overflow-hidden iw-scale-in">
         {/* Search input */}
-        <div className="flex items-center gap-3 px-4 py-3 border-b border-gray-200">
-          <span className="text-gray-400 text-lg">⌘</span>
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-iw-borderLight">
+          <div className="h-7 w-7 rounded-lg bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-[10px] font-display flex-shrink-0">N</div>
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Type a command..."
-            className="flex-1 text-sm outline-none bg-transparent text-gray-900 placeholder:text-gray-400"
+            placeholder="What would you like to do?"
+            className="flex-1 text-sm outline-none bg-transparent text-iw-text placeholder:text-iw-textTertiary font-body"
           />
-          <kbd className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 font-mono">
+          <kbd className="text-[10px] text-iw-textTertiary bg-iw-page px-1.5 py-0.5 rounded-md border border-iw-borderLight font-mono">
             esc
           </kbd>
         </div>
 
         {/* Results */}
-        <div className="max-h-[300px] overflow-y-auto py-2">
+        <div className="max-h-[320px] overflow-y-auto py-2">
           {filtered.length === 0 && (
-            <div className="px-4 py-6 text-center text-sm text-gray-400">
-              No commands match "{query}"
+            <div className="px-5 py-8 text-center text-sm text-iw-textTertiary">
+              No commands match &ldquo;{query}&rdquo;
             </div>
           )}
 
@@ -108,7 +108,7 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
             const catCommands = filtered.filter((c) => c.category === cat);
             return (
               <div key={cat}>
-                <div className="px-4 py-1 text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                <div className="px-5 py-1.5 text-[10px] text-iw-textTertiary uppercase tracking-wider font-semibold">
                   {cat}
                 </div>
                 {catCommands.map((cmd) => {
@@ -122,8 +122,10 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
                         onClose();
                       }}
                       onMouseEnter={() => setSelectedIdx(globalIdx)}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
-                        isSelected ? 'bg-iw-sageLight/50 text-iw-sage' : 'text-gray-700 hover:bg-gray-50'
+                      className={`w-full flex items-center justify-between px-5 py-2.5 text-left transition-all ${
+                        isSelected
+                          ? 'bg-iw-sageLight/60 text-iw-sage'
+                          : 'text-iw-text hover:bg-iw-page'
                       }`}
                     >
                       <div className="flex items-center gap-3">
@@ -131,7 +133,7 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
                         <span className="text-sm font-medium">{cmd.label}</span>
                       </div>
                       {cmd.shortcut && (
-                        <kbd className="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded border border-gray-200 font-mono">
+                        <kbd className="text-[10px] text-iw-textTertiary bg-iw-page px-1.5 py-0.5 rounded-md border border-iw-borderLight font-mono">
                           {cmd.shortcut}
                         </kbd>
                       )}
@@ -144,8 +146,8 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-4 py-2 flex items-center justify-between text-[10px] text-gray-400">
-          <span>↑↓ navigate · ↵ select · esc close</span>
+        <div className="border-t border-iw-borderLight px-5 py-2.5 flex items-center justify-between text-[10px] text-iw-textTertiary">
+          <span>&#8593;&#8595; navigate &middot; &#8629; select &middot; esc close</span>
           <span>{filtered.length} command{filtered.length !== 1 ? 's' : ''}</span>
         </div>
       </div>

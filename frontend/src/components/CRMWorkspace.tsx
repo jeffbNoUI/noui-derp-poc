@@ -77,20 +77,20 @@ export default function CRMWorkspace() {
   const secFlag = contact?.securityFlag ? securityFlagConfig[contact.securityFlag] : null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="iw-page">
       {/* CRM sub-header with search */}
-      <div className="border-b border-gray-100 bg-white">
+      <div className="border-b border-iw-border bg-white">
         <div className="mx-auto max-w-7xl px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <p className="text-sm text-gray-500">Contact Relationship Management</p>
+              <p className="text-sm text-iw-textSecondary font-medium">Contact Relationship Management</p>
               {selectedContactId && (
                 <button
                   onClick={() => setShowJournal((v) => !v)}
-                  className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+                  className={`rounded-xl px-3 py-1.5 text-xs font-medium transition-all ${
                     showJournal
-                      ? 'bg-blue-100 text-blue-800'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      ? 'bg-iw-sageLight text-iw-sage'
+                      : 'text-iw-textTertiary hover:text-iw-text hover:bg-iw-page'
                   }`}
                 >
                   {showJournal ? 'Hide Journal' : 'Case Journal'}
@@ -102,12 +102,12 @@ export default function CRMWorkspace() {
         </div>
       </div>
 
-      <main className="mx-auto max-w-7xl px-6 py-6">
+      <main className="mx-auto max-w-7xl px-6 py-6 iw-view-enter">
         {/* No contact selected */}
         {!selectedContactId && (
-          <div className="rounded-lg border border-gray-200 bg-white p-12 text-center shadow-sm">
+          <div className="iw-card p-12 text-center">
             <svg
-              className="mx-auto h-12 w-12 text-gray-300"
+              className="mx-auto h-12 w-12 text-iw-borderLight"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -119,8 +119,8 @@ export default function CRMWorkspace() {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <h2 className="mt-4 text-lg font-medium text-gray-900">Search for a contact</h2>
-            <p className="mt-1 text-sm text-gray-500">
+            <h2 className="mt-4 text-lg font-medium text-iw-navy font-display">Search for a contact</h2>
+            <p className="mt-1 text-sm text-iw-textTertiary">
               Use the search bar above to find a member, beneficiary, or other contact.
             </p>
           </div>
@@ -131,23 +131,23 @@ export default function CRMWorkspace() {
           <div className={showJournal ? 'grid grid-cols-[1fr_380px] gap-6' : ''}>
           <div className="space-y-6">
             {/* Contact banner */}
-            <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+            <div className="iw-card p-5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-iw-sageLight to-iw-goldLight text-lg font-bold text-iw-navy border border-iw-border">
                     {contact.firstName[0]}{contact.lastName[0]}
                   </div>
                   <div>
-                    <h1 className="text-xl font-semibold text-gray-900">
+                    <h1 className="text-xl font-semibold text-iw-navy font-display">
                       {contact.firstName}
                       {contact.middleName ? ` ${contact.middleName}` : ''}{' '}
                       {contact.lastName}
                       {contact.suffix ? ` ${contact.suffix}` : ''}
                     </h1>
-                    <p className="text-sm text-gray-500">
-                      Contact ID: {contact.contactId}
+                    <p className="text-sm text-iw-textTertiary">
+                      Contact ID: <span className="font-mono">{contact.contactId}</span>
                       {contact.legacyMemberId && (
-                        <> &middot; Legacy ID: {contact.legacyMemberId}</>
+                        <> &middot; Legacy ID: <span className="font-mono">{contact.legacyMemberId}</span></>
                       )}
                     </p>
                   </div>
@@ -192,22 +192,22 @@ export default function CRMWorkspace() {
               )}
 
               {/* Contact details */}
-              <div className="mt-3 grid grid-cols-4 gap-4 border-t border-gray-100 pt-3 text-sm">
+              <div className="mt-3 grid grid-cols-4 gap-4 border-t border-iw-borderLight pt-3 text-sm">
                 <div>
-                  <span className="text-gray-500">Phone</span>
-                  <p className="font-medium">{contact.primaryPhone || 'Not on file'}</p>
+                  <span className="text-iw-textTertiary text-xs">Phone</span>
+                  <p className="font-medium text-iw-text">{contact.primaryPhone || 'Not on file'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Email</span>
-                  <p className="font-medium truncate">{contact.primaryEmail || 'Not on file'}</p>
+                  <span className="text-iw-textTertiary text-xs">Email</span>
+                  <p className="font-medium text-iw-text truncate">{contact.primaryEmail || 'Not on file'}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Preferred Channel</span>
-                  <p className="font-medium capitalize">{contact.preferredChannel.replace(/_/g, ' ')}</p>
+                  <span className="text-iw-textTertiary text-xs">Preferred Channel</span>
+                  <p className="font-medium text-iw-text capitalize">{contact.preferredChannel.replace(/_/g, ' ')}</p>
                 </div>
                 <div>
-                  <span className="text-gray-500">Language</span>
-                  <p className="font-medium">{contact.preferredLanguage}</p>
+                  <span className="text-iw-textTertiary text-xs">Language</span>
+                  <p className="font-medium text-iw-text">{contact.preferredLanguage}</p>
                 </div>
               </div>
             </div>
@@ -230,47 +230,47 @@ export default function CRMWorkspace() {
                 />
 
                 {/* Conversation list */}
-                <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
-                  <div className="border-b border-gray-200 px-6 py-4">
-                    <h2 className="text-lg font-semibold text-gray-900">Conversations</h2>
-                    <p className="text-sm text-gray-500">
+                <div className="iw-card overflow-hidden">
+                  <div className="border-b border-iw-borderLight px-6 py-4">
+                    <h2 className="text-lg font-semibold text-iw-navy font-display">Conversations</h2>
+                    <p className="text-sm text-iw-textTertiary">
                       {conversationList.length} conversation{conversationList.length !== 1 ? 's' : ''}
                     </p>
                   </div>
                   <div className="px-6 py-4">
                     {conversationList.length === 0 ? (
-                      <p className="text-center text-sm text-gray-500 py-4">No conversations.</p>
+                      <p className="text-center text-sm text-iw-textTertiary py-4">No conversations.</p>
                     ) : (
                       <ul className="space-y-2">
                         {conversationList.map((conv) => {
                           const isSelected = conv.conversationId === selectedConversationId;
                           const statusColors: Record<string, string> = {
-                            open: 'bg-blue-100 text-blue-800',
-                            pending: 'bg-yellow-100 text-yellow-800',
-                            resolved: 'bg-green-100 text-green-800',
-                            closed: 'bg-gray-100 text-gray-600',
-                            reopened: 'bg-orange-100 text-orange-800',
+                            open: 'bg-iw-sageLight text-iw-sage',
+                            pending: 'bg-iw-goldLight text-iw-gold',
+                            resolved: 'bg-emerald-50 text-emerald-700',
+                            closed: 'bg-iw-page text-iw-textTertiary',
+                            reopened: 'bg-orange-50 text-orange-700',
                           };
                           return (
                             <li key={conv.conversationId}>
                               <button
                                 type="button"
                                 onClick={() => handleSelectConversation(conv.conversationId)}
-                                className={`w-full rounded-md border p-3 text-left transition-colors ${
+                                className={`w-full rounded-xl border p-3 text-left transition-all ${
                                   isSelected
-                                    ? 'border-brand-300 bg-brand-50'
-                                    : 'border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                    ? 'border-iw-sage bg-iw-sageLight/40'
+                                    : 'border-iw-borderLight hover:border-iw-border hover:bg-iw-page'
                                 }`}
                               >
                                 <div className="flex items-center justify-between">
-                                  <span className="text-sm font-medium text-gray-800 truncate">
+                                  <span className="text-sm font-medium text-iw-navy truncate">
                                     {conv.subject || 'Untitled'}
                                   </span>
-                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[conv.status] || 'bg-gray-100 text-gray-600'}`}>
+                                  <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${statusColors[conv.status] || 'bg-iw-page text-iw-textTertiary'}`}>
                                     {conv.status}
                                   </span>
                                 </div>
-                                <div className="mt-0.5 flex items-center gap-2 text-xs text-gray-500">
+                                <div className="mt-0.5 flex items-center gap-2 text-xs text-iw-textTertiary">
                                   <span>{conv.interactionCount} interaction{conv.interactionCount !== 1 ? 's' : ''}</span>
                                   {conv.slaBreached && (
                                     <span className="font-medium text-red-600">SLA Breached</span>
@@ -304,17 +304,17 @@ export default function CRMWorkspace() {
                 {selectedInteractionId && (
                   <>
                     {!showNoteEditor ? (
-                      <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+                      <div className="iw-card p-4">
                         <div className="flex items-center justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">
-                              Interaction selected: <span className="font-mono text-xs text-gray-500">{selectedInteractionId}</span>
+                            <p className="text-sm font-medium text-iw-textSecondary">
+                              Interaction selected: <span className="font-mono text-xs text-iw-textTertiary">{selectedInteractionId}</span>
                             </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => setShowNoteEditor(true)}
-                            className="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 transition-colors"
+                            className="rounded-xl bg-iw-sage px-4 py-2 text-sm font-medium text-white hover:bg-iw-sageDark transition-all"
                           >
                             Add Note
                           </button>
