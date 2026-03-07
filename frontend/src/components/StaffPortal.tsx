@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SupervisorDashboard from '@/components/staff/SupervisorDashboard';
 import MemberSearch from '@/components/staff/MemberSearch';
 import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
 import CSRContextHub from '@/components/staff/CSRContextHub';
+import KnowledgeBasePanel from '@/components/staff/KnowledgeBasePanel';
 import ServiceMap from '@/components/admin/ServiceMap';
 import DataQualityPanel from '@/components/admin/DataQualityPanel';
 import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
@@ -10,9 +11,10 @@ import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
 interface StaffPortalProps {
   onOpenCase: (caseId: string, memberId: number, retDate: string, flags?: string[]) => void;
   onChangeView: (mode: string) => void;
+  defaultTab?: StaffTab;
 }
 
-type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence';
+export type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence' | 'kb';
 
 const WORK_QUEUE = [
   {
@@ -115,11 +117,18 @@ const SIDEBAR_NAV = [
   { key: 'service-map' as StaffTab, label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P' },
   { key: 'dq' as StaffTab, label: 'Data Quality', icon: '\ud83d\udee1\ufe0f', shortcut: 'G D' },
   { key: 'correspondence' as StaffTab, label: 'Correspondence', icon: '\u2709\ufe0f', shortcut: 'G X' },
+  { key: 'kb' as StaffTab, label: 'Knowledge Base', icon: '\ud83d\udcda', shortcut: 'G K' },
 ];
 
-export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalProps) {
+export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: StaffPortalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<StaffTab>('queue');
+  const [activeTab, setActiveTab] = useState<StaffTab>(defaultTab || 'queue');
+
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
 
   const filteredQueue = WORK_QUEUE.filter(
     (item) =>
@@ -219,7 +228,7 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
         {/* Top bar with search */}
         <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
           <h1 className="text-sm font-bold text-gray-700">
-            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map', dq: 'Data Quality', correspondence: 'Correspondence' }[activeTab]}
+            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map', dq: 'Data Quality', correspondence: 'Correspondence', kb: 'Knowledge Base' }[activeTab]}
           </h1>
           {activeTab === 'queue' && (
             <input
@@ -370,6 +379,9 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
 
           {/* Correspondence tab */}
           {activeTab === 'correspondence' && <CorrespondencePanel />}
+
+          {/* Knowledge Base tab */}
+          {activeTab === 'kb' && <KnowledgeBasePanel />}
 
           <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
             <p className="font-medium">NoUI Staff Portal</p>

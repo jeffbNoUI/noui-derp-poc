@@ -75,13 +75,23 @@ describe('StaffPortal', () => {
     expect(headers.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('shows all 8 sidebar nav items', () => {
+  it('renders Knowledge Base tab', () => {
+    renderWithProviders(
+      <StaffPortal onOpenCase={noop} onChangeView={noop} />
+    );
+    fireEvent.click(screen.getByText('Knowledge Base'));
+    const headers = screen.getAllByText('Knowledge Base');
+    expect(headers.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('shows all 9 sidebar nav items', () => {
     renderWithProviders(
       <StaffPortal onOpenCase={noop} onChangeView={noop} />
     );
     const labels = [
       'Work Queue', 'Member Lookup', 'Supervisor', 'Executive',
       'CSR Hub', 'Service Map', 'Data Quality', 'Correspondence',
+      'Knowledge Base',
     ];
     for (const label of labels) {
       expect(screen.getByText(label)).toBeInTheDocument();
