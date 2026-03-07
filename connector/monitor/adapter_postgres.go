@@ -64,7 +64,7 @@ func (a *PostgresMonitorAdapter) QueryMonthlyPayrollRuns(db *sql.DB) (*sql.Rows,
 
 func (a *PostgresMonitorAdapter) QuerySalarySlipMonths(db *sql.DB) (*sql.Rows, error) {
 	return db.Query(`
-		SELECT employee_name,
+		SELECT DISTINCT employee_name,
 		       EXTRACT(YEAR FROM start_date)::int AS yr,
 		       EXTRACT(MONTH FROM start_date)::int AS mo
 		FROM "tabSalary Slip"
@@ -116,7 +116,7 @@ func (a *PostgresMonitorAdapter) QueryMissingPayrollRuns(db *sql.DB) (*sql.Rows,
 
 func (a *PostgresMonitorAdapter) QueryFutureHireDates(db *sql.DB) (*sql.Rows, error) {
 	return db.Query(`
-		SELECT name, employee_name, date_of_joining
+		SELECT name, employee_name, date_of_joining::text
 		FROM "tabEmployee"
 		WHERE date_of_joining > CURRENT_DATE
 	`)

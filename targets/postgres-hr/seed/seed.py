@@ -139,10 +139,21 @@ def generate_months(start_date, end_date):
     return months
 
 
+def _validate_identifier(name):
+    """Validate SQL identifier contains only safe characters."""
+    import re
+    if not re.match(r'^[a-zA-Z0-9_ ]+$', name):
+        raise ValueError(f"Invalid SQL identifier: {name!r}")
+    return name
+
+
 def batch_insert(cursor, table, columns, rows, batch_size=500):
     """Insert rows in batches using PostgreSQL syntax."""
     if not rows:
         return
+    _validate_identifier(table)
+    for c in columns:
+        _validate_identifier(c)
     col_str = ", ".join(f'"{c}"' for c in columns)
     placeholders = ", ".join(["%s"] * len(columns))
     sql = f'INSERT INTO "{table}" ({col_str}) VALUES ({placeholders})'

@@ -25,7 +25,7 @@ const DEMO_CASES = [
   { id: 10001, name: 'Robert Martinez', retDate: '2026-04-01', label: 'Case 1: Tier 1, Rule of 75' },
   { id: 10002, name: 'Jennifer Kim', retDate: '2026-05-01', label: 'Case 2: Tier 2, Early Retirement' },
   { id: 10003, name: 'David Washington', retDate: '2026-04-01', label: 'Case 3: Tier 3, Early Retirement' },
-  { id: 10001, name: 'Robert Martinez (DRO)', retDate: '2026-04-01', label: 'Case 4: Tier 1, DRO' },
+  { id: 10004, name: 'Robert Martinez (DRO)', retDate: '2026-04-01', label: 'Case 4: Tier 1, DRO' },
 ];
 
 // ── Shared top-level navigation bar ──────────────────────────────────────────
@@ -170,7 +170,6 @@ export default function App() {
           retirementDate={caseRetDate}
           caseFlags={caseFlagsState}
           onBack={() => setViewMode('staff')}
-          onChangeView={handleChangeView}
         />
       </>
     );
@@ -187,7 +186,6 @@ export default function App() {
         retirementDate={retirementDate}
         onSwitchToWorkspace={() => setViewMode('workspace')}
         onSwitchToCRM={() => setViewMode('crm')}
-        onChangeView={handleChangeView}
       />
       </>
     );
@@ -257,12 +255,12 @@ function AgentWorkspace({
   const { data: svcCreditData } = useServiceCredit(memberID);
   const { data: calculation, isLoading: calcLoading } = useBenefitCalculation(memberID, retirementDate);
 
-  const scenarioDates = [
+  const scenarioDates = useMemo(() => [
     retirementDate,
     addYears(retirementDate, 1),
     addYears(retirementDate, 2),
     addYears(retirementDate, 3),
-  ];
+  ], [retirementDate]);
   const { data: scenario } = useScenario(memberID, scenarioDates);
 
   const isEarlyRetirement = calculation?.eligibility.best_eligible_type === 'EARLY';

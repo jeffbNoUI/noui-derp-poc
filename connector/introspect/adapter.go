@@ -2,6 +2,7 @@ package main
 
 import (
 	"database/sql"
+	"log"
 
 	"github.com/noui/connector-lab/schema"
 )
@@ -16,13 +17,17 @@ type SchemaAdapter interface {
 }
 
 // NewAdapter returns the appropriate SchemaAdapter for the given driver.
+// Supported drivers: "mysql" (default), "postgres", "mssql".
 func NewAdapter(driver string) SchemaAdapter {
 	switch driver {
 	case "postgres":
 		return &PostgresAdapter{}
 	case "mssql":
 		return &MSSQLAdapter{}
+	case "mysql", "":
+		return &MySQLAdapter{}
 	default:
+		log.Printf("WARNING: unknown driver %q, defaulting to MySQL adapter", driver)
 		return &MySQLAdapter{}
 	}
 }

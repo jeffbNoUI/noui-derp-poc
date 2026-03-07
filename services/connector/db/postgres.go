@@ -54,6 +54,7 @@ func Connect(cfg Config) (*sql.DB, error) {
 		err = db.Ping()
 		if err != nil {
 			log.Printf("attempt %d: failed to ping db: %v", attempt, err)
+			db.Close()
 			time.Sleep(time.Duration(attempt) * time.Second)
 			continue
 		}

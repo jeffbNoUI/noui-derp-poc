@@ -59,7 +59,7 @@ func (a *MySQLMonitorAdapter) QueryMonthlyPayrollRuns(db *sql.DB) (*sql.Rows, er
 
 func (a *MySQLMonitorAdapter) QuerySalarySlipMonths(db *sql.DB) (*sql.Rows, error) {
 	return db.Query(`
-		SELECT employee_name,
+		SELECT DISTINCT employee_name,
 		       YEAR(start_date) AS yr,
 		       MONTH(start_date) AS mo
 		FROM ` + "`tabSalary Slip`" + `
@@ -109,7 +109,7 @@ func (a *MySQLMonitorAdapter) QueryMissingPayrollRuns(db *sql.DB) (*sql.Rows, er
 
 func (a *MySQLMonitorAdapter) QueryFutureHireDates(db *sql.DB) (*sql.Rows, error) {
 	return db.Query(`
-		SELECT name, employee_name, date_of_joining
+		SELECT name, employee_name, DATE_FORMAT(date_of_joining, '%Y-%m-%d')
 		FROM ` + "`tabEmployee`" + `
 		WHERE date_of_joining > CURDATE()
 	`)

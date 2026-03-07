@@ -324,15 +324,19 @@ func (s *Store) GetScore(tenantID string) (*models.DQScore, error) {
 	}
 
 	// Count open issues
-	s.DB.QueryRow(`
+	if err := s.DB.QueryRow(`
 		SELECT COUNT(*) FROM dq_issue
 		WHERE tenant_id = $1 AND status = 'open'
-	`, tenantID).Scan(&score.OpenIssues)
+	`, tenantID).Scan(&score.OpenIssues); err != nil {
+		log.Printf("warning: failed to count open issues for tenant %s: %v", tenantID, err)
+	}
 
-	s.DB.QueryRow(`
+	if err := s.DB.QueryRow(`
 		SELECT COUNT(*) FROM dq_issue
 		WHERE tenant_id = $1 AND status = 'open' AND severity = 'critical'
-	`, tenantID).Scan(&score.CriticalIssues)
+	`, tenantID).Scan(&score.CriticalIssues); err != nil {
+		log.Printf("warning: failed to count critical issues for tenant %s: %v", tenantID, err)
+	}
 
 	return score, nil
 }

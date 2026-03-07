@@ -7,9 +7,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /corr-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /corr-service .
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /corr-service /corr-service
 

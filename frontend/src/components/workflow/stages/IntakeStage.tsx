@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Callout } from '../shared';
 
 interface DocItem {
@@ -50,6 +50,11 @@ export default function IntakeStage({
   flags: { hasDRO: boolean; maritalStatus?: string };
 }) {
   const [docs, setDocs] = useState<DocItem[]>(() => buildChecklist(flags));
+
+  // Reset checklist when relevant flags change
+  useEffect(() => {
+    setDocs(buildChecklist(flags));
+  }, [flags.hasDRO, flags.maritalStatus]);
 
   const toggleStatus = (id: string) => {
     setDocs((prev) =>

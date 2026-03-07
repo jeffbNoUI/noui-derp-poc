@@ -95,6 +95,8 @@ func introspect(db *sql.DB, adapter SchemaAdapter, driver, dbName string) (*sche
 		return nil, fmt.Errorf("getting tables: %w", err)
 	}
 
+	// Performance note: N+1 query pattern (2N queries for N tables). Acceptable for lab use.
+	// For production, columns and FKs could be fetched in bulk queries grouped in Go.
 	for i, t := range tables {
 		cols, err := adapter.GetColumns(db, dbName, t.Name)
 		if err != nil {

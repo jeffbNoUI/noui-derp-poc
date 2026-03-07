@@ -23,6 +23,8 @@ export default function CorrespondencePanel({ memberId, contactId }: Corresponde
   const [activeTab, setActiveTab] = useState<'generate' | 'history'>('generate');
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
       try {
         const [tmplData, histData] = await Promise.all([
@@ -32,15 +34,23 @@ export default function CorrespondencePanel({ memberId, contactId }: Corresponde
             contact_id: contactId,
           }),
         ]);
-        setTemplates(tmplData || []);
-        setHistory(histData || []);
+        if (!cancelled) {
+          setTemplates(tmplData || []);
+          setHistory(histData || []);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load correspondence data');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load correspondence data');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     loadData();
+
+    return () => { cancelled = true; };
   }, [memberId, contactId]);
 
   function handleSelectTemplate(tmpl: CorrespondenceTemplate) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -193,6 +194,7 @@ func sendWebhook(url string, report *schema.MonitorReport, changes []StatusChang
 		return
 	}
 	defer resp.Body.Close()
+	io.Copy(io.Discard, resp.Body) // drain body to allow connection reuse
 
 	if resp.StatusCode >= 200 && resp.StatusCode < 300 {
 		log.Printf("Webhook: delivered successfully (HTTP %d)", resp.StatusCode)

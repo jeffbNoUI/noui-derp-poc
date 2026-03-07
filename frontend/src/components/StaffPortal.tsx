@@ -165,6 +165,7 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
+              aria-label={item.label}
               className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                 activeTab === item.key
                   ? 'bg-iw-sageLight/50 text-iw-sage border-r-2 border-iw-sage'
@@ -172,7 +173,7 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span className="text-sm">{item.icon}</span>
+                <span className="text-sm" aria-hidden="true">{item.icon}</span>
                 <span className="text-sm font-medium">{item.label}</span>
               </div>
               <kbd className="text-[9px] text-gray-300 font-mono">{item.shortcut}</kbd>
@@ -192,9 +193,10 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
             <button
               key={item.key}
               onClick={() => onChangeView(item.key)}
+              aria-label={`Navigate to ${item.label}`}
               className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
             >
-              <span className="text-sm">{item.icon}</span>
+              <span className="text-sm" aria-hidden="true">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           ))}

@@ -164,6 +164,29 @@ func CalculateDRO(
 	maritalServiceYears := CalculateEarnedService(maritalStart, maritalEnd)
 	totalServiceYears := svcCredit.BenefitYears
 
+	// Guard: total service years must be positive to avoid division by zero / NaN
+	if totalServiceYears <= 0 {
+		return models.DROCalcResult{
+			HasDRO:      true,
+			MarriageDate: dro.MarriageDate.Format("2006-01-02"),
+			DivorceDate:  dro.DivorceDate.Format("2006-01-02"),
+			GrossBenefit: grossBenefit,
+			DivisionMethod: dro.DivisionMethod,
+		}
+	}
+
+	// Guard: divorce date must be after marriage date to produce valid marital service
+	if !dro.DivorceDate.After(dro.MarriageDate) {
+		return models.DROCalcResult{
+			HasDRO:      true,
+			MarriageDate: dro.MarriageDate.Format("2006-01-02"),
+			DivorceDate:  dro.DivorceDate.Format("2006-01-02"),
+			GrossBenefit: grossBenefit,
+			MemberAfterDRO: grossBenefit,
+			DivisionMethod: dro.DivisionMethod,
+		}
+	}
+
 	// Marital fraction
 	maritalFraction := maritalServiceYears / totalServiceYears
 	maritalShare := grossBenefit * maritalFraction
@@ -277,8 +300,10 @@ func CalculateScenarios(
 	return result
 }
 
-// roundToCents rounds a float64 to 2 decimal places using banker's rounding.
-// ASSUMPTION: [Q-CALC-01] Using banker's rounding. DERP's actual method unconfirmed.
+// roundToCents rounds a float64 to 2 decimal places using round-half-away-from-zero.
+// NOTE: math.Round uses round-half-away-from-zero, NOT banker's rounding.
+// ASSUMPTION: [Q-CALC-01] DERP's actual rounding method is unconfirmed.
+// If banker's rounding is required, this function must be replaced.
 func roundToCents(amount float64) float64 {
 	return math.Round(amount*100) / 100
 }

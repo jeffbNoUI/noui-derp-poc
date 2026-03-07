@@ -49,6 +49,7 @@ func CalculateAge(dob, atDate time.Time) models.AgeAtRetirement {
 
 // ASSUMPTION: [Q-CALC-02] Using year-month method (months/12) for partial service years.
 // DERP may use exact-day method. See RULE-SVC-EARNED.
+// NOTE: Returns negative value if endDate is before startDate. Callers must validate date ordering.
 func CalculateEarnedService(hireDate time.Time, endDate time.Time) float64 {
 	years := endDate.Year() - hireDate.Year()
 	months := int(endDate.Month()) - int(hireDate.Month())

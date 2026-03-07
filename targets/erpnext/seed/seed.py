@@ -314,8 +314,8 @@ class ERPNextSeeder:
                     print(f"  Cleaned {deleted} rows from {table}")
             except pymysql.err.ProgrammingError:
                 pass  # Table may not exist
-            except pymysql.err.OperationalError:
-                pass
+            except pymysql.err.OperationalError as e:
+                print(f"  Warning during cleanup: {e}")
 
         # Clean company record
         try:
