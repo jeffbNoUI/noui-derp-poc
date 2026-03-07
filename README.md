@@ -13,11 +13,17 @@ Develop and validate the NoUI Data Connector's core capabilities before connecti
 3. **Anomaly detection** — detect operational data quality issues against a statistical baseline
 4. **Monitoring overlay** — surface findings without modifying the source system
 
-## Current Target: ERPNext
+## Targets
 
-ERPNext (open-source ERP, MariaDB) serves as the first lab target — a realistic proxy for legacy pension administration systems like DERP's Neospin. ERPNext has full HR, payroll, leave management, and employee lifecycle modules.
+### ERPNext (MariaDB)
+ERPNext (open-source ERP, MariaDB) serves as the primary lab target — a realistic proxy for legacy pension administration systems like DERP's Neospin. ERPNext has full HR, payroll, leave management, and employee lifecycle modules (876 tables).
 
 See [`targets/erpnext/`](targets/erpnext/).
+
+### PostgreSQL HR (PostgreSQL)
+A standalone PostgreSQL target with ERPNext-compatible schema (12 core HR tables) for validating the connector's PostgreSQL adapters against a live database. Same data, same DQ issues, different database engine.
+
+See [`targets/postgres-hr/`](targets/postgres-hr/).
 
 ## Getting Started
 
@@ -47,12 +53,14 @@ noui-connector-lab/
 │   ├── tagger/                  # Concept tagging logic (Go)
 │   └── monitor/                 # Anomaly detection checks (Go)
 ├── targets/
-│   └── erpnext/
-│       ├── docker-compose.yml   # ERPNext + MariaDB stack
-│       ├── seed/                # Data generation scripts
-│       ├── schema-manifest/     # Introspection output (generated, not committed)
-│       ├── monitoring-checks/   # Target-specific check configs
-│       └── docs/                # Target-specific notes
+│   ├── erpnext/
+│   │   ├── docker-compose.yml   # ERPNext + MariaDB stack
+│   │   ├── seed/                # Data generation scripts
+│   │   └── schema-manifest/     # Introspection output (generated, not committed)
+│   └── postgres-hr/
+│       ├── docker-compose.yml   # PostgreSQL 15 stack
+│       ├── seed/                # Schema DDL + data generation
+│       └── schema-manifest/     # Introspection output (generated, not committed)
 └── tools/                       # Shared utilities
 ```
 
@@ -69,6 +77,7 @@ noui-connector-lab/
 
 | Target | System | DB | Status |
 |--|--|--|--|
-| ERPNext | Open-source ERP | MariaDB 10.6 | 🔄 In progress |
-| DERP Neospin | Pension admin | TBD (PostgreSQL/MSSQL) | ⏳ Pending access |
-| COPERA | Pension admin | TBD | ⏳ Future |
+| ERPNext | Open-source ERP | MariaDB 10.6 | Complete |
+| PostgreSQL HR | Adapter validation | PostgreSQL 15 | Complete |
+| DERP Neospin | Pension admin | TBD (PostgreSQL/MSSQL) | Pending access |
+| COPERA | Pension admin | TBD | Future |
