@@ -394,7 +394,7 @@ func writeSuccess(w http.ResponseWriter, data interface{}) {
 	resp := map[string]interface{}{
 		"data": data,
 		"meta": map[string]interface{}{
-			"request_id": uuid.New().String(),
+			"requestId": uuid.New().String(),
 			"timestamp":  time.Now().UTC().Format(time.RFC3339),
 		},
 	}
@@ -406,7 +406,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 		"error": map[string]interface{}{
 			"code":       code,
 			"message":    message,
-			"request_id": uuid.New().String(),
+			"requestId": uuid.New().String(),
 		},
 	}
 	writeJSON(w, status, resp)
