@@ -20,18 +20,18 @@ const statusColors: Record<string, string> = {
 
 export default function MemberBanner({ member }: MemberBannerProps) {
   return (
-    <div className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="iw-card p-5">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100 text-lg font-bold text-brand-700">
+          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-iw-sageLight to-iw-goldLight text-lg font-bold text-iw-navy border border-iw-border">
             {member.first_name[0]}{member.last_name[0]}
           </div>
           <div>
-            <h1 className="text-xl font-semibold text-gray-900">
+            <h1 className="text-xl font-semibold text-iw-navy font-display">
               {member.first_name} {member.middle_name ? `${member.middle_name} ` : ''}{member.last_name}
             </h1>
-            <p className="text-sm text-gray-500">
-              Member ID: {member.member_id}
+            <p className="text-sm text-iw-textTertiary">
+              Member ID: <span className="font-mono">{member.member_id}</span>
               {member.dept_name && <> &middot; {member.dept_name}</>}
               {member.pos_title && <> &middot; {member.pos_title}</>}
             </p>
@@ -48,18 +48,18 @@ export default function MemberBanner({ member }: MemberBannerProps) {
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-4 gap-4 border-t border-gray-100 pt-3 text-sm">
+      <div className="mt-3 grid grid-cols-4 gap-4 border-t border-iw-borderLight pt-3 text-sm">
         <div>
-          <span className="text-gray-500">Date of Birth</span>
-          <p className="font-medium">{formatDate(member.dob)}</p>
+          <span className="text-iw-textTertiary text-xs">Date of Birth</span>
+          <p className="font-medium text-iw-text">{formatDate(member.dob)}</p>
         </div>
         <div>
-          <span className="text-gray-500">Hire Date</span>
-          <p className="font-medium">{formatDate(member.hire_date)}</p>
+          <span className="text-iw-textTertiary text-xs">Hire Date</span>
+          <p className="font-medium text-iw-text">{formatDate(member.hire_date)}</p>
         </div>
         <div>
-          <span className="text-gray-500">Marital Status</span>
-          <p className="font-medium">
+          <span className="text-iw-textTertiary text-xs">Marital Status</span>
+          <p className="font-medium text-iw-text">
             {member.marital_status === 'M' ? 'Married' :
              member.marital_status === 'S' ? 'Single' :
              member.marital_status === 'D' ? 'Divorced' :
@@ -67,8 +67,8 @@ export default function MemberBanner({ member }: MemberBannerProps) {
           </p>
         </div>
         <div>
-          <span className="text-gray-500">Medicare</span>
-          <p className="font-medium">{member.medicare_flag === 'Y' ? 'Yes' : 'No'}</p>
+          <span className="text-iw-textTertiary text-xs">Medicare</span>
+          <p className="font-medium text-iw-text">{member.medicare_flag === 'Y' ? 'Yes' : 'No'}</p>
         </div>
       </div>
     </div>

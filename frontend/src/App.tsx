@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useMember, useEmployment, useServiceCredit } from '@/hooks/useMember';
 import { useBenefitCalculation, useScenario } from '@/hooks/useBenefitCalculation';
 import MemberBanner from '@/components/MemberBanner';
@@ -46,21 +46,21 @@ function TopNav({
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 shadow-sm">
+    <nav className="bg-white/90 backdrop-blur-md border-b border-iw-border sticky top-0 z-30">
       <div className="mx-auto max-w-7xl px-6">
         <div className="flex items-center justify-between h-14">
           <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
+            <div className="flex items-center gap-2.5">
+              <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
                 N
               </div>
               <div>
                 <div className="text-sm font-bold text-iw-navy font-display leading-none">NoUI</div>
-                <div className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold">DERP POC</div>
+                <div className="text-[9px] text-iw-textTertiary tracking-[1.5px] uppercase font-semibold">DERP POC</div>
               </div>
             </div>
 
-            <div className="h-6 w-px bg-gray-200" />
+            <div className="h-7 w-px bg-iw-borderLight" />
 
             <div className="flex gap-1">
               {tabs.map((tab) => (
@@ -68,10 +68,10 @@ function TopNav({
                   key={tab.key}
                   onClick={() => onChangeView(tab.key)}
                   title={tab.description}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                     viewMode === tab.key
-                      ? 'bg-iw-sageLight text-iw-sage'
-                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                      ? 'bg-iw-sageLight text-iw-sage font-semibold'
+                      : 'text-iw-textSecondary hover:text-iw-text hover:bg-iw-page'
                   }`}
                 >
                   {tab.label}
@@ -80,8 +80,9 @@ function TopNav({
             </div>
           </div>
 
-          <div className="text-xs text-gray-400">
-            Phase 1: Transparent
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] text-iw-textTertiary font-mono px-2 py-1 rounded-lg bg-iw-page border border-iw-borderLight">&#8984;K</div>
+            <div className="text-[11px] text-iw-textTertiary font-medium">Phase 1: Transparent</div>
           </div>
         </div>
       </div>
@@ -141,20 +142,33 @@ export default function App() {
     { id: 'case-jennifer', label: 'Open Case: Jennifer Kim', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0152', 10002, '2026-05-01', ['early-retirement', 'purchased-service']) },
   ], [handleOpenCase]);
 
-  // ── Staff Portal (default landing) ──────────────────────────────────────
+  // ── View transition key — triggers re-animation on view change ──────
+  const viewKey = useRef(0);
+  const [transitionKey, setTransitionKey] = useState(0);
+  const prevViewMode = useRef(viewMode);
+
+  useEffect(() => {
+    if (prevViewMode.current !== viewMode) {
+      viewKey.current += 1;
+      setTransitionKey(viewKey.current);
+      prevViewMode.current = viewMode;
+    }
+  }, [viewMode]);
 
   // Command palette is global across all views
   const cmdPalette = <CommandPalette commands={commands} isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />;
 
+  // ── Staff Portal (default landing) ──────────────────────────────────────
+
   if (viewMode === 'staff') {
     return (
-      <>
+      <div key={transitionKey} className="iw-fade-in">
         {cmdPalette}
         <StaffPortal
           onOpenCase={handleOpenCase}
           onChangeView={handleChangeView}
         />
-      </>
+      </div>
     );
   }
 
@@ -162,7 +176,7 @@ export default function App() {
 
   if (viewMode === 'retirement-app') {
     return (
-      <>
+      <div key={transitionKey} className="iw-fade-in">
         {cmdPalette}
         <RetirementApplication
           caseId={activeCaseId}
@@ -172,7 +186,7 @@ export default function App() {
           onBack={() => setViewMode('staff')}
           onChangeView={handleChangeView}
         />
-      </>
+      </div>
     );
   }
 
@@ -180,16 +194,16 @@ export default function App() {
 
   if (viewMode === 'portal') {
     return (
-      <>
-      {cmdPalette}
-      <MemberPortal
-        memberID={memberID}
-        retirementDate={retirementDate}
-        onSwitchToWorkspace={() => setViewMode('workspace')}
-        onSwitchToCRM={() => setViewMode('crm')}
-        onChangeView={handleChangeView}
-      />
-      </>
+      <div key={transitionKey} className="iw-fade-in">
+        {cmdPalette}
+        <MemberPortal
+          memberID={memberID}
+          retirementDate={retirementDate}
+          onSwitchToWorkspace={() => setViewMode('workspace')}
+          onSwitchToCRM={() => setViewMode('crm')}
+          onChangeView={handleChangeView}
+        />
+      </div>
     );
   }
 
@@ -197,29 +211,29 @@ export default function App() {
 
   if (viewMode === 'crm') {
     return (
-      <>
+      <div key={transitionKey} className="iw-fade-in">
         {cmdPalette}
         <TopNav viewMode={viewMode} onChangeView={handleChangeView} />
         <CRMWorkspace />
-      </>
+      </div>
     );
   }
 
   // ── Employer Portal view ──────────────────────────────────────────────
 
   if (viewMode === 'employer') {
-    return <>{cmdPalette}<EmployerPortal onChangeView={handleChangeView} /></>;
+    return <div key={transitionKey} className="iw-fade-in">{cmdPalette}<EmployerPortal onChangeView={handleChangeView} /></div>;
   }
 
   // ── Vendor Portal view ──────────────────────────────────────────────
 
   if (viewMode === 'vendor') {
-    return <>{cmdPalette}<VendorPortal onChangeView={handleChangeView} /></>;
+    return <div key={transitionKey} className="iw-fade-in">{cmdPalette}<VendorPortal onChangeView={handleChangeView} /></div>;
   }
 
   // ── Agent Workspace view (calculations) ───────────────────────────────
 
-  return <>{cmdPalette}<AgentWorkspace
+  return <div key={transitionKey} className="iw-fade-in">{cmdPalette}<AgentWorkspace
     memberID={memberID}
     setMemberID={setMemberID}
     retirementDate={retirementDate}
@@ -228,7 +242,7 @@ export default function App() {
     setMemberIDInput={setMemberIDInput}
     viewMode={viewMode}
     setViewMode={handleChangeView}
-  /></>;
+  /></div>;
 }
 
 // ── Agent Workspace (split out for clarity) ──────────────────────────────────
@@ -274,14 +288,14 @@ function AgentWorkspace({
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="iw-page">
       <TopNav viewMode={viewMode} onChangeView={(mode) => setViewMode(mode)} />
 
       {/* Workspace controls */}
-      <div className="border-b border-gray-100 bg-white">
+      <div className="border-b border-iw-border bg-white">
         <div className="mx-auto max-w-7xl px-6 py-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm text-gray-500">Retirement Application Workspace</p>
+            <p className="text-sm text-iw-textSecondary font-medium">Retirement Application Workspace</p>
             <div className="flex items-center gap-2">
               <input
                 type="text"
@@ -299,7 +313,7 @@ function AgentWorkspace({
               />
               <button
                 onClick={handleLookup}
-                className="rounded bg-iw-sage px-4 py-1.5 text-sm font-medium text-white hover:bg-iw-sageDark transition-colors"
+                className="rounded-xl bg-iw-sage px-4 py-1.5 text-sm font-medium text-white hover:bg-iw-sageDark transition-all"
               >
                 Calculate
               </button>
@@ -330,15 +344,15 @@ function AgentWorkspace({
       </div>
 
       {/* Main workspace content */}
-      <main className="mx-auto max-w-7xl px-6 py-6 space-y-6">
+      <main className="mx-auto max-w-7xl px-6 py-6 space-y-6 iw-view-enter">
         {memberLoading && (
-          <div className="rounded-lg bg-white p-8 text-center text-gray-500">
+          <div className="iw-card p-8 text-center text-iw-textTertiary">
             Loading member data...
           </div>
         )}
 
         {memberError && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-700">
+          <div className="rounded-2xl border border-red-200 bg-red-50 p-4 text-red-700">
             {memberError.message}
           </div>
         )}
@@ -350,7 +364,7 @@ function AgentWorkspace({
             {svcSummary && <ServiceCreditSummary summary={svcSummary} />}
 
             {calcLoading && (
-              <div className="rounded-lg bg-white p-8 text-center text-gray-500">
+              <div className="iw-card p-8 text-center text-iw-textTertiary">
                 Calculating benefit...
               </div>
             )}
@@ -386,9 +400,9 @@ function AgentWorkspace({
           </>
         )}
 
-        <footer className="rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
-          <p className="font-medium">Phase 1: Transparent</p>
-          <p>
+        <footer className="rounded-2xl bg-iw-warm border border-iw-borderLight px-6 py-4 text-center">
+          <p className="text-[11px] font-semibold text-iw-textTertiary tracking-wide">Phase 1: Transparent</p>
+          <p className="text-[11px] text-iw-textTertiary mt-1">
             The system shows its work. Every calculation is transparent and verifiable.
             The deterministic rules engine executes certified plan provisions.
           </p>

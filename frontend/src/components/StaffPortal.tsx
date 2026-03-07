@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import SupervisorDashboard from '@/components/staff/SupervisorDashboard';
 import MemberSearch from '@/components/staff/MemberSearch';
 import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
@@ -120,6 +120,9 @@ const SIDEBAR_NAV = [
 export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState<StaffTab>('queue');
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => { setTimeout(() => setLoaded(true), 60); }, []);
 
   const filteredQueue = WORK_QUEUE.filter(
     (item) =>
@@ -142,44 +145,46 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
     }
   };
 
+  const greeting = new Date().getHours() < 12 ? 'Good morning' : new Date().getHours() < 17 ? 'Good afternoon' : 'Good evening';
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col">
+    <div className="iw-page flex">
+      {/* ═══ Sidebar ═══ */}
+      <aside className="w-56 bg-white border-r border-iw-border flex flex-col">
         {/* Brand */}
-        <div className="px-4 py-4 border-b border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="h-8 w-8 rounded-lg bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
+        <div className="px-4 py-4 border-b border-iw-border">
+          <div className="flex items-center gap-2.5">
+            <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-iw-navy to-iw-navyLight flex items-center justify-center text-white font-bold text-sm font-display">
               N
             </div>
             <div>
               <div className="text-sm font-bold text-iw-navy font-display leading-none">NoUI</div>
-              <div className="text-[9px] text-gray-400 tracking-widest uppercase font-semibold">Staff Portal</div>
+              <div className="text-[9px] text-iw-textTertiary tracking-[1.5px] uppercase font-semibold">Staff Portal</div>
             </div>
           </div>
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-2">
+        <nav className="flex-1 py-2 overflow-y-auto">
           {SIDEBAR_NAV.map((item) => (
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
-              className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
+              className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-all ${
                 activeTab === item.key
-                  ? 'bg-iw-sageLight/50 text-iw-sage border-r-2 border-iw-sage'
-                  : 'text-gray-600 hover:bg-gray-50'
+                  ? 'bg-iw-sageLight/60 text-iw-sage border-r-2 border-iw-sage font-semibold'
+                  : 'text-iw-textSecondary hover:bg-iw-page hover:text-iw-text'
               }`}
             >
               <div className="flex items-center gap-2.5">
                 <span className="text-sm">{item.icon}</span>
-                <span className="text-sm font-medium">{item.label}</span>
+                <span className="text-sm">{item.label}</span>
               </div>
-              <kbd className="text-[9px] text-gray-300 font-mono">{item.shortcut}</kbd>
+              <kbd className="text-[9px] text-iw-textTertiary/50 font-mono">{item.shortcut}</kbd>
             </button>
           ))}
 
-          <div className="h-px bg-gray-200 my-2 mx-4" />
+          <div className="h-px bg-iw-borderLight my-2 mx-4" />
 
           {/* Portal links */}
           {[
@@ -192,7 +197,7 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
             <button
               key={item.key}
               onClick={() => onChangeView(item.key)}
-              className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-iw-textTertiary hover:bg-iw-page hover:text-iw-textSecondary transition-all"
             >
               <span className="text-sm">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>
@@ -201,65 +206,87 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
         </nav>
 
         {/* User */}
-        <div className="px-4 py-3 border-t border-gray-200">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full bg-iw-sageLight flex items-center justify-center text-xs font-bold text-iw-sage">
+        <div className="px-4 py-3 border-t border-iw-border">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-iw-sageLight to-iw-goldLight flex items-center justify-center text-xs font-bold text-iw-navy border border-iw-border">
               SC
             </div>
             <div>
-              <div className="text-xs font-medium text-gray-700">Sarah Chen</div>
-              <div className="text-[10px] text-gray-400">Benefits Analyst</div>
+              <div className="text-xs font-semibold text-iw-text">Sarah Chen</div>
+              <div className="text-[10px] text-iw-textTertiary">Benefits Analyst</div>
             </div>
           </div>
         </div>
       </aside>
 
-      {/* Main content */}
-      <div className="flex-1">
-        {/* Top bar with search */}
-        <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-          <h1 className="text-sm font-bold text-gray-700">
-            {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map', dq: 'Data Quality', correspondence: 'Correspondence' }[activeTab]}
-          </h1>
-          {activeTab === 'queue' && (
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Filter cases..."
-              className="w-64 rounded-lg border border-gray-300 px-3 py-1.5 text-sm focus:border-iw-sage focus:ring-1 focus:ring-iw-sage outline-none"
-            />
-          )}
-          <div className="text-[10px] text-gray-300 font-mono">⌘K command palette</div>
+      {/* ═══ Main content ═══ */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* ═══ Hero Banner ═══ */}
+        <div className="iw-hero-navy px-8 py-7">
+          <div className="flex items-end justify-between relative z-10">
+            <div>
+              <div className="text-[11px] text-white/40 font-semibold tracking-[1.5px] uppercase mb-1">Denver Employees Retirement Plan</div>
+              <h1 className="text-2xl font-display font-semibold text-white tracking-tight leading-tight">
+                {greeting}, Sarah.
+              </h1>
+              <p className="text-sm text-white/55 mt-1.5 max-w-md">
+                {stats.total} active case{stats.total !== 1 ? 's' : ''} in your queue.
+                {stats.urgent > 0 && <> <span className="text-red-300 font-semibold">{stats.urgent} urgent</span> requiring attention.</>}
+                {stats.atRisk > 0 && stats.urgent === 0 && <> {stats.atRisk} at SLA risk.</>}
+                {stats.urgent === 0 && stats.atRisk === 0 && <> All SLAs on track.</>}
+              </p>
+            </div>
+
+            {/* Hero stat pills */}
+            <div className="flex gap-3 items-center">
+              {[
+                { label: 'Active Cases', value: String(stats.total), color: 'text-white' },
+                { label: 'Urgent', value: String(stats.urgent), color: stats.urgent > 0 ? 'text-red-300' : 'text-emerald-300' },
+                { label: 'SLA At Risk', value: String(stats.atRisk), color: stats.atRisk > 0 ? 'text-amber-300' : 'text-emerald-300' },
+                { label: 'Avg Days', value: String(stats.avgDays), color: 'text-white' },
+              ].map((pill, i) => (
+                <div key={i} className="flex flex-col items-center">
+                  <div className="text-center px-5 py-3 rounded-xl bg-white/[0.07] border border-white/10 backdrop-blur-sm">
+                    <div className={`text-xl font-display font-bold ${pill.color}`}>{pill.value}</div>
+                    <div className="text-[10px] text-white/40 mt-0.5 font-medium">{pill.label}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        <main className="p-6">
+        {/* ═══ Sub-header bar ═══ */}
+        <div className="bg-white border-b border-iw-border px-8 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <h2 className="text-sm font-semibold text-iw-navy font-display">
+              {{ queue: 'My Work Queue', search: 'Member / Employer Lookup', supervisor: 'Supervisor Dashboard', executive: 'Executive Dashboard', csr: 'CSR Context Hub', 'service-map': 'Platform Service Map', dq: 'Data Quality', correspondence: 'Correspondence' }[activeTab]}
+            </h2>
+            {activeTab === 'queue' && (
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-iw-sageLight text-iw-sage font-semibold">{filteredQueue.length} case{filteredQueue.length !== 1 ? 's' : ''}</span>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            {activeTab === 'queue' && (
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Filter cases..."
+                className="w-56 rounded-xl border border-iw-border px-3 py-1.5 text-sm focus:border-iw-sage focus:ring-1 focus:ring-iw-sage outline-none bg-iw-page placeholder:text-iw-textTertiary"
+              />
+            )}
+            <div className="text-[10px] text-iw-textTertiary font-mono px-2 py-1 rounded-lg bg-iw-page border border-iw-borderLight">&#8984;K</div>
+          </div>
+        </div>
+
+        <main className="p-6 flex-1">
           {/* Work Queue tab */}
           {activeTab === 'queue' && (
-            <>
-              {/* Stats row */}
-              <div className="grid grid-cols-4 gap-4 mb-6">
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Active Cases</div>
-                  <div className="text-2xl font-bold text-iw-navy mt-1">{stats.total}</div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Urgent</div>
-                  <div className="text-2xl font-bold text-red-600 mt-1">{stats.urgent}</div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">SLA At Risk</div>
-                  <div className="text-2xl font-bold text-amber-600 mt-1">{stats.atRisk}</div>
-                </div>
-                <div className="bg-white rounded-lg border border-gray-200 p-4">
-                  <div className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Avg Days Open</div>
-                  <div className="text-2xl font-bold text-gray-700 mt-1">{stats.avgDays}</div>
-                </div>
-              </div>
-
+            <div className="iw-view-enter">
               {/* Queue table */}
-              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-                <div className="grid grid-cols-12 gap-2 px-4 py-2 bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="iw-card overflow-hidden">
+                <div className="grid grid-cols-12 gap-2 px-5 py-2.5 bg-iw-page border-b border-iw-border text-[10px] font-semibold text-iw-textTertiary uppercase tracking-wider">
                   <div className="col-span-1">Priority</div>
                   <div className="col-span-2">Case ID</div>
                   <div className="col-span-3">Member</div>
@@ -269,112 +296,114 @@ export default function StaffPortal({ onOpenCase, onChangeView }: StaffPortalPro
                   <div className="col-span-2">Flags</div>
                 </div>
 
-                {filteredQueue.map((item) => (
-                  <div
-                    key={item.caseId}
-                    onClick={() => onOpenCase(item.caseId, item.memberId, item.retDate, item.flags)}
-                    className="grid grid-cols-12 gap-2 px-4 py-3 border-b border-gray-100 hover:bg-iw-sageLight/30 cursor-pointer transition-colors items-center"
-                  >
-                    <div className="col-span-1">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[item.priority]}`}>
-                        {item.priority}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-sm font-mono font-semibold text-iw-navy">{item.caseId}</span>
-                    </div>
-                    <div className="col-span-3">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TIER_STYLES[item.tier]}`}>
-                          T{item.tier}
+                <div className={loaded ? 'iw-stagger' : ''}>
+                  {filteredQueue.map((item) => (
+                    <div
+                      key={item.caseId}
+                      onClick={() => onOpenCase(item.caseId, item.memberId, item.retDate, item.flags)}
+                      className="grid grid-cols-12 gap-2 px-5 py-3.5 border-b border-iw-borderLight hover:bg-iw-sageLight/20 cursor-pointer transition-all items-center group"
+                    >
+                      <div className="col-span-1">
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${PRIORITY_STYLES[item.priority]}`}>
+                          {item.priority}
                         </span>
-                        <div>
-                          <div className="text-sm font-medium text-gray-900">{item.name}</div>
-                          <div className="text-xs text-gray-500">{item.dept}</div>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-sm font-mono font-semibold text-iw-navy group-hover:text-iw-sage transition-colors">{item.caseId}</span>
+                      </div>
+                      <div className="col-span-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border ${TIER_STYLES[item.tier]}`}>
+                            T{item.tier}
+                          </span>
+                          <div>
+                            <div className="text-sm font-medium text-iw-text">{item.name}</div>
+                            <div className="text-xs text-iw-textTertiary">{item.dept}</div>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="text-sm text-iw-textSecondary">{item.stage}</div>
+                        <div className="flex gap-0.5 mt-1.5">
+                          {STAGES.slice(0, 7).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className={`h-1.5 flex-1 rounded-full transition-all ${
+                                idx < item.stageIdx
+                                  ? 'bg-iw-sage'
+                                  : idx === item.stageIdx
+                                  ? 'bg-iw-sage animate-pulse'
+                                  : 'bg-iw-borderLight'
+                              }`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="col-span-1">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SLA_STYLES[item.sla].className}`}>
+                          {SLA_STYLES[item.sla].label}
+                        </span>
+                      </div>
+                      <div className="col-span-1">
+                        <span className="text-sm text-iw-textSecondary font-mono">{item.daysOpen}d</span>
+                      </div>
+                      <div className="col-span-2">
+                        <div className="flex flex-wrap gap-1">
+                          {item.flags.map((flag) => (
+                            <span key={flag} className="text-[10px] px-2 py-0.5 rounded-lg bg-iw-page text-iw-textSecondary border border-iw-borderLight">
+                              {flag}
+                            </span>
+                          ))}
                         </div>
                       </div>
                     </div>
-                    <div className="col-span-2">
-                      <div className="text-sm text-gray-700">{item.stage}</div>
-                      <div className="flex gap-0.5 mt-1">
-                        {STAGES.slice(0, 7).map((_, idx) => (
-                          <div
-                            key={idx}
-                            className={`h-1 flex-1 rounded-full ${
-                              idx < item.stageIdx
-                                ? 'bg-iw-sage'
-                                : idx === item.stageIdx
-                                ? 'bg-iw-sage animate-pulse'
-                                : 'bg-gray-200'
-                            }`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                    <div className="col-span-1">
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${SLA_STYLES[item.sla].className}`}>
-                        {SLA_STYLES[item.sla].label}
-                      </span>
-                    </div>
-                    <div className="col-span-1">
-                      <span className="text-sm text-gray-600">{item.daysOpen}d</span>
-                    </div>
-                    <div className="col-span-2">
-                      <div className="flex flex-wrap gap-1">
-                        {item.flags.map((flag) => (
-                          <span key={flag} className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 border border-gray-200">
-                            {flag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
 
                 {filteredQueue.length === 0 && (
-                  <div className="px-4 py-8 text-center text-gray-500 text-sm">
+                  <div className="px-4 py-8 text-center text-iw-textTertiary text-sm">
                     No cases match your search.
                   </div>
                 )}
               </div>
-            </>
+            </div>
           )}
 
           {/* Member Search tab */}
           {activeTab === 'search' && (
-            <div className="max-w-2xl mx-auto">
+            <div className="max-w-2xl mx-auto iw-view-enter">
               <div className="mb-6">
-                <h2 className="text-sm font-semibold text-gray-700 mb-2">Search for a member or employer</h2>
+                <h2 className="text-sm font-semibold text-iw-textSecondary mb-2">Search for a member or employer</h2>
                 <MemberSearch onSelect={handleMemberSelect} />
               </div>
-              <div className="text-xs text-gray-400 text-center">
+              <div className="text-xs text-iw-textTertiary text-center">
                 Try: 10001, Robert Martinez, Public Works, Jennifer Kim
               </div>
             </div>
           )}
 
           {/* Supervisor Dashboard tab */}
-          {activeTab === 'supervisor' && <SupervisorDashboard />}
+          {activeTab === 'supervisor' && <div className="iw-view-enter"><SupervisorDashboard /></div>}
 
           {/* Executive Dashboard tab */}
-          {activeTab === 'executive' && <ExecutiveDashboard />}
+          {activeTab === 'executive' && <div className="iw-view-enter"><ExecutiveDashboard /></div>}
 
           {/* CSR Context Hub tab */}
-          {activeTab === 'csr' && <CSRContextHub />}
+          {activeTab === 'csr' && <div className="iw-view-enter"><CSRContextHub /></div>}
 
           {/* Service Map tab */}
-          {activeTab === 'service-map' && <ServiceMap />}
+          {activeTab === 'service-map' && <div className="iw-view-enter"><ServiceMap /></div>}
 
           {/* Data Quality tab */}
-          {activeTab === 'dq' && <DataQualityPanel />}
+          {activeTab === 'dq' && <div className="iw-view-enter"><DataQualityPanel /></div>}
 
           {/* Correspondence tab */}
-          {activeTab === 'correspondence' && <CorrespondencePanel />}
+          {activeTab === 'correspondence' && <div className="iw-view-enter"><CorrespondencePanel /></div>}
 
-          <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">
-            <p className="font-medium">NoUI Staff Portal</p>
-            <p>
-              AI-composed workspace. Cases are routed and prioritized based on member context, SLA status, and case complexity.
+          <footer className="mt-8 rounded-2xl bg-iw-warm border border-iw-borderLight px-6 py-4 text-center">
+            <p className="text-[11px] font-semibold text-iw-textTertiary tracking-wide">Phase 1: Transparent</p>
+            <p className="text-[11px] text-iw-textTertiary mt-1">
+              AI-composed workspace. Cases routed by member context, SLA status, and case complexity.
             </p>
           </footer>
         </main>
