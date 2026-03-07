@@ -32,6 +32,18 @@ export default defineConfig({
         target: 'http://localhost:8084',
         changeOrigin: true,
       },
+      '/api/v1/kb': {
+        target: 'http://localhost:8087',
+        changeOrigin: true,
+      },
+      '/api/v1/dq': {
+        target: 'http://localhost:8086',
+        changeOrigin: true,
+      },
+      '/api/v1/correspondence': {
+        target: 'http://localhost:8085',
+        changeOrigin: true,
+      },
     },
   },
 });
