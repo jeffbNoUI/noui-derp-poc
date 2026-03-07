@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-derp-poc
 
-_Updated: 2026-03-06 | Status: DERP POC Session 3 Complete / Connector Lab Session 9 Complete_
+_Updated: 2026-03-07 | Status: DERP POC Session 4 Complete / Connector Lab Session 9 Complete_
 
 ---
 
 ## Current State
 
-**DERP POC:** Full prototype deployed with 7 backend services and React frontend. All staff dashboards, workflow stages, navigation models, and portal views functional. DataQualityPanel and CorrespondencePanel wired into StaffPortal navigation. Frontend test coverage established (21 Vitest tests). Docker Compose validated end-to-end. Visual QA complete — all tabs render, command palette works, retirement workflow navigates correctly. Unit tests passing for all 3 new Go services (44 tests).
+**DERP POC:** Full prototype deployed with 7 backend services and React frontend. Command palette expanded to 17 entries covering all 9 StaffPortal tabs, 4 portals, CRM, calculation, and 3 demo cases. StaffPortal activeTab state lifted to App level for command palette navigation. Knowledge Base added as 9th standalone StaffPortal tab with article search and rules table. Frontend test coverage at 23 Vitest tests. Docker Compose validated end-to-end. Unit tests passing for all 3 new Go services (44 tests).
 
 **Connector Lab:** Three live targets running: ERPNext (MariaDB, port 3307), PostgreSQL HR (port 5433), and MSSQL HR (Azure SQL Edge, port 1434). All seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against all 3 databases with identical detection results (8 checks, 5 baselines). Dashboard supports workspace embedding via iframe with postMessage API and trend analysis from history data. Tagger expanded to 12 concepts, all validated against live ERPNext (39 tables tagged). Monitor supports configurable thresholds via JSON file and webhook notifications on check status changes. 86 unit tests passing.
 
@@ -57,15 +57,27 @@ _Updated: 2026-03-06 | Status: DERP POC Session 3 Complete / Connector Lab Sessi
 - `knowledgebase/api/`: Health, helpers, search validation (13 tests)
 - `frontend/src/components/__tests__/`: StaffPortal, CommandPalette, RetirementApplication (21 tests)
 
+## What Was Built (DERP POC Session 4)
+
+### Expanded Command Palette (9 → 17 entries)
+- Added all 9 StaffPortal tabs as command palette entries with shortcuts
+- Added David Washington case (3rd demo case)
+- Lifted `activeTab` state from StaffPortal to App for palette → tab navigation
+- StaffPortal accepts controlled `activeTab`/`onTabChange` props (backwards-compatible)
+
+### Knowledge Base Standalone Tab
+- New `KnowledgeBasePanel` component (`components/admin/KnowledgeBasePanel.tsx`)
+- Articles view: search, expandable details with checklist/rules/next-action sections
+- Rules view: tabular display with code, description, domain
+- 9th sidebar entry with G K shortcut
+
+### Test Updates
+- StaffPortal: 11 tests (added KB tab render + controlled tab prop)
+- Total frontend tests: 23 (was 21)
+
 ## Next Session Scope
 
-### Priority 1: Expanded Command Palette
-1. Add entries for DQ, Correspondence, KB, Supervisor, Executive, CSR, Service Map (expand to 16)
-
-### Priority 2: KB Standalone Tab
-1. Add Knowledge Base as standalone StaffPortal tab
-
-### Priority 3: Integration Tests
+### Priority 1: Integration Tests
 1. Integration tests with live database for CRUD operations
 2. Error handling review across all services
 

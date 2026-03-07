@@ -75,12 +75,43 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 
 ---
 
+---
+
+## DERP POC Session 4
+
+**Date:** 2026-03-07
+**Session:** DERP POC Session 4
+
+### Commit 7: Expanded Command Palette + KB Standalone Tab
+**Decision:** Expanded command palette from 9 to 17 entries. Lifted StaffPortal `activeTab` state to App level so commands navigate directly to specific tabs. Added Knowledge Base as 9th StaffPortal sidebar tab with browsable articles/rules panel.
+**Rationale:** Make all StaffPortal tabs accessible from the command palette (Ctrl+K). Add standalone KB browsing capability separate from the workflow-specific ContextualHelp.
+**Status:** Complete
+
+**Command Palette (17 entries):**
+| Category | Commands |
+|----------|----------|
+| Navigation (14) | Work Queue (G Q), Search Member (G M), Supervisor Dashboard (G S), Executive Dashboard (G E), CSR Hub (G H), Service Map (G P), Data Quality (G D), Correspondence (G X), Knowledge Base (G K), Open CRM (G C), Member Portal, Employer Portal, Vendor Portal |
+| Actions (1) | Run Calculation |
+| Cases (3) | Robert Martinez, Jennifer Kim, David Washington |
+
+**Architecture changes:**
+- `StaffTab` type exported from StaffPortal for App-level state management
+- StaffPortal accepts optional `activeTab`/`onTabChange` props (backwards-compatible — falls back to internal state)
+- `goToStaffTab()` helper in App sets both `staffTab` and `viewMode('staff')` atomically
+- New `KnowledgeBasePanel` component in `components/admin/` with article search, expandable details, rules table
+
+**Test changes:**
+- StaffPortal: 11 tests (was 9) — added KB tab render + controlled tab prop test
+- CommandPalette: 6 tests (unchanged — uses generic test commands)
+- RetirementApplication: 6 tests (unchanged)
+- **Total frontend tests: 23** (was 21)
+
+---
+
 ## Remaining Work
 
-- [ ] KnowledgeBase panel as standalone StaffPortal tab (currently only in ContextualHelp within workflow)
 - [ ] Full integration tests against live DB for new services
-- [ ] Add command palette entries for DQ and Correspondence tabs
-- [ ] Expand command palette from 9 to 16 entries (add DQ, Correspondence, KB, Supervisor, Executive, CSR, Service Map shortcuts)
+- [ ] Error handling review across all services
 
 ---
 
