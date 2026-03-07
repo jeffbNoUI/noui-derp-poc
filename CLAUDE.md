@@ -20,9 +20,10 @@ The first target system is **ERPNext** (MariaDB). Future targets will be added u
 ```
 noui-connector-lab/
 ├── connector/              # Generic connector tooling (Go)
-│   ├── introspect/         # Schema discovery engine
+│   ├── introspect/         # Schema discovery engine (MySQL + PostgreSQL adapters)
 │   ├── tagger/             # Concept tagging logic
-│   └── monitor/            # Anomaly detection checks
+│   ├── monitor/            # Anomaly detection + scheduled monitoring
+│   └── dashboard/          # REST API serving monitoring results
 ├── targets/
 │   └── erpnext/            # First target system
 │       ├── docker-compose.yml
