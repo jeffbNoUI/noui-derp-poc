@@ -15,17 +15,18 @@ import (
 type CheckFunc func(db *sql.DB) schema.CheckResult
 
 // AllChecks returns the ordered list of all monitoring check functions,
-// using the given adapter for database-specific queries.
-func AllChecks(adapter MonitorAdapter) []CheckFunc {
+// using the given adapter for database-specific queries and thresholds
+// for configurable pass/warn/fail boundaries.
+func AllChecks(adapter MonitorAdapter, th Thresholds) []CheckFunc {
 	return []CheckFunc{
-		func(db *sql.DB) schema.CheckResult { return SalaryGapCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return NegativeLeaveBalanceCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return MissingTerminationCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return MissingPayrollRunCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return InvalidHireDateCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return ContributionImbalanceCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return StalePayrollCheck(db, adapter) },
-		func(db *sql.DB) schema.CheckResult { return StaleAttendanceCheck(db, adapter) },
+		func(db *sql.DB) schema.CheckResult { return SalaryGapCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return NegativeLeaveBalanceCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return MissingTerminationCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return MissingPayrollRunCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return InvalidHireDateCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return ContributionImbalanceCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return StalePayrollCheck(db, adapter, th) },
+		func(db *sql.DB) schema.CheckResult { return StaleAttendanceCheck(db, adapter, th) },
 	}
 }
 
@@ -36,7 +37,7 @@ func AllChecks(adapter MonitorAdapter) []CheckFunc {
 //
 // Category: completeness
 // Evidence: employee name + missing month(s)
-func SalaryGapCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func SalaryGapCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "salary_gap_check",
@@ -104,12 +105,11 @@ func SalaryGapCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 	result.Actual = float64(gapCount)
 	result.Details = details
 
+	result.Status = evaluateCountThreshold(gapCount, th.SalaryGap)
 	if gapCount > 0 {
-		result.Status = "fail"
 		result.Message = fmt.Sprintf("found %d salary slip gap(s) across employees", gapCount)
-		result.Deviation = 100.0 // any gap is a 100% deviation from expected (0 gaps)
+		result.Deviation = 100.0
 	} else {
-		result.Status = "pass"
 		result.Message = "no salary slip gaps detected"
 	}
 
@@ -120,7 +120,7 @@ func SalaryGapCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 //
 // Category: validity
 // Evidence: employee name + negative amount
-func NegativeLeaveBalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func NegativeLeaveBalanceCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "negative_leave_balance_check",
@@ -159,12 +159,11 @@ func NegativeLeaveBalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckR
 	result.Actual = float64(count)
 	result.Details = details
 
+	result.Status = evaluateCountThreshold(count, th.NegativeLeaveBalance)
 	if count > 0 {
-		result.Status = "fail"
 		result.Message = fmt.Sprintf("found %d leave allocation(s) with negative balance", count)
 		result.Deviation = 100.0
 	} else {
-		result.Status = "pass"
 		result.Message = "no negative leave balances found"
 	}
 
@@ -175,7 +174,7 @@ func NegativeLeaveBalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckR
 //
 // Category: completeness
 // Evidence: employee IDs missing separation records
-func MissingTerminationCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func MissingTerminationCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "missing_termination_check",
@@ -213,12 +212,11 @@ func MissingTerminationCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckRes
 	result.Actual = float64(count)
 	result.Details = details
 
+	result.Status = evaluateCountThreshold(count, th.MissingTermination)
 	if count > 0 {
-		result.Status = "fail"
 		result.Message = fmt.Sprintf("found %d employee(s) with status=Left but no separation record", count)
 		result.Deviation = 100.0
 	} else {
-		result.Status = "pass"
 		result.Message = "all terminated employees have separation records"
 	}
 
@@ -229,7 +227,7 @@ func MissingTerminationCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckRes
 //
 // Category: completeness
 // Evidence: months with salary slips but no payroll entry
-func MissingPayrollRunCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func MissingPayrollRunCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "missing_payroll_run_check",
@@ -267,12 +265,11 @@ func MissingPayrollRunCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResu
 	result.Actual = float64(count)
 	result.Details = details
 
+	result.Status = evaluateCountThreshold(count, th.MissingPayrollRun)
 	if count > 0 {
-		result.Status = "fail"
 		result.Message = fmt.Sprintf("found %d month(s) with salary slips but no payroll entry", count)
 		result.Deviation = 100.0
 	} else {
-		result.Status = "pass"
 		result.Message = "all months with salary slips have corresponding payroll entries"
 	}
 
@@ -283,7 +280,7 @@ func MissingPayrollRunCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResu
 //
 // Category: validity
 // Evidence: employee IDs and future dates
-func InvalidHireDateCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func InvalidHireDateCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "invalid_hire_date_check",
@@ -321,12 +318,11 @@ func InvalidHireDateCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult
 	result.Actual = float64(count)
 	result.Details = details
 
+	result.Status = evaluateCountThreshold(count, th.InvalidHireDate)
 	if count > 0 {
-		result.Status = "fail"
 		result.Message = fmt.Sprintf("found %d employee(s) with future hire dates", count)
 		result.Deviation = 100.0
 	} else {
-		result.Status = "pass"
 		result.Message = "no employees with future hire dates"
 	}
 
@@ -342,7 +338,7 @@ func InvalidHireDateCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult
 //
 // Category: consistency
 // Evidence: employee IDs, expected base, actual gross, deviation percentage
-func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC().Format(time.RFC3339)
 	result := schema.CheckResult{
 		CheckName: "contribution_imbalance_check",
@@ -371,7 +367,7 @@ func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.Check
 		}
 		devPct = round2(devPct)
 		severity := "WARN"
-		if devPct > 10 {
+		if devPct > th.ContributionFailPct {
 			severity = "FAIL"
 			failCount++
 		} else {
@@ -417,7 +413,7 @@ func ContributionImbalanceCheck(db *sql.DB, adapter MonitorAdapter) schema.Check
 //
 // Category: timeliness
 // Evidence: latest salary slip date and days since
-func StalePayrollCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func StalePayrollCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC()
 	result := schema.CheckResult{
 		CheckName: "stale_payroll_check",
@@ -476,11 +472,11 @@ func StalePayrollCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 		fmt.Sprintf("months behind: %d", monthsSince),
 	}
 
-	if monthsSince > 2 {
+	if monthsSince > th.StalePayrollFailMonths {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("payroll processing is %d months behind (latest: %s)", monthsSince, latestDateStr.String)
 		result.Deviation = float64(monthsSince)
-	} else if monthsSince > 1 {
+	} else if monthsSince > th.StalePayrollWarnMonths {
 		result.Status = "warn"
 		result.Message = fmt.Sprintf("payroll processing is %d months behind (latest: %s)", monthsSince, latestDateStr.String)
 		result.Deviation = float64(monthsSince)
@@ -499,7 +495,7 @@ func StalePayrollCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
 //
 // Category: timeliness
 // Evidence: latest attendance date and days since
-func StaleAttendanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult {
+func StaleAttendanceCheck(db *sql.DB, adapter MonitorAdapter, th Thresholds) schema.CheckResult {
 	now := time.Now().UTC()
 	result := schema.CheckResult{
 		CheckName: "stale_attendance_check",
@@ -555,11 +551,11 @@ func StaleAttendanceCheck(db *sql.DB, adapter MonitorAdapter) schema.CheckResult
 		fmt.Sprintf("days since latest: %d", daysSince),
 	}
 
-	if daysSince > 30 {
+	if daysSince > th.StaleAttendFailDays {
 		result.Status = "fail"
 		result.Message = fmt.Sprintf("attendance recording is %d days stale (latest: %s)", daysSince, latestDateStr.String)
 		result.Deviation = float64(daysSince)
-	} else if daysSince > 7 {
+	} else if daysSince > th.StaleAttendWarnDays {
 		result.Status = "warn"
 		result.Message = fmt.Sprintf("attendance recording is %d days behind (latest: %s)", daysSince, latestDateStr.String)
 		result.Deviation = float64(daysSince)

@@ -96,7 +96,7 @@ func writeTestReportFile(t *testing.T) string {
 func newTestServer(t *testing.T) (*Server, *httptest.Server) {
 	t.Helper()
 	reportPath := writeTestReportFile(t)
-	srv := NewServer(reportPath)
+	srv := NewServer(reportPath, "")
 	if err := srv.LoadReport(); err != nil {
 		t.Fatalf("loading test report: %v", err)
 	}
@@ -227,7 +227,7 @@ func TestReportRefresh(t *testing.T) {
 
 func TestReportNoData(t *testing.T) {
 	// Create a server with a nonexistent report file and don't load it.
-	srv := NewServer("/nonexistent/report.json")
+	srv := NewServer("/nonexistent/report.json", "")
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -482,7 +482,7 @@ func TestHistoryEndpoint(t *testing.T) {
 
 func TestHistoryAccumulates(t *testing.T) {
 	reportPath := writeTestReportFile(t)
-	srv := NewServer(reportPath)
+	srv := NewServer(reportPath, "")
 
 	// Load twice to accumulate history.
 	if err := srv.LoadReport(); err != nil {
@@ -593,7 +593,7 @@ func TestEmbedConfigEndpoint(t *testing.T) {
 }
 
 func TestEmbedConfigNoData(t *testing.T) {
-	srv := NewServer("/nonexistent/report.json")
+	srv := NewServer("/nonexistent/report.json", "")
 	ts := httptest.NewServer(srv.Handler())
 	defer ts.Close()
 
@@ -614,6 +614,165 @@ func TestEmbedConfigNoData(t *testing.T) {
 
 	if body["has_data"] != false {
 		t.Error("expected has_data=false when no report loaded")
+	}
+}
+
+func TestTrendsEndpointNoHistoryDir(t *testing.T) {
+	_, ts := newTestServer(t) // no history dir
+
+	resp, err := http.Get(ts.URL + "/api/v1/monitor/trends")
+	if err != nil {
+		t.Fatalf("GET /api/v1/monitor/trends: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("expected 404 when no history dir, got %d", resp.StatusCode)
+	}
+}
+
+func TestTrendsEndpointWithHistory(t *testing.T) {
+	// Create history dir with fixture reports
+	historyDir := t.TempDir()
+
+	reports := []schema.MonitorReport{
+		{
+			Source: "test", Database: "testdb", RunAt: "2026-03-06T10:00:00Z",
+			Baselines: []schema.Baseline{
+				{MetricName: "monthly_gross", Mean: 100000, SampleSize: 12},
+			},
+			Checks: []schema.CheckResult{
+				{CheckName: "salary_gap", Status: "pass", Actual: 0},
+				{CheckName: "invalid_hire", Status: "fail", Actual: 8},
+			},
+			Summary: schema.ReportSummary{TotalChecks: 2, Passed: 1, Failed: 1},
+		},
+		{
+			Source: "test", Database: "testdb", RunAt: "2026-03-06T10:05:00Z",
+			Baselines: []schema.Baseline{
+				{MetricName: "monthly_gross", Mean: 105000, SampleSize: 12},
+			},
+			Checks: []schema.CheckResult{
+				{CheckName: "salary_gap", Status: "fail", Actual: 5},
+				{CheckName: "invalid_hire", Status: "fail", Actual: 8},
+			},
+			Summary: schema.ReportSummary{TotalChecks: 2, Passed: 0, Failed: 2},
+		},
+		{
+			Source: "test", Database: "testdb", RunAt: "2026-03-06T10:10:00Z",
+			Baselines: []schema.Baseline{
+				{MetricName: "monthly_gross", Mean: 110000, SampleSize: 12},
+			},
+			Checks: []schema.CheckResult{
+				{CheckName: "salary_gap", Status: "fail", Actual: 3},
+				{CheckName: "invalid_hire", Status: "pass", Actual: 0},
+			},
+			Summary: schema.ReportSummary{TotalChecks: 2, Passed: 1, Failed: 1},
+		},
+	}
+
+	for i, r := range reports {
+		data, _ := json.MarshalIndent(r, "", "  ")
+		fname := filepath.Join(historyDir, "report-"+strings.ReplaceAll(r.RunAt, ":", "-")+".json")
+		if err := os.WriteFile(fname, data, 0644); err != nil {
+			t.Fatalf("writing history report %d: %v", i, err)
+		}
+	}
+
+	// Write latest report for the dashboard
+	reportPath := filepath.Join(t.TempDir(), "latest.json")
+	latestData, _ := json.MarshalIndent(reports[2], "", "  ")
+	if err := os.WriteFile(reportPath, latestData, 0644); err != nil {
+		t.Fatalf("writing latest report: %v", err)
+	}
+
+	srv := NewServer(reportPath, historyDir)
+	if err := srv.LoadReport(); err != nil {
+		t.Fatalf("loading report: %v", err)
+	}
+	ts := httptest.NewServer(srv.Handler())
+	defer ts.Close()
+
+	resp, err := http.Get(ts.URL + "/api/v1/monitor/trends")
+	if err != nil {
+		t.Fatalf("GET /api/v1/monitor/trends: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200, got %d", resp.StatusCode)
+	}
+
+	var trends TrendResponse
+	if err := json.NewDecoder(resp.Body).Decode(&trends); err != nil {
+		t.Fatalf("decoding trends: %v", err)
+	}
+
+	if trends.DataPoints != 3 {
+		t.Errorf("expected 3 data points, got %d", trends.DataPoints)
+	}
+	if trends.TimeRange.Earliest != "2026-03-06T10:00:00Z" {
+		t.Errorf("unexpected earliest: %s", trends.TimeRange.Earliest)
+	}
+
+	// Check baseline trends
+	if len(trends.BaselineTrends) != 1 {
+		t.Fatalf("expected 1 baseline trend, got %d", len(trends.BaselineTrends))
+	}
+	grossTrend := trends.BaselineTrends[0]
+	if grossTrend.MetricName != "monthly_gross" {
+		t.Errorf("expected monthly_gross, got %s", grossTrend.MetricName)
+	}
+	if len(grossTrend.Points) != 3 {
+		t.Errorf("expected 3 points, got %d", len(grossTrend.Points))
+	}
+	// Drift: (110000 - 100000) / 100000 * 100 = 10%
+	if grossTrend.Drift != 10.0 {
+		t.Errorf("expected 10%% drift, got %.2f%%", grossTrend.Drift)
+	}
+
+	// Check timelines
+	if len(trends.CheckTimeline) != 2 {
+		t.Fatalf("expected 2 check timelines, got %d", len(trends.CheckTimeline))
+	}
+
+	// Find salary_gap and invalid_hire
+	checkTimeMap := make(map[string]CheckTimeline)
+	for _, ct := range trends.CheckTimeline {
+		checkTimeMap[ct.CheckName] = ct
+	}
+
+	if sg, ok := checkTimeMap["salary_gap"]; ok {
+		// pass → fail → fail = 1 change
+		if sg.Changes != 1 {
+			t.Errorf("salary_gap: expected 1 status change, got %d", sg.Changes)
+		}
+	} else {
+		t.Error("expected salary_gap in check timeline")
+	}
+
+	if ih, ok := checkTimeMap["invalid_hire"]; ok {
+		// fail → fail → pass = 1 change
+		if ih.Changes != 1 {
+			t.Errorf("invalid_hire: expected 1 status change, got %d", ih.Changes)
+		}
+	} else {
+		t.Error("expected invalid_hire in check timeline")
+	}
+}
+
+func TestComputeTrendsNoDrift(t *testing.T) {
+	reports := []schema.MonitorReport{
+		{RunAt: "2026-03-06T10:00:00Z", Baselines: []schema.Baseline{{MetricName: "m", Mean: 100}}},
+		{RunAt: "2026-03-06T10:05:00Z", Baselines: []schema.Baseline{{MetricName: "m", Mean: 100}}},
+	}
+
+	trends := computeTrends(reports)
+	if len(trends.BaselineTrends) != 1 {
+		t.Fatalf("expected 1 trend, got %d", len(trends.BaselineTrends))
+	}
+	if trends.BaselineTrends[0].Drift != 0 {
+		t.Errorf("expected 0%% drift for constant values, got %.2f%%", trends.BaselineTrends[0].Drift)
 	}
 }
 
