@@ -155,6 +155,10 @@ func (h *Handler) GetContact(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "DB_ERROR", err.Error())
 		return
 	}
+	if contact == nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Contact not found")
+		return
+	}
 
 	writeSuccess(w, http.StatusOK, contact)
 }
@@ -282,6 +286,10 @@ func (h *Handler) GetConversation(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		writeError(w, http.StatusInternalServerError, "DB_ERROR", err.Error())
+		return
+	}
+	if conv == nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Conversation not found")
 		return
 	}
 
@@ -683,6 +691,10 @@ func (h *Handler) GetOrganization(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusInternalServerError, "DB_ERROR", err.Error())
 		return
 	}
+	if org == nil {
+		writeError(w, http.StatusNotFound, "NOT_FOUND", "Organization not found")
+		return
+	}
 
 	writeSuccess(w, http.StatusOK, org)
 }
@@ -733,6 +745,7 @@ func decodeJSON(r *http.Request, v interface{}) error {
 	if r.Body == nil {
 		return fmt.Errorf("request body is empty")
 	}
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20) // 1MB limit
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(v)
 }
@@ -795,6 +808,9 @@ func intParam(r *http.Request, name string, defaultVal int) int {
 	}
 	v, err := strconv.Atoi(s)
 	if err != nil {
+		return defaultVal
+	}
+	if v < 0 {
 		return defaultVal
 	}
 	return v

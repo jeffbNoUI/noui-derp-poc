@@ -90,6 +90,7 @@ export default function ContextualHelp({ stageId, proficiency, onClose }: Contex
         <button
           onClick={onClose}
           className="text-gray-400 hover:text-gray-600 text-sm font-medium"
+          aria-label="Close help panel"
         >
           ✕
         </button>

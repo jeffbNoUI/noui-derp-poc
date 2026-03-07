@@ -204,6 +204,7 @@ func decodeJSON(r *http.Request, v interface{}) error {
 	if r.Body == nil {
 		return fmt.Errorf("request body is empty")
 	}
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20) // 1MB limit
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(v)
 }
@@ -266,6 +267,9 @@ func intParam(r *http.Request, name string, defaultVal int) int {
 	}
 	v, err := strconv.Atoi(s)
 	if err != nil {
+		return defaultVal
+	}
+	if v < 0 {
 		return defaultVal
 	}
 	return v

@@ -1,6 +1,9 @@
 package main
 
-import "database/sql"
+import (
+	"database/sql"
+	"log"
+)
 
 // MonitorAdapter provides database-specific query implementations for
 // monitoring baselines and checks. Per CLAUDE.md: "Connector DB adapter
@@ -53,13 +56,17 @@ type MonitorAdapter interface {
 }
 
 // NewMonitorAdapter returns the appropriate MonitorAdapter for the given driver.
+// Supported drivers: "mysql" (default), "postgres", "mssql".
 func NewMonitorAdapter(driver string) MonitorAdapter {
 	switch driver {
 	case "postgres":
 		return &PostgresMonitorAdapter{}
 	case "mssql":
 		return &MSSQLMonitorAdapter{}
+	case "mysql", "":
+		return &MySQLMonitorAdapter{}
 	default:
+		log.Printf("WARNING: unknown driver %q, defaulting to MySQL monitor adapter", driver)
 		return &MySQLMonitorAdapter{}
 	}
 }

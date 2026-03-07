@@ -30,7 +30,8 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
     if (isOpen) {
       setQuery('');
       setSelectedIdx(0);
-      setTimeout(() => inputRef.current?.focus(), 50);
+      const timerId = setTimeout(() => inputRef.current?.focus(), 50);
+      return () => clearTimeout(timerId);
     }
   }, [isOpen]);
 
@@ -66,7 +67,7 @@ export default function CommandPalette({ commands, isOpen, onClose }: CommandPal
 
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [isOpen, filtered.length, selectedIdx, onClose, executeSelected]);
+  }, [isOpen, filtered, selectedIdx, onClose, executeSelected]);
 
   if (!isOpen) return null;
 

@@ -107,7 +107,7 @@ func (s *Store) GetOrganization(orgID string) (*models.Organization, error) {
 		&org.CreatedAt, &org.UpdatedAt, &org.CreatedBy, &org.UpdatedBy,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, sql.ErrNoRows
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting organization %s: %w", orgID, err)

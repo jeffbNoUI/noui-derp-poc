@@ -176,7 +176,7 @@ func (s *Store) GetContact(contactID string) (*models.Contact, error) {
 		&c.CreatedAt, &c.UpdatedAt, &c.CreatedBy, &c.UpdatedBy,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, sql.ErrNoRows
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting contact %s: %w", contactID, err)
@@ -298,7 +298,7 @@ func (s *Store) GetContactByLegacyID(tenantID, legacyMbrID string) (*models.Cont
 	var contactID string
 	err := s.DB.QueryRow(query, tenantID, legacyMbrID).Scan(&contactID)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, sql.ErrNoRows
 	}
 	if err != nil {
 		return nil, fmt.Errorf("looking up legacy member %s: %w", legacyMbrID, err)

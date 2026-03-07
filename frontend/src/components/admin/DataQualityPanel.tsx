@@ -15,6 +15,8 @@ export default function DataQualityPanel() {
   const [severityFilter, setSeverityFilter] = useState<string>('');
 
   useEffect(() => {
+    let cancelled = false;
+
     async function loadData() {
       try {
         const [scoreData, issueData, checkData] = await Promise.all([
@@ -22,16 +24,24 @@ export default function DataQualityPanel() {
           dqAPI.listIssues({ status: 'open', severity: severityFilter || undefined }),
           dqAPI.listChecks(),
         ]);
-        setScore(scoreData);
-        setIssues(issueData || []);
-        setChecks(checkData || []);
+        if (!cancelled) {
+          setScore(scoreData);
+          setIssues(issueData || []);
+          setChecks(checkData || []);
+        }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load DQ data');
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load DQ data');
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     loadData();
+
+    return () => { cancelled = true; };
   }, [severityFilter]);
 
   if (loading) {

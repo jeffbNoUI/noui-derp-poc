@@ -5,10 +5,10 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -152,6 +152,11 @@ func (h *Handler) GetEmploymentHistory(w http.ResponseWriter, r *http.Request) {
 		}
 		events = append(events, e)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("error iterating employment rows for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database iteration failed")
+		return
+	}
 
 	writeSuccess(w, events)
 }
@@ -208,6 +213,11 @@ func (h *Handler) GetSalaryHistory(w http.ResponseWriter, r *http.Request) {
 			s.PensionablePay = pensionablePay.Float64
 		}
 		records = append(records, s)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("error iterating salary rows for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database iteration failed")
+		return
 	}
 
 	writeSuccess(w, records)
@@ -338,7 +348,7 @@ func (h *Handler) GetAMS(w http.ResponseWriter, r *http.Request) {
 		for _, mt := range windowTotals {
 			sumWithout += mt.PensionablePay
 		}
-		amsWithout := sumWithout / float64(windowMonths)
+		amsWithout := sumWithout / float64(len(windowTotals))
 		leavePayoutImpact = bestAMS - amsWithout
 	}
 
@@ -401,6 +411,11 @@ func (h *Handler) GetBeneficiaries(w http.ResponseWriter, r *http.Request) {
 		}
 		benes = append(benes, b)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("error iterating beneficiary rows for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database iteration failed")
+		return
+	}
 
 	writeSuccess(w, benes)
 }
@@ -454,6 +469,11 @@ func (h *Handler) GetDRO(w http.ResponseWriter, r *http.Request) {
 		}
 		dros = append(dros, d)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("error iterating DRO rows for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database iteration failed")
+		return
+	}
 
 	writeSuccess(w, dros)
 }
@@ -494,7 +514,11 @@ func (h *Handler) GetContributions(w http.ResponseWriter, r *http.Request) {
 		ORDER BY PAY_PERIOD_END DESC
 		LIMIT 1`
 
-	h.DB.QueryRow(balQuery, memberID).Scan(&summary.CurrentEEBal, &summary.CurrentERBal)
+	if err := h.DB.QueryRow(balQuery, memberID).Scan(&summary.CurrentEEBal, &summary.CurrentERBal); err != nil && err != sql.ErrNoRows {
+		log.Printf("error querying contribution balances for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database query failed")
+		return
+	}
 
 	writeSuccess(w, summary)
 }
@@ -563,6 +587,11 @@ func (h *Handler) GetServiceCredit(w http.ResponseWriter, r *http.Request) {
 
 		credits = append(credits, sc)
 	}
+	if err := rows.Err(); err != nil {
+		log.Printf("error iterating service credit rows for member %d: %v", memberID, err)
+		writeError(w, http.StatusInternalServerError, "DB_ERROR", "Database iteration failed")
+		return
+	}
 
 	summary.TotalYears = summary.EarnedYears + summary.PurchasedYears +
 		summary.MilitaryYears + summary.LeaveYears
@@ -587,10 +616,13 @@ func (h *Handler) GetServiceCredit(w http.ResponseWriter, r *http.Request) {
 func parseMemberID(r *http.Request) (int, error) {
 	idStr := r.PathValue("id")
 	if idStr == "" {
-		idStr = strings.TrimPrefix(r.URL.Path, "/api/v1/members/")
-		idStr = strings.Split(idStr, "/")[0]
+		return 0, fmt.Errorf("member ID is required")
 	}
-	return strconv.Atoi(idStr)
+	id, err := strconv.Atoi(idStr)
+	if err != nil || id <= 0 {
+		return 0, fmt.Errorf("member ID must be a positive integer")
+	}
+	return id, nil
 }
 
 func nullStr(ns sql.NullString) string {

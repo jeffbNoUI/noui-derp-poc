@@ -68,16 +68,21 @@ func LoadThresholds(path string) (Thresholds, error) {
 }
 
 // evaluateCountThreshold determines pass/warn/fail for a count-based check.
+//
+// Semantics:
+//   - count >= FailAt                → "fail"
+//   - WarnAt > 0 && count >= WarnAt  → "warn"
+//   - otherwise                      → "pass"
+//
+// When WarnAt == FailAt (the default), any finding triggers "fail" because
+// the first branch catches it. When WarnAt < FailAt, counts between
+// [WarnAt, FailAt) return "warn".
 func evaluateCountThreshold(count int, th CheckThreshold) string {
-	if float64(count) >= th.FailAt {
+	if th.FailAt > 0 && float64(count) >= th.FailAt {
 		return "fail"
 	}
-	if th.WarnAt > 0 && th.WarnAt < th.FailAt && float64(count) >= th.WarnAt {
+	if th.WarnAt > 0 && float64(count) >= th.WarnAt {
 		return "warn"
-	}
-	if count > 0 && th.WarnAt == th.FailAt {
-		// Original behavior: any count triggers the fail status
-		return "fail"
 	}
 	return "pass"
 }

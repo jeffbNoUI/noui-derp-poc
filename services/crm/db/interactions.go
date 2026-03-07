@@ -151,7 +151,7 @@ func (s *Store) GetInteraction(interactionID string) (*models.Interaction, error
 		&i.CreatedAt, &i.CreatedBy,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, sql.ErrNoRows
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting interaction %s: %w", interactionID, err)

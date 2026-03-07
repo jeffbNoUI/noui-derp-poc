@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
@@ -15,6 +16,11 @@ func main() {
 	report := flag.String("report", "tags-report.json", "Output tags audit report path")
 	threshold := flag.Float64("threshold", 0.0, "Global threshold override (0 = use per-concept defaults)")
 	flag.Parse()
+
+	if *threshold < 0 {
+		fmt.Fprintln(os.Stderr, "Error: --threshold must be non-negative")
+		os.Exit(1)
+	}
 
 	// Read input manifest
 	data, err := os.ReadFile(*input)
@@ -40,7 +46,9 @@ func main() {
 
 	// Run tagger
 	tagReport := TagManifest(&manifest, concepts)
-	tagReport.Threshold = *threshold
+	if *threshold > 0 {
+		tagReport.Threshold = *threshold
+	}
 
 	// Write enriched manifest
 	manifestData, err := json.MarshalIndent(manifest, "", "  ")

@@ -348,8 +348,10 @@ func TestMinimalFixture(t *testing.T) {
 
 	for tableName, expectedTag := range expectedTags {
 		found := false
+		tableExists := false
 		for _, table := range manifest.Tables {
 			if table.Name == tableName {
+				tableExists = true
 				for _, tag := range table.NoUITags {
 					if tag == string(expectedTag) {
 						found = true
@@ -368,6 +370,9 @@ func TestMinimalFixture(t *testing.T) {
 				}
 				break
 			}
+		}
+		if !tableExists {
+			t.Errorf("table %s not found in manifest", tableName)
 		}
 	}
 
