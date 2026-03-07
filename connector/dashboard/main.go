@@ -12,6 +12,7 @@ import (
 func main() {
 	port := flag.Int("port", 8090, "HTTP server port")
 	reportFile := flag.String("report-file", "", "Path to monitor-report.json (required)")
+	historyDir := flag.String("history-dir", "", "Directory containing timestamped history reports (for trend analysis)")
 	flag.Parse()
 
 	if *reportFile == "" {
@@ -20,7 +21,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	srv := NewServer(*reportFile)
+	srv := NewServer(*reportFile, *historyDir)
 
 	// Load the initial report from disk.
 	if err := srv.LoadReport(); err != nil {

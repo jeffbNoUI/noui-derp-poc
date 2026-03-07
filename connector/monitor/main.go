@@ -21,6 +21,8 @@
 //	--checks-only    Only run checks, skip baseline computation
 //	--schedule       Run interval for periodic monitoring (e.g. 5m, 1h). Runs once if omitted.
 //	--history-dir    Directory for timestamped report history (used with --schedule)
+//	--thresholds     JSON file with configurable check thresholds
+//	--webhook-url    URL to POST webhook notifications on check status changes (used with --schedule)
 
 package main
 
@@ -47,6 +49,8 @@ func main() {
 	checksOnly := flag.Bool("checks-only", false, "Only run checks, skip baseline computation")
 	schedule := flag.String("schedule", "", "Run interval for periodic monitoring (e.g. 5m, 1h)")
 	historyDir := flag.String("history-dir", "", "Directory for timestamped report history")
+	thresholdsFile := flag.String("thresholds", "", "JSON file with configurable check thresholds")
+	webhookURL := flag.String("webhook-url", "", "URL to POST webhook notifications on check status changes")
 	flag.Parse()
 
 	// Extract database name from DSN if not specified
@@ -74,18 +78,29 @@ func main() {
 	adapter := NewMonitorAdapter(*driver)
 	log.Printf("Using %s monitor adapter", *driver)
 
+	// Load thresholds
+	th := DefaultThresholds()
+	if *thresholdsFile != "" {
+		var err error
+		th, err = LoadThresholds(*thresholdsFile)
+		if err != nil {
+			log.Fatalf("Failed to load thresholds: %v", err)
+		}
+		log.Printf("Loaded custom thresholds from %s", *thresholdsFile)
+	}
+
 	// Scheduled mode: run in a loop until interrupted
 	if *schedule != "" {
 		interval, err := time.ParseDuration(*schedule)
 		if err != nil {
 			log.Fatalf("Invalid schedule interval %q: %v", *schedule, err)
 		}
-		RunScheduled(db, adapter, *driver, database, *output, *historyDir, interval, *baselineOnly, *checksOnly)
+		RunScheduled(db, adapter, th, *driver, database, *output, *historyDir, interval, *baselineOnly, *checksOnly, *webhookURL)
 		return
 	}
 
 	// Single-run mode
-	report, err := RunMonitor(db, adapter, *driver, database, *baselineOnly, *checksOnly)
+	report, err := RunMonitor(db, adapter, th, *driver, database, *baselineOnly, *checksOnly)
 	if err != nil {
 		log.Fatalf("Monitor run failed: %v", err)
 	}
