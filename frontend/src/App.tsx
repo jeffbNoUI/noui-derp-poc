@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useMember, useEmployment, useServiceCredit } from '@/hooks/useMember';
 import { useBenefitCalculation, useScenario } from '@/hooks/useBenefitCalculation';
 import MemberBanner from '@/components/MemberBanner';
@@ -15,8 +15,10 @@ import CRMWorkspace from '@/components/CRMWorkspace';
 import EmployerPortal from '@/components/portal/EmployerPortal';
 import StaffPortal from '@/components/StaffPortal';
 import RetirementApplication from '@/components/RetirementApplication';
+import CommandPalette from '@/components/CommandPalette';
+import VendorPortal from '@/components/portal/VendorPortal';
 
-type ViewMode = 'staff' | 'portal' | 'workspace' | 'crm' | 'employer' | 'retirement-app';
+type ViewMode = 'staff' | 'portal' | 'workspace' | 'crm' | 'employer' | 'vendor' | 'retirement-app';
 
 // Demo case members with their retirement dates
 const DEMO_CASES = [
@@ -94,31 +96,65 @@ export default function App() {
   const [memberID, setMemberID] = useState(10001);
   const [retirementDate, setRetirementDate] = useState('2026-04-01');
   const [memberIDInput, setMemberIDInput] = useState('10001');
+  const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
 
   // Retirement application state
   const [activeCaseId, setActiveCaseId] = useState('');
   const [caseMemberId, setCaseMemberId] = useState(10001);
   const [caseRetDate, setCaseRetDate] = useState('2026-04-01');
+  const [caseFlagsState, setCaseFlagsState] = useState<string[]>([]);
 
-  const handleOpenCase = (caseId: string, memberId: number, retDate: string) => {
+  const handleOpenCase = useCallback((caseId: string, memberId: number, retDate: string, flags?: string[]) => {
     setActiveCaseId(caseId);
     setCaseMemberId(memberId);
     setCaseRetDate(retDate);
+    setCaseFlagsState(flags || []);
     setViewMode('retirement-app');
-  };
+  }, []);
 
-  const handleChangeView = (mode: string) => {
+  const handleChangeView = useCallback((mode: string) => {
     setViewMode(mode as ViewMode);
-  };
+  }, []);
+
+  // Global ⌘K / Ctrl+K handler
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setCmdPaletteOpen((p) => !p);
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // Command palette commands
+  const commands = useMemo(() => [
+    { id: 'search-member', label: 'Search Member', icon: '🔍', shortcut: 'G M', category: 'Navigation', action: () => setViewMode('staff') },
+    { id: 'open-queue', label: 'My Work Queue', icon: '📋', shortcut: 'G Q', category: 'Navigation', action: () => setViewMode('staff') },
+    { id: 'run-calc', label: 'Run Calculation', icon: '🧮', category: 'Actions', action: () => setViewMode('workspace') },
+    { id: 'open-crm', label: 'Open CRM', icon: '💬', shortcut: 'G C', category: 'Navigation', action: () => setViewMode('crm') },
+    { id: 'member-portal', label: 'Member Portal', icon: '👤', category: 'Navigation', action: () => setViewMode('portal') },
+    { id: 'employer-portal', label: 'Employer Portal', icon: '🏢', category: 'Navigation', action: () => setViewMode('employer') },
+    { id: 'vendor-portal', label: 'Vendor Portal', icon: '\ud83c\udfe5', category: 'Navigation', action: () => setViewMode('vendor') },
+    { id: 'case-robert', label: 'Open Case: Robert Martinez', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0147', 10001, '2026-04-01', ['leave-payout']) },
+    { id: 'case-jennifer', label: 'Open Case: Jennifer Kim', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0152', 10002, '2026-05-01', ['early-retirement', 'purchased-service']) },
+  ], [handleOpenCase]);
 
   // ── Staff Portal (default landing) ──────────────────────────────────────
 
+  // Command palette is global across all views
+  const cmdPalette = <CommandPalette commands={commands} isOpen={cmdPaletteOpen} onClose={() => setCmdPaletteOpen(false)} />;
+
   if (viewMode === 'staff') {
     return (
-      <StaffPortal
-        onOpenCase={handleOpenCase}
-        onChangeView={handleChangeView}
-      />
+      <>
+        {cmdPalette}
+        <StaffPortal
+          onOpenCase={handleOpenCase}
+          onChangeView={handleChangeView}
+        />
+      </>
     );
   }
 
@@ -126,13 +162,17 @@ export default function App() {
 
   if (viewMode === 'retirement-app') {
     return (
-      <RetirementApplication
-        caseId={activeCaseId}
-        memberId={caseMemberId}
-        retirementDate={caseRetDate}
-        onBack={() => setViewMode('staff')}
-        onChangeView={handleChangeView}
-      />
+      <>
+        {cmdPalette}
+        <RetirementApplication
+          caseId={activeCaseId}
+          memberId={caseMemberId}
+          retirementDate={caseRetDate}
+          caseFlags={caseFlagsState}
+          onBack={() => setViewMode('staff')}
+          onChangeView={handleChangeView}
+        />
+      </>
     );
   }
 
@@ -140,6 +180,8 @@ export default function App() {
 
   if (viewMode === 'portal') {
     return (
+      <>
+      {cmdPalette}
       <MemberPortal
         memberID={memberID}
         retirementDate={retirementDate}
@@ -147,6 +189,7 @@ export default function App() {
         onSwitchToCRM={() => setViewMode('crm')}
         onChangeView={handleChangeView}
       />
+      </>
     );
   }
 
@@ -155,6 +198,7 @@ export default function App() {
   if (viewMode === 'crm') {
     return (
       <>
+        {cmdPalette}
         <TopNav viewMode={viewMode} onChangeView={handleChangeView} />
         <CRMWorkspace />
       </>
@@ -164,12 +208,18 @@ export default function App() {
   // ── Employer Portal view ──────────────────────────────────────────────
 
   if (viewMode === 'employer') {
-    return <EmployerPortal onChangeView={handleChangeView} />;
+    return <>{cmdPalette}<EmployerPortal onChangeView={handleChangeView} /></>;
+  }
+
+  // ── Vendor Portal view ──────────────────────────────────────────────
+
+  if (viewMode === 'vendor') {
+    return <>{cmdPalette}<VendorPortal onChangeView={handleChangeView} /></>;
   }
 
   // ── Agent Workspace view (calculations) ───────────────────────────────
 
-  return <AgentWorkspace
+  return <>{cmdPalette}<AgentWorkspace
     memberID={memberID}
     setMemberID={setMemberID}
     retirementDate={retirementDate}
@@ -178,7 +228,7 @@ export default function App() {
     setMemberIDInput={setMemberIDInput}
     viewMode={viewMode}
     setViewMode={handleChangeView}
-  />;
+  /></>;
 }
 
 // ── Agent Workspace (split out for clarity) ──────────────────────────────────

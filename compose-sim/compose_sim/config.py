@@ -23,8 +23,8 @@ PROMPT_VERSIONS_DIR = PROJECT_ROOT / "prompt_versions"
 # ---------------------------------------------------------------------------
 # Model defaults
 # ---------------------------------------------------------------------------
-DEFAULT_MODEL = "claude-sonnet-4-20250514"
-HAIKU_MODEL = "claude-haiku-4-5-20241022"
+DEFAULT_MODEL = "claude-sonnet-4-6"
+HAIKU_MODEL = "claude-haiku-4-5-20251001"
 
 # Concurrency
 DEFAULT_CONCURRENCY = 3
@@ -32,6 +32,9 @@ MAX_CONCURRENCY = 25
 
 # Cost per scenario estimates (USD, with prompt caching)
 COST_ESTIMATES = {
+    "claude-sonnet-4-6": 0.012,
+    "claude-haiku-4-5-20251001": 0.003,
+    # Legacy model IDs (still accepted by API)
     "claude-sonnet-4-20250514": 0.012,
     "claude-haiku-4-5-20241022": 0.003,
 }

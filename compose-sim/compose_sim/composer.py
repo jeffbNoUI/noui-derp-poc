@@ -125,7 +125,33 @@ class Composer:
     async def compose_scenario(self, scenario: Scenario) -> AIComposition:
         """Send a single scenario to Claude and parse the tool_use response."""
         scenario_dict = scenario.model_dump()
-        user_message = format_scenario_for_prompt(scenario_dict)
+        # Pre-compute derived values from the Pydantic model (enums resolved)
+        ct = scenario.crm_context.contact_type.value
+        has_member = (ct == "member") or scenario.crm_context.has_legacy_member_id
+        status = scenario.member_profile.status.value
+        has_calc = has_member and scenario.eligibility_snapshot.vested and status != "terminated"
+        is_crm = ct in ("beneficiary", "alternate_payee", "external")
+        journal_visible = is_crm or scenario.crm_context.open_conversations > 0
+        has_timeline = (scenario.member_profile.has_employment_history
+                        and scenario.member_profile.employment_event_count > 0)
+        view_mode = "crm" if is_crm else "workspace"
+
+        # Pre-compute alert triggers for deterministic alerts
+        married = scenario.member_profile.marital_status == "M"
+        spousal_consent = has_member and married
+        waiting_benefit = (scenario.eligibility_snapshot.best_eligible_type.value == "EARLY"
+                           and not scenario.eligibility_snapshot.rule_of_n_met)
+
+        derived = {
+            "view_mode": view_mode,
+            "has_member": has_member,
+            "has_calculation": has_calc,
+            "journal_visible": journal_visible,
+            "has_timeline": has_timeline,
+            "fire_spousal_consent": spousal_consent,
+            "fire_waiting_increases_benefit": waiting_benefit,
+        }
+        user_message = format_scenario_for_prompt(scenario_dict, derived=derived)
 
         # Check cache
         if self.cache:
@@ -147,6 +173,7 @@ class Composer:
                 response = await self.client.messages.create(
                     model=self.model,
                     max_tokens=1024,
+                    temperature=0,
                     system=[
                         {
                             "type": "text",
