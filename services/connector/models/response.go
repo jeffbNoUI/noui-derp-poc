@@ -17,7 +17,7 @@ type APIError struct {
 type ErrorDetail struct {
 	Code      string `json:"code"`
 	Message   string `json:"message"`
-	RequestID string `json:"request_id"`
+	RequestID string `json:"requestId"`
 }
 
 // APIMeta provides request metadata.
