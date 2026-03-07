@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import SupervisorDashboard from '@/components/staff/SupervisorDashboard';
 import MemberSearch from '@/components/staff/MemberSearch';
 import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
@@ -8,13 +8,15 @@ import ServiceMap from '@/components/admin/ServiceMap';
 import DataQualityPanel from '@/components/admin/DataQualityPanel';
 import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
 
+export type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence' | 'kb';
+
 interface StaffPortalProps {
   onOpenCase: (caseId: string, memberId: number, retDate: string, flags?: string[]) => void;
   onChangeView: (mode: string) => void;
-  defaultTab?: StaffTab;
+  activeTab?: StaffTab;
+  onTabChange?: (tab: StaffTab) => void;
 }
 
-export type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence' | 'kb';
 
 const WORK_QUEUE = [
   {
@@ -120,15 +122,11 @@ const SIDEBAR_NAV = [
   { key: 'kb' as StaffTab, label: 'Knowledge Base', icon: '\ud83d\udcda', shortcut: 'G K' },
 ];
 
-export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: StaffPortalProps) {
+export default function StaffPortal({ onOpenCase, onChangeView, activeTab: controlledTab, onTabChange }: StaffPortalProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<StaffTab>(defaultTab || 'queue');
-
-  useEffect(() => {
-    if (defaultTab) {
-      setActiveTab(defaultTab);
-    }
-  }, [defaultTab]);
+  const [internalTab, setInternalTab] = useState<StaffTab>('queue');
+  const activeTab = controlledTab ?? internalTab;
+  const setActiveTab = onTabChange ?? setInternalTab;
 
   const filteredQueue = WORK_QUEUE.filter(
     (item) =>
@@ -381,6 +379,7 @@ export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: St
 
           {/* Correspondence tab */}
           {activeTab === 'correspondence' && <CorrespondencePanel />}
+          {activeTab === 'kb' && <KnowledgeBasePanel />}
 
           {/* Knowledge Base tab */}
           {activeTab === 'kb' && <KnowledgeBasePanel />}

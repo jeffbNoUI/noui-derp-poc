@@ -124,17 +124,34 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 | knowledgebase/api | 13 | 13 |
 | dataquality/api | 14 | 11 |
 | correspondence/api | 17 | 12 |
-| frontend (Vitest) | 22 | — |
-| **Total** | **71** | **36** |
+| frontend (Vitest) | 23 | — |
+| **Total** | **72** | **36** |
+
+---
+
+## DERP POC Session 6
+
+**Date:** 2026-03-07
+**Session:** DERP POC Session 6
+
+### Expanded Command Palette (9 → 17 entries) + Controlled Tab Navigation
+**Decision:** Expanded command palette to 17 entries with all 9 StaffPortal tabs, 4 portals, CRM, calculation, and 3 demo cases. Lifted StaffPortal `activeTab` state to App level using controlled/uncontrolled pattern so commands navigate directly to specific tabs. Added David Washington as 3rd demo case.
+**Rationale:** Make all StaffPortal tabs accessible from the command palette (Ctrl+K). Controlled `activeTab`/`onTabChange` pattern is more React-canonical than `defaultTab` + `useEffect`.
+**Status:** Complete
+
+**Test changes:**
+- StaffPortal: 11 tests (was 10) — added controlled tab prop test
+- **Total frontend tests: 23** (was 22)
 
 ---
 
 ## Remaining Work
 
-- [ ] KnowledgeBase panel as standalone StaffPortal tab (currently only in ContextualHelp within workflow)
+- [x] ~~KnowledgeBase panel as standalone StaffPortal tab~~
 - [x] ~~Full integration tests against live DB for new services~~
 - [x] ~~Add command palette entries for DQ and Correspondence tabs~~
-- [x] ~~Expand command palette from 9 to 16 entries~~
+- [x] ~~Expand command palette from 9 to 17 entries~~
+- [ ] Error handling review across all services
 
 ---
 

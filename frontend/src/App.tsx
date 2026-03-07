@@ -13,11 +13,10 @@ import EmploymentTimeline from '@/components/EmploymentTimeline';
 import MemberPortal from '@/components/portal/MemberPortal';
 import CRMWorkspace from '@/components/CRMWorkspace';
 import EmployerPortal from '@/components/portal/EmployerPortal';
-import StaffPortal from '@/components/StaffPortal';
+import StaffPortal, { type StaffTab } from '@/components/StaffPortal';
 import RetirementApplication from '@/components/RetirementApplication';
 import CommandPalette from '@/components/CommandPalette';
 import VendorPortal from '@/components/portal/VendorPortal';
-import type { StaffTab } from '@/components/StaffPortal';
 
 type ViewMode = 'staff' | 'portal' | 'workspace' | 'crm' | 'employer' | 'vendor' | 'retirement-app';
 
@@ -94,11 +93,11 @@ function TopNav({
 
 export default function App() {
   const [viewMode, setViewMode] = useState<ViewMode>('staff');
+  const [staffTab, setStaffTab] = useState<StaffTab>('queue');
   const [memberID, setMemberID] = useState(10001);
   const [retirementDate, setRetirementDate] = useState('2026-04-01');
   const [memberIDInput, setMemberIDInput] = useState('10001');
   const [cmdPaletteOpen, setCmdPaletteOpen] = useState(false);
-  const [staffTab, setStaffTab] = useState<StaffTab | undefined>(undefined);
 
   // Retirement application state
   const [activeCaseId, setActiveCaseId] = useState('');
@@ -135,24 +134,28 @@ export default function App() {
     return () => window.removeEventListener('keydown', handler);
   }, []);
 
-  // Command palette commands
+  // Command palette commands (16 entries)
   const commands = useMemo(() => [
-    { id: 'search-member', label: 'Search Member', icon: '🔍', shortcut: 'G M', category: 'Navigation', action: () => goToStaffTab('search') },
-    { id: 'open-queue', label: 'My Work Queue', icon: '📋', shortcut: 'G Q', category: 'Navigation', action: () => goToStaffTab('queue') },
-    { id: 'run-calc', label: 'Run Calculation', icon: '🧮', category: 'Actions', action: () => setViewMode('workspace') },
-    { id: 'open-crm', label: 'Open CRM', icon: '💬', category: 'Navigation', action: () => setViewMode('crm') },
-    { id: 'member-portal', label: 'Member Portal', icon: '👤', category: 'Navigation', action: () => setViewMode('portal') },
-    { id: 'employer-portal', label: 'Employer Portal', icon: '🏢', category: 'Navigation', action: () => setViewMode('employer') },
+    // Staff Portal tabs
+    { id: 'open-queue', label: 'My Work Queue', icon: '\ud83d\udccb', shortcut: 'G Q', category: 'Navigation', action: () => goToStaffTab('queue') },
+    { id: 'search-member', label: 'Search Member', icon: '\ud83d\udd0d', shortcut: 'G M', category: 'Navigation', action: () => goToStaffTab('search') },
+    { id: 'supervisor', label: 'Supervisor Dashboard', icon: '\ud83d\udcca', shortcut: 'G S', category: 'Navigation', action: () => goToStaffTab('supervisor') },
+    { id: 'executive', label: 'Executive Dashboard', icon: '\ud83d\udcc8', shortcut: 'G E', category: 'Navigation', action: () => goToStaffTab('executive') },
+    { id: 'csr-hub', label: 'CSR Hub', icon: '\ud83d\udcde', shortcut: 'G H', category: 'Navigation', action: () => goToStaffTab('csr') },
+    { id: 'service-map', label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P', category: 'Navigation', action: () => goToStaffTab('service-map') },
+    { id: 'data-quality', label: 'Data Quality', icon: '\ud83d\udee1\ufe0f', shortcut: 'G D', category: 'Navigation', action: () => goToStaffTab('dq') },
+    { id: 'correspondence', label: 'Correspondence', icon: '\u2709\ufe0f', shortcut: 'G X', category: 'Navigation', action: () => goToStaffTab('correspondence') },
+    { id: 'knowledge-base', label: 'Knowledge Base', icon: '\ud83d\udcda', shortcut: 'G K', category: 'Navigation', action: () => goToStaffTab('kb') },
+    // Cross-portal navigation
+    { id: 'run-calc', label: 'Run Calculation', icon: '\ud83e\uddee', category: 'Actions', action: () => setViewMode('workspace') },
+    { id: 'open-crm', label: 'Open CRM', icon: '\ud83d\udcac', shortcut: 'G C', category: 'Navigation', action: () => setViewMode('crm') },
+    { id: 'member-portal', label: 'Member Portal', icon: '\ud83d\udc64', category: 'Navigation', action: () => setViewMode('portal') },
+    { id: 'employer-portal', label: 'Employer Portal', icon: '\ud83c\udfe2', category: 'Navigation', action: () => setViewMode('employer') },
     { id: 'vendor-portal', label: 'Vendor Portal', icon: '\ud83c\udfe5', category: 'Navigation', action: () => setViewMode('vendor') },
-    { id: 'supervisor', label: 'Supervisor Dashboard', icon: '📊', shortcut: 'G S', category: 'Staff Tabs', action: () => goToStaffTab('supervisor') },
-    { id: 'executive', label: 'Executive Dashboard', icon: '📈', shortcut: 'G E', category: 'Staff Tabs', action: () => goToStaffTab('executive') },
-    { id: 'csr-hub', label: 'CSR Hub', icon: '📞', shortcut: 'G C', category: 'Staff Tabs', action: () => goToStaffTab('csr') },
-    { id: 'service-map', label: 'Service Map', icon: '\ud83d\uddfa\ufe0f', shortcut: 'G P', category: 'Staff Tabs', action: () => goToStaffTab('service-map') },
-    { id: 'data-quality', label: 'Data Quality', icon: '\ud83d\udee1\ufe0f', shortcut: 'G D', category: 'Staff Tabs', action: () => goToStaffTab('dq') },
-    { id: 'correspondence', label: 'Correspondence', icon: '\u2709\ufe0f', shortcut: 'G X', category: 'Staff Tabs', action: () => goToStaffTab('correspondence') },
-    { id: 'knowledge-base', label: 'Knowledge Base', icon: '\ud83d\udcda', shortcut: 'G K', category: 'Staff Tabs', action: () => goToStaffTab('kb') },
-    { id: 'case-robert', label: 'Open Case: Robert Martinez', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0147', 10001, '2026-04-01', ['leave-payout']) },
-    { id: 'case-jennifer', label: 'Open Case: Jennifer Kim', icon: '📂', category: 'Cases', action: () => handleOpenCase('RET-2026-0152', 10002, '2026-05-01', ['early-retirement', 'purchased-service']) },
+    // Cases
+    { id: 'case-robert', label: 'Open Case: Robert Martinez', icon: '\ud83d\udcc2', category: 'Cases', action: () => handleOpenCase('RET-2026-0147', 10001, '2026-04-01', ['leave-payout']) },
+    { id: 'case-jennifer', label: 'Open Case: Jennifer Kim', icon: '\ud83d\udcc2', category: 'Cases', action: () => handleOpenCase('RET-2026-0152', 10002, '2026-05-01', ['early-retirement', 'purchased-service']) },
+    { id: 'case-david', label: 'Open Case: David Washington', icon: '\ud83d\udcc2', category: 'Cases', action: () => handleOpenCase('RET-2026-0159', 10003, '2026-04-01', []) },
   ], [handleOpenCase, goToStaffTab]);
 
   // ── Staff Portal (default landing) ──────────────────────────────────────
@@ -167,7 +170,8 @@ export default function App() {
         <StaffPortal
           onOpenCase={handleOpenCase}
           onChangeView={handleChangeView}
-          defaultTab={staffTab}
+          activeTab={staffTab}
+          onTabChange={setStaffTab}
         />
       </>
     );

@@ -90,11 +90,17 @@ describe('StaffPortal', () => {
     );
     const labels = [
       'Work Queue', 'Member Lookup', 'Supervisor', 'Executive',
-      'CSR Hub', 'Service Map', 'Data Quality', 'Correspondence',
-      'Knowledge Base',
+      'CSR Hub', 'Service Map', 'Data Quality', 'Correspondence', 'Knowledge Base',
     ];
     for (const label of labels) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
+  });
+
+  it('accepts controlled activeTab prop', () => {
+    renderWithProviders(
+      <StaffPortal onOpenCase={noop} onChangeView={noop} activeTab="supervisor" onTabChange={noop} />
+    );
+    expect(screen.getByText('Supervisor Dashboard')).toBeInTheDocument();
   });
 });
