@@ -9,6 +9,7 @@ import {
   useCreateNewConversation,
 } from '@/hooks/useCRM';
 import { C, DISPLAY, BODY, MONO } from '@/lib/designSystem';
+import MotionCard from '@/components/MotionCard';
 import { ConversationThread, MessageComposer, MEMBER_THEME } from '@/components/crm';
 import BenefitProjectionChart from './BenefitProjectionChart';
 import type { ProjectionDataPoint } from './BenefitProjectionChart';
@@ -533,41 +534,49 @@ export default function MemberPortal({
             {/* Stat cards */}
             <div style={{
               display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 14,
-              opacity: loaded ? 1 : 0, transform: loaded ? 'none' : 'translateY(8px)',
-              transition: 'all 0.5s ease 0.1s',
             }}>
+              <MotionCard motion="zoom-out" order={0} baseDelay={150}>
               <StatPill
                 label="Current Account Balance"
                 value={currentBalance > 0 ? `$${(currentBalance / 1000).toFixed(0)}k` : '\u2014'}
                 sub={currentBalance > 0 ? `${tierName(effectiveMember.tier_code)} Member` : undefined}
               />
+              </MotionCard>
+              <MotionCard motion="zoom-out" order={1} baseDelay={150}>
               <StatPill
                 label="Employee Contributions"
                 value={employeeContrib > 0 ? `$${(employeeContrib / 1000).toFixed(0)}k` : '\u2014'}
                 sub="Lifetime total"
                 color={C.gold}
               />
+              </MotionCard>
+              <MotionCard motion="zoom-out" order={2} baseDelay={150}>
               <StatPill
                 label="Employer Contributions"
                 value={employerContrib > 0 ? `$${(employerContrib / 1000).toFixed(0)}k` : '\u2014'}
                 sub={employerContrib > 0 ? `${(employerContrib / Math.max(employeeContrib, 1)).toFixed(2)}\u00D7 match` : undefined}
                 color={C.navyLight}
               />
+              </MotionCard>
+              <MotionCard motion="zoom-out" order={3} baseDelay={150}>
               <StatPill
                 label="Est. Annual Benefit"
                 value={estimatedAnnual > 0 ? `$${(estimatedAnnual / 1000).toFixed(0)}k` : '\u2014'}
                 sub={estimatedAnnual > 0 ? `At retirement` : undefined}
                 color={C.sage}
               />
+              </MotionCard>
             </div>
 
             {/* Recent Messages card */}
+            <MotionCard motion="rise" order={0} baseDelay={400}>
             <RecentMessagesCard memberID={memberID} onViewAll={() => setActiveView('messages')} />
+            </MotionCard>
 
             {/* Projection chart */}
+            <MotionCard motion="rise" order={1} baseDelay={400}>
             <div className="portal-card" style={{
               padding: 28,
-              opacity: loaded ? 1 : 0, transition: 'all 0.5s ease 0.25s',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
                 <div>
@@ -595,12 +604,13 @@ export default function MemberPortal({
               </div>
               <BenefitProjectionChart data={projectionData} />
             </div>
+            </MotionCard>
 
             {/* Bottom row */}
+            <MotionCard motion="rise" order={2} baseDelay={400}>
             <div style={{
               display: 'grid', gridTemplateColumns: '1fr 1fr',
               gap: 14,
-              opacity: loaded ? 1 : 0, transition: 'all 0.5s ease 0.35s',
             }}>
               {/* Contribution History */}
               <div className="portal-card" style={{ padding: 24 }}>
@@ -647,12 +657,13 @@ export default function MemberPortal({
                 </div>
               </div>
             </div>
+            </MotionCard>
 
             {/* Personal details footer */}
+            <MotionCard motion="settle" order={3} baseDelay={400}>
             <div className="portal-card" style={{
               padding: '18px 24px',
               display: 'flex', alignItems: 'center', gap: 32,
-              opacity: loaded ? 1 : 0, transition: 'all 0.5s ease 0.45s',
             }}>
               {[
                 { label: 'Beneficiary', value: beneficiaryText },
@@ -666,6 +677,7 @@ export default function MemberPortal({
                 </div>
               ))}
             </div>
+            </MotionCard>
 
             {/* Phase 1 transparency footer */}
             <div style={{

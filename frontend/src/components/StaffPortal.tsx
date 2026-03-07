@@ -7,6 +7,7 @@ import KnowledgeBasePanel from '@/components/staff/KnowledgeBasePanel';
 import ServiceMap from '@/components/admin/ServiceMap';
 import DataQualityPanel from '@/components/admin/DataQualityPanel';
 import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
+import MotionCard from '@/components/MotionCard';
 
 interface StaffPortalProps {
   onOpenCase: (caseId: string, memberId: number, retDate: string, flags?: string[]) => void;
@@ -254,12 +255,12 @@ export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: St
                 { label: 'SLA At Risk', value: String(stats.atRisk), color: stats.atRisk > 0 ? 'text-amber-300' : 'text-emerald-300' },
                 { label: 'Avg Days', value: String(stats.avgDays), color: 'text-white' },
               ].map((pill, i) => (
-                <div key={i} className="flex flex-col items-center">
+                <MotionCard key={i} motion="zoom-out" order={i} baseDelay={200} stagger={80}>
                   <div className="text-center px-5 py-3 rounded-xl bg-white/[0.07] border border-white/10 backdrop-blur-sm">
                     <div className={`text-xl font-display font-bold ${pill.color}`}>{pill.value}</div>
                     <div className="text-[10px] text-white/40 mt-0.5 font-medium">{pill.label}</div>
                   </div>
-                </div>
+                </MotionCard>
               ))}
             </div>
           </div>
@@ -305,10 +306,10 @@ export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: St
                   <div className="col-span-2">Flags</div>
                 </div>
 
-                <div className={loaded ? 'iw-stagger' : ''}>
-                  {filteredQueue.map((item) => (
+                <div>
+                  {filteredQueue.map((item, idx) => (
+                    <MotionCard key={item.caseId} motion="zoom-in" order={idx} baseDelay={300} stagger={60}>
                     <div
-                      key={item.caseId}
                       onClick={() => onOpenCase(item.caseId, item.memberId, item.retDate, item.flags)}
                       className="grid grid-cols-12 gap-2 px-5 py-3.5 border-b border-iw-borderLight hover:bg-iw-sageLight/20 cursor-pointer transition-all items-center group"
                     >
@@ -366,6 +367,7 @@ export default function StaffPortal({ onOpenCase, onChangeView, defaultTab }: St
                         </div>
                       </div>
                     </div>
+                    </MotionCard>
                   ))}
                 </div>
 
