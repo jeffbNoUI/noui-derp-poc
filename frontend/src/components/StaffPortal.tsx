@@ -3,10 +3,10 @@ import SupervisorDashboard from '@/components/staff/SupervisorDashboard';
 import MemberSearch from '@/components/staff/MemberSearch';
 import ExecutiveDashboard from '@/components/staff/ExecutiveDashboard';
 import CSRContextHub from '@/components/staff/CSRContextHub';
+import KnowledgeBasePanel from '@/components/staff/KnowledgeBasePanel';
 import ServiceMap from '@/components/admin/ServiceMap';
 import DataQualityPanel from '@/components/admin/DataQualityPanel';
 import CorrespondencePanel from '@/components/workflow/CorrespondencePanel';
-import KnowledgeBasePanel from '@/components/admin/KnowledgeBasePanel';
 
 export type StaffTab = 'queue' | 'search' | 'supervisor' | 'executive' | 'csr' | 'service-map' | 'dq' | 'correspondence' | 'kb';
 
@@ -16,6 +16,7 @@ interface StaffPortalProps {
   activeTab?: StaffTab;
   onTabChange?: (tab: StaffTab) => void;
 }
+
 
 const WORK_QUEUE = [
   {
@@ -171,6 +172,7 @@ export default function StaffPortal({ onOpenCase, onChangeView, activeTab: contr
             <button
               key={item.key}
               onClick={() => setActiveTab(item.key)}
+              aria-label={item.label}
               className={`w-full flex items-center justify-between px-4 py-2.5 text-left transition-colors ${
                 activeTab === item.key
                   ? 'bg-iw-sageLight/50 text-iw-sage border-r-2 border-iw-sage'
@@ -178,7 +180,7 @@ export default function StaffPortal({ onOpenCase, onChangeView, activeTab: contr
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <span className="text-sm">{item.icon}</span>
+                <span className="text-sm" aria-hidden="true">{item.icon}</span>
                 <span className="text-sm font-medium">{item.label}</span>
               </div>
               <kbd className="text-[9px] text-gray-300 font-mono">{item.shortcut}</kbd>
@@ -198,9 +200,10 @@ export default function StaffPortal({ onOpenCase, onChangeView, activeTab: contr
             <button
               key={item.key}
               onClick={() => onChangeView(item.key)}
+              aria-label={`Navigate to ${item.label}`}
               className="w-full flex items-center gap-2.5 px-4 py-2 text-left text-gray-500 hover:bg-gray-50 hover:text-gray-700 transition-colors"
             >
-              <span className="text-sm">{item.icon}</span>
+              <span className="text-sm" aria-hidden="true">{item.icon}</span>
               <span className="text-xs font-medium">{item.label}</span>
             </button>
           ))}
@@ -376,6 +379,9 @@ export default function StaffPortal({ onOpenCase, onChangeView, activeTab: contr
 
           {/* Correspondence tab */}
           {activeTab === 'correspondence' && <CorrespondencePanel />}
+          {activeTab === 'kb' && <KnowledgeBasePanel />}
+
+          {/* Knowledge Base tab */}
           {activeTab === 'kb' && <KnowledgeBasePanel />}
 
           <footer className="mt-6 rounded-lg bg-gray-100 px-6 py-4 text-center text-xs text-gray-500">

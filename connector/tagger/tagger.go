@@ -10,7 +10,7 @@ import (
 // It also updates manifest.Tables[i].NoUITags in place.
 func TagManifest(manifest *schema.SchemaManifest, concepts []ConceptDef) *TagReport {
 	report := &TagReport{
-		GeneratedAt:    Now().UTC().Format(time.RFC3339),
+		GeneratedAt:    time.Now().UTC().Format(time.RFC3339),
 		ManifestSource: manifest.Source,
 		Summary: TagSummary{
 			TotalTables:  len(manifest.Tables),

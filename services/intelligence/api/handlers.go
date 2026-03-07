@@ -17,6 +17,10 @@ import (
 	"github.com/noui/derp-poc/intelligence/rules"
 )
 
+// httpClient is a shared HTTP client with a sensible timeout to prevent
+// hanging connections to the connector service.
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 // Handler holds dependencies for intelligence API handlers.
 type Handler struct {
 	ConnectorURL string
@@ -287,7 +291,7 @@ func (h *Handler) fetchAMS(memberID int) (*models.AMSData, error) {
 func (h *Handler) fetchDRO(memberID int) (*models.DROData, error) {
 	url := fmt.Sprintf("%s/api/v1/members/%d/dro", h.ConnectorURL, memberID)
 
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch DRO: %w", err)
 	}
@@ -351,7 +355,7 @@ func (h *Handler) fetchDRO(memberID int) (*models.DROData, error) {
 }
 
 func fetchFromConnector[T any](url string) (*T, error) {
-	resp, err := http.Get(url)
+	resp, err := httpClient.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch %s: %w", url, err)
 	}
@@ -378,6 +382,7 @@ func decodeJSON(r *http.Request, v interface{}) error {
 	if r.Body == nil {
 		return fmt.Errorf("request body is empty")
 	}
+	r.Body = http.MaxBytesReader(nil, r.Body, 1<<20) // 1MB limit
 	defer r.Body.Close()
 	return json.NewDecoder(r.Body).Decode(v)
 }
@@ -394,7 +399,7 @@ func writeSuccess(w http.ResponseWriter, data interface{}) {
 	resp := map[string]interface{}{
 		"data": data,
 		"meta": map[string]interface{}{
-			"request_id": uuid.New().String(),
+			"requestId": uuid.New().String(),
 			"timestamp":  time.Now().UTC().Format(time.RFC3339),
 		},
 	}
@@ -406,7 +411,7 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 		"error": map[string]interface{}{
 			"code":       code,
 			"message":    message,
-			"request_id": uuid.New().String(),
+			"requestId": uuid.New().String(),
 		},
 	}
 	writeJSON(w, status, resp)

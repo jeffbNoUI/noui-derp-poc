@@ -15,8 +15,6 @@
 package main
 
 import (
-	"time"
-
 	"github.com/noui/connector-lab/schema"
 )
 
@@ -90,5 +88,3 @@ type ConceptDef struct {
 	Signals   []SignalDef
 }
 
-// Now returns the current time (extracted for testability).
-var Now = time.Now

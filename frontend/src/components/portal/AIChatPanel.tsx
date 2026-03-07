@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { C, BODY } from '@/lib/designSystem';
 
 interface ChatMessage {
@@ -30,22 +30,33 @@ export default function AIChatPanel() {
   const [chatInput, setChatInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const replyTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = () => {
+  // Clear the simulated reply timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (replyTimeoutRef.current !== null) {
+        clearTimeout(replyTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleSend = useCallback(() => {
     if (!chatInput.trim()) return;
     setMessages(prev => [...prev, { role: 'user', text: chatInput }]);
     setChatInput('');
-    setTimeout(() => {
+    replyTimeoutRef.current = setTimeout(() => {
       setMessages(prev => [...prev, {
         role: 'assistant',
         text: "I'm looking into that for you now. Based on your current service credit and the DERP benefit formula (2.0% x years x final average salary), I can provide a detailed breakdown. Give me just a moment\u2026",
       }]);
+      replyTimeoutRef.current = null;
     }, 1200);
-  };
+  }, [chatInput]);
 
   return (
     <div style={{
@@ -127,7 +138,7 @@ export default function AIChatPanel() {
             onChange={e => setChatInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSend()}
           />
-          <button className="portal-send-btn" onClick={handleSend} disabled={!chatInput.trim()}>&#8593;</button>
+          <button className="portal-send-btn" onClick={handleSend} disabled={!chatInput.trim()} aria-label="Send message">&#8593;</button>
         </div>
         <div style={{ textAlign: 'center', marginTop: 8, fontSize: 10, color: C.textTertiary }}>
           Powered by NoUI &middot; Your data never leaves Denver's secure infrastructure

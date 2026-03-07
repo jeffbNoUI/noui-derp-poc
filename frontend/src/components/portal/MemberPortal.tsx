@@ -16,14 +16,11 @@ import ContributionBars from './ContributionBars';
 import type { ContributionDataPoint } from './ContributionBars';
 import AIChatPanel from './AIChatPanel';
 
-type ViewMode = 'portal' | 'workspace' | 'crm' | 'employer';
-
 interface MemberPortalProps {
   memberID: number;
   retirementDate: string;
   onSwitchToWorkspace: () => void;
   onSwitchToCRM: () => void;
-  onChangeView: (mode: ViewMode) => void;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

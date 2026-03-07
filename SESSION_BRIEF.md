@@ -1,12 +1,12 @@
 # SESSION_BRIEF.md — noui-derp-poc
 
-_Updated: 2026-03-07 | Status: DERP POC Session 4 Complete / Connector Lab Session 9 Complete_
+_Updated: 2026-03-07 | Status: DERP POC Session 6 Complete / Connector Lab Session 9 Complete_
 
 ---
 
 ## Current State
 
-**DERP POC:** Full prototype deployed with 7 backend services and React frontend. Command palette expanded to 17 entries covering all 9 StaffPortal tabs, 4 portals, CRM, calculation, and 3 demo cases. StaffPortal activeTab state lifted to App level for command palette navigation. Knowledge Base added as 9th standalone StaffPortal tab with article search and rules table. Frontend test coverage at 23 Vitest tests. Docker Compose validated end-to-end. Unit tests passing for all 3 new Go services (44 tests).
+**DERP POC:** Full prototype deployed with 7 backend services and React frontend. Command palette expanded to 17 entries covering all 9 StaffPortal tabs, 4 portals, CRM, calculation, and 3 demo cases. StaffPortal activeTab state lifted to App level via controlled/uncontrolled pattern for command palette navigation. Knowledge Base added as 9th standalone StaffPortal tab. 23 Vitest tests passing. 36 HTTP integration tests against live DB (KB: 13, DQ: 11, Correspondence: 12). Error response format standardized across all services (`requestId` camelCase). 71 unit tests + 36 integration tests = 107 Go tests total.
 
 **Connector Lab:** Three live targets running: ERPNext (MariaDB, port 3307), PostgreSQL HR (port 5433), and MSSQL HR (Azure SQL Edge, port 1434). All seeded with 32,158 records (200 employees, 3 years, 6 DQ issue categories). Full pipeline (introspect → tag → monitor → dashboard) validated end-to-end against all 3 databases with identical detection results (8 checks, 5 baselines). Dashboard supports workspace embedding via iframe with postMessage API and trend analysis from history data. Tagger expanded to 12 concepts, all validated against live ERPNext (39 tables tagged). Monitor supports configurable thresholds via JSON file and webhook notifications on check status changes. 86 unit tests passing.
 
@@ -51,11 +51,20 @@ _Updated: 2026-03-07 | Status: DERP POC Session 4 Complete / Connector Lab Sessi
 6. **Knowledge Base** (8087) — Articles, stage help, rule references, search
 
 ### Test Coverage
-- `intelligence/rules/`: Benefit calculation, DRO, payment options, IPR, death benefit
+
+**Unit Tests (71):**
+- `intelligence/rules/`: Benefit calculation, DRO, payment options, IPR, death benefit (5 tests)
 - `correspondence/api/`: Health, helpers, template rendering (17 tests)
 - `dataquality/api/`: Health, helpers, model serialization (14 tests)
 - `knowledgebase/api/`: Health, helpers, search validation (13 tests)
-- `frontend/src/components/__tests__/`: StaffPortal, CommandPalette, RetirementApplication (21 tests)
+- `frontend/src/components/__tests__/`: StaffPortal, CommandPalette, RetirementApplication (22 tests)
+
+**Integration Tests (36) — `tests/integration/` with `//go:build integration`:**
+- KB (13): articles, stages, search, rules — list/get/filter/not-found
+- DQ (11): checks, results, scores, trend, issues — list/get/filter/update
+- Correspondence (12): templates, generate, history — list/get/filter/create/update/not-found
+
+Run: `go test -tags integration ./tests/integration/ -v`
 
 ## What Was Built (DERP POC Session 4)
 
@@ -77,8 +86,8 @@ _Updated: 2026-03-07 | Status: DERP POC Session 4 Complete / Connector Lab Sessi
 
 ## Next Session Scope
 
-### Priority 1: Integration Tests
-1. Integration tests with live database for CRUD operations
+### Priority 1: Polish & Hardening
+1. Additional frontend component tests for new panels
 2. Error handling review across all services
 
 ## Environment Details

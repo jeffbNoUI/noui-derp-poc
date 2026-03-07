@@ -118,7 +118,7 @@ func (s *Store) GetConversation(conversationID string) (*models.Conversation, er
 		&conv.CreatedAt, &conv.UpdatedAt, &conv.CreatedBy, &conv.UpdatedBy,
 	)
 	if err == sql.ErrNoRows {
-		return nil, nil
+		return nil, sql.ErrNoRows
 	}
 	if err != nil {
 		return nil, fmt.Errorf("getting conversation %s: %w", conversationID, err)

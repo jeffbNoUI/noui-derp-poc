@@ -75,42 +75,82 @@ Each entry: Date | Session | Decision/Change | Rationale | Status
 
 ---
 
----
-
 ## DERP POC Session 4
 
-**Date:** 2026-03-07
+**Date:** 2026-03-06
 **Session:** DERP POC Session 4
 
-### Commit 7: Expanded Command Palette + KB Standalone Tab
-**Decision:** Expanded command palette from 9 to 17 entries. Lifted StaffPortal `activeTab` state to App level so commands navigate directly to specific tabs. Added Knowledge Base as 9th StaffPortal sidebar tab with browsable articles/rules panel.
-**Rationale:** Make all StaffPortal tabs accessible from the command palette (Ctrl+K). Add standalone KB browsing capability separate from the workflow-specific ContextualHelp.
+### Commit: Expanded Command Palette + Knowledge Base Tab
+**Decision:** Expanded command palette from 9 to 16 entries, added Knowledge Base as 9th StaffPortal tab. 22 Vitest tests passing.
+**Rationale:** Complete frontend feature set for demo.
 **Status:** Complete
 
-**Command Palette (17 entries):**
-| Category | Commands |
-|----------|----------|
-| Navigation (14) | Work Queue (G Q), Search Member (G M), Supervisor Dashboard (G S), Executive Dashboard (G E), CSR Hub (G H), Service Map (G P), Data Quality (G D), Correspondence (G X), Knowledge Base (G K), Open CRM (G C), Member Portal, Employer Portal, Vendor Portal |
-| Actions (1) | Run Calculation |
-| Cases (3) | Robert Martinez, Jennifer Kim, David Washington |
+---
 
-**Architecture changes:**
-- `StaffTab` type exported from StaffPortal for App-level state management
-- StaffPortal accepts optional `activeTab`/`onTabChange` props (backwards-compatible — falls back to internal state)
-- `goToStaffTab()` helper in App sets both `staffTab` and `viewMode('staff')` atomically
-- New `KnowledgeBasePanel` component in `components/admin/` with article search, expandable details, rules table
+## DERP POC Session 5
+
+**Date:** 2026-03-06
+**Session:** DERP POC Session 5
+
+### Integration Tests (36 tests against live DB)
+**Decision:** Added HTTP integration tests for KB (13), DQ (11), and Correspondence (12) services running in Docker. Tests live in `tests/integration/` as a standalone Go module with build tag `//go:build integration`.
+**Rationale:** Existing unit tests (44 total) only tested helpers, serialization, and health checks — no tests verified actual database queries or full request/response cycles against the live PostgreSQL database.
+**Status:** Complete — 36/36 integration tests passing
+
+**Test coverage by service:**
+
+| Service | Tests | Endpoints Covered |
+|---------|-------|-------------------|
+| Knowledge Base (8087) | 13 | healthz, articles (list/get/filter), stages, search, rules (list/get/filter) |
+| Data Quality (8086) | 11 | healthz, checks (list/get/filter), results, score, trend, issues (list/filter/update) |
+| Correspondence (8085) | 12 | healthz, templates (list/get/filter), generate (success/404/400), history, update |
+
+### Error Response Standardization
+**Decision:** Fixed `requestId` inconsistency — connector and intelligence used `request_id` (snake_case) while CRM/KB/DQ/Correspondence used `requestId` (camelCase). Standardized all 6 services on `requestId`.
+**Rationale:** Consistent API contract across all services.
+**Status:** Complete
+
+**Files changed:**
+- `services/connector/models/response.go` — JSON tag `request_id` → `requestId`
+- `services/intelligence/api/handlers.go` — map key `request_id` → `requestId`
+
+---
+
+## Updated Test Inventory
+
+| Package | Unit Tests | Integration Tests |
+|---------|-----------|------------------|
+| intelligence/rules | 5 | — |
+| knowledgebase/api | 13 | 13 |
+| dataquality/api | 14 | 11 |
+| correspondence/api | 17 | 12 |
+| frontend (Vitest) | 23 | — |
+| **Total** | **72** | **36** |
+
+---
+
+## DERP POC Session 6
+
+**Date:** 2026-03-07
+**Session:** DERP POC Session 6
+
+### Expanded Command Palette (9 → 17 entries) + Controlled Tab Navigation
+**Decision:** Expanded command palette to 17 entries with all 9 StaffPortal tabs, 4 portals, CRM, calculation, and 3 demo cases. Lifted StaffPortal `activeTab` state to App level using controlled/uncontrolled pattern so commands navigate directly to specific tabs. Added David Washington as 3rd demo case.
+**Rationale:** Make all StaffPortal tabs accessible from the command palette (Ctrl+K). Controlled `activeTab`/`onTabChange` pattern is more React-canonical than `defaultTab` + `useEffect`.
+**Status:** Complete
 
 **Test changes:**
-- StaffPortal: 11 tests (was 9) — added KB tab render + controlled tab prop test
-- CommandPalette: 6 tests (unchanged — uses generic test commands)
-- RetirementApplication: 6 tests (unchanged)
-- **Total frontend tests: 23** (was 21)
+- StaffPortal: 11 tests (was 10) — added controlled tab prop test
+- **Total frontend tests: 23** (was 22)
 
 ---
 
 ## Remaining Work
 
-- [ ] Full integration tests against live DB for new services
+- [x] ~~KnowledgeBase panel as standalone StaffPortal tab~~
+- [x] ~~Full integration tests against live DB for new services~~
+- [x] ~~Add command palette entries for DQ and Correspondence tabs~~
+- [x] ~~Expand command palette from 9 to 17 entries~~
 - [ ] Error handling review across all services
 
 ---

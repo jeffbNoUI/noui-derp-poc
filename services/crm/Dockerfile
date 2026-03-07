@@ -7,9 +7,9 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 GOOS=linux go build -o /crm-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /crm-service .
 
-FROM gcr.io/distroless/static-debian12
+FROM gcr.io/distroless/static-debian12:nonroot
 
 COPY --from=builder /crm-service /crm-service
 

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"html"
 	"log"
 	"os"
 	"strings"
@@ -201,10 +202,10 @@ func RenderTemplate(tmpl *models.Template, mergeData map[string]string) (string,
 		}
 	}
 
-	// Perform substitution
+	// Perform substitution with HTML escaping to prevent XSS
 	body := tmpl.BodyTemplate
 	for key, value := range mergeData {
-		body = strings.ReplaceAll(body, "{{"+key+"}}", value)
+		body = strings.ReplaceAll(body, "{{"+key+"}}", html.EscapeString(value))
 	}
 
 	return body, nil

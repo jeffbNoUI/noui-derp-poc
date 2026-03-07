@@ -13,9 +13,9 @@ env:
   DB_HOST: postgres
   DB_PORT: "5432"
   DB_USER: derp
-  DB_NAME: crm
+  DB_NAME: derp
   DB_SSLMODE: disable
-  CORS_ORIGIN: "http://localhost:3000"
+  CORS_ORIGIN: "http://localhost:3000"  # Override for deployment (e.g., https://app.example.com)
 
 resources:
   limits:

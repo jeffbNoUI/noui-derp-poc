@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/fs"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -393,18 +394,34 @@ type CheckTimePoint struct {
 
 // loadHistoryReports reads all report-*.json files from historyDir,
 // parses them, and returns them sorted by RunAt (ascending).
+// At most maxHistoryFiles are loaded (the most recent by name sort order).
 func loadHistoryReports(dir string) ([]schema.MonitorReport, error) {
+	const maxHistoryFiles = 1000
+
 	entries, err := os.ReadDir(dir)
 	if err != nil {
 		return nil, fmt.Errorf("reading history directory: %w", err)
 	}
 
-	var reports []schema.MonitorReport
+	// Filter to only report-*.json files.
+	var filtered []os.DirEntry
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasPrefix(entry.Name(), "report-") || !strings.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
+		filtered = append(filtered, entry)
+	}
 
+	// Sort by name (timestamps sort lexicographically) and cap to most recent.
+	sort.Slice(filtered, func(i, j int) bool {
+		return filtered[i].Name() < filtered[j].Name()
+	})
+	if len(filtered) > maxHistoryFiles {
+		filtered = filtered[len(filtered)-maxHistoryFiles:]
+	}
+
+	var reports []schema.MonitorReport
+	for _, entry := range filtered {
 		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
 		if err != nil {
 			log.Printf("Trends: skipping %s: %v", entry.Name(), err)
@@ -453,7 +470,7 @@ func computeTrends(reports []schema.MonitorReport) TrendResponse {
 		if len(points) >= 2 && points[0].Value != 0 {
 			drift = (points[len(points)-1].Value - points[0].Value) / points[0].Value * 100
 			// Round to 2 decimal places
-			drift = float64(int(drift*100)) / 100
+			drift = math.Round(drift*100) / 100
 		}
 		resp.BaselineTrends = append(resp.BaselineTrends, BaselineTrend{
 			MetricName: name,
@@ -523,6 +540,8 @@ func writeError(w http.ResponseWriter, status int, message string) {
 }
 
 // withCORS wraps a handler to add CORS headers for local development.
+// TODO: The wildcard "*" origin must be replaced with a configurable allowed
+// origin before production promotion. Accept via flag/env var and validate.
 func withCORS(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

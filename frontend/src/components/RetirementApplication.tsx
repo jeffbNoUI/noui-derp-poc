@@ -29,7 +29,6 @@ interface RetirementApplicationProps {
   retirementDate: string;
   caseFlags?: string[];
   onBack: () => void;
-  onChangeView: (mode: string) => void;
 }
 
 export default function RetirementApplication({
